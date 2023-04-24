@@ -5,3 +5,4 @@ lib/
 token
 *.cfg
 *.pyc
+.DS_Store
