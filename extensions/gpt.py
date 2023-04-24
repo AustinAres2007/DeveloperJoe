@@ -1,9 +1,11 @@
-import discord
+import discord, openai
 from discord.ext import commands
 
 class gpt(commands.Cog):
     def __init__(self, client):
         self.client: commands.Bot = client
+        openai.api_key = client.gpt_token
+
         print("General Loaded")
 
     @discord.app_commands.command(name="status", description=f"Check if bot is online.", extras={'error': "Wait some moments please."})

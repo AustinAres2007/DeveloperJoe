@@ -4,8 +4,16 @@ from typing import Coroutine, Any
 
 # Configuration
 
-with open('token', 'r') as tk_file:
-    TOKEN: str = tk_file.read()
+try:
+    with open('token', 'r') as tk_file:
+        tk_file_data = tk_file.read().splitlines()
+        TOKEN: str = tk_file_data[0]
+        openai.api_key = tk_file_data[1]
+except FileNotFoundError:
+    print("Missing token file."); exit(1)
+except IndexError:
+    print("Missing tokens."); exit(1)
+
 INTENTS = discord.Intents.default()
 
 # Main Bot Class
@@ -13,6 +21,7 @@ INTENTS = discord.Intents.default()
 class DevJoe(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.gpt_token = openai.api_key
 
     async def on_ready(self):
         print(f"{self.application.name} Online.")
