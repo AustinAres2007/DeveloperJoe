@@ -21,7 +21,7 @@ INTENTS = discord.Intents.default()
 class DevJoe(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gpt_token = openai.api_key
+        self.gpt_token = openai.api_key 
 
     async def on_ready(self):
         print(f"{self.application.name} Online.")
@@ -32,7 +32,7 @@ class DevJoe(commands.Bot):
                 await self.load_extension(f"extensions.{file[:-3]}")
 
         await self.tree.sync()
-        self.command_errors = {str(command.name): dict(command.extras) for command in self.tree.walk_commands()}
+        #self.command_errors = {str(command.name): dict(command.extras) for command in self.tree.walk_commands()}
 
         return await super().setup_hook()
     
