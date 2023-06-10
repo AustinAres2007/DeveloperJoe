@@ -1,6 +1,5 @@
-import discord, openai, asyncio, requests
+import discord, openai, requests
 from discord.ext import commands
-from typing import Callable, Union
 
 BASE_ENDPOINT = "https://api.openai.com/v1"
 
@@ -20,12 +19,13 @@ class gpt(commands.Cog):
     
     def has_conversation(self, id_: int) -> bool:
         return int(id_) in list(self.conversations) 
+    
     def is_owner(interaction: discord.Interaction) -> bool:
         return interaction.user.id == 400089431933059072
     
     async def ask_gpt(self, ctx: discord.Interaction, message: str, role: str="user", save_to_context: bool=True):
         try:
-            self.conversations[ctx.user.id].append({"role": role, "content": message})
+            self.conversations[ctx.user.id].append([{"role": role, "content": message}, [ctx.user.id]])
             body = {"model": "gpt-3.5-turbo", "messages": self.conversations[ctx.user.id]}
             gpt_request = requests.post(f"{BASE_ENDPOINT}/chat/completions", headers=self.header, json=body)
             
