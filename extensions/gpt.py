@@ -1,4 +1,4 @@
-import discord, openai, requests
+import discord, requests
 from discord.ext import commands
 
 BASE_ENDPOINT = "https://api.openai.com/v1"
