@@ -95,6 +95,9 @@ class gpt(commands.Cog):
             return await func()
         await interaction.response.send_message(NO_CONVO)
             
+    @discord.app_commands.command(name="engine", description="Create a custom GPT-3.5-Turbo Model")
+    async def custom_engine(self, interaction: discord.Interaction, ):
+        ...
 
 async def setup(client):
     await client.add_cog(gpt(client))
