@@ -15,6 +15,36 @@ Rant:
 NO_CONVO = "You do not have a conversation with DeveloperJoe. Do /start to do such."
 HAS_CONVO = 'You already have an ongoing conversation with DeveloperJoe. To reset, do "/stop."'
 
+api_key = "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"
+url = "https://api.openai.com/v1/chat/completions"
+headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+
+class gpt_instance:
+    def __init__(self, id: int, *args):
+        self.id = id
+        self.args = args
+        self.chat_history = []
+
+    def __send_query__(self, query, role) -> str:
+        self.chat_history.append({"role": role, "content": query, "name": f"{self.id}"})
+        json_body = {"model": "gpt-3.5-turbo", "messages": self.chat_history}
+
+        reply = requests.post(url, headers=headers, json=json_body)
+        reply_json = reply.json()
+        reply_code = reply.status_code
+
+        if reply_code == 200:
+            return reply_json["choices"][0]["message"]["content"]
+        else:
+            ...
+
+    def ask(self, query: str) -> str:
+        return self.__send_query__(query, "user")
+    
+    def start(self, uid: int) -> str:
+        self.id = uid
+        return self.__send_query__("Please give a short and formal introduction to yourself, what you can do, and limitations.", "system")
+
 class gpt(commands.Cog):
     
     def has_conversation(self, id_: int) -> bool:
@@ -22,39 +52,10 @@ class gpt(commands.Cog):
     
     def is_owner(interaction: discord.Interaction) -> bool:
         return interaction.user.id == 400089431933059072
-    
-    async def ask_gpt(self, ctx: discord.Interaction, message: str, role: str="user", save_to_context: bool=True):
-        try:
-            self.conversations[ctx.user.id].append([{"role": role, "content": message}, [ctx.user.id]])
-            body = {"model": "gpt-3.5-turbo", "messages": self.conversations[ctx.user.id]}
-            gpt_request = requests.post(f"{BASE_ENDPOINT}/chat/completions", headers=self.header, json=body)
-            
-            if gpt_request.status_code == 200:
-
-                response = gpt_request.json()
-                message_response = response["choices"][0]["message"]
-                
-                await ctx.followup.send(message_response["content"].strip())
-                self.conversations[ctx.user.id].append(message_response) if save_to_context else None
-                self.conversations[ctx.user.id].pop() if not save_to_context else None
-            else:
-                print(gpt_request.json())
-
-        except requests.ConnectionError:
-            await ctx.followup.send("General Error, please try again.")
-        except requests.Timeout:
-            await ctx.followup.send("Timeout. Please try again.")
-        except KeyError:
-            await ctx.followup.send(NO_CONVO)
 
     def __init__(self, client):
         self.client: commands.Bot = client
-        
-        openai.organization = "org-v6VcB3sShPterTqRqUnEB0um"
-        openai.api_key = client.gpt_token
-
-        self.header = {"Content-Type": "application/json", "Authorization": f"Bearer {openai.api_key}"}
-        self.conversations = {}
+        self.conversations: dict[int, gpt_instance] = {}
 
         print("GPT Loaded")
 
@@ -68,35 +69,37 @@ class gpt(commands.Cog):
     async def start(self, interaction: discord.Interaction):
         
         async def func():
-            self.conversations[interaction.user.id] = []
             await interaction.response.defer(ephemeral=True, thinking=True)
-            return await self.ask_gpt(interaction, "Introduce yourself. Give a short formal description, something to understand easily.", "system", False)
-            
-        
+
+            convo = gpt_instance(interaction.user.id)
+            self.conversations[interaction.user.id] = convo
+            await interaction.followup.send(convo.start(interaction.user.id))
+
         if not self.has_conversation(interaction.user.id):
             return await func()
         await interaction.response.send_message(HAS_CONVO)
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
     async def ask(self, interaction: discord.Interaction, message: str):
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        await self.ask_gpt(interaction, message)
+        if self.has_conversation(interaction.user.id):
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            return await interaction.followup.send(self.conversations[interaction.user.id].ask(message))
 
     @discord.app_commands.command(name="stop", description="Stop a DeveloperJoe session.")
     async def stop(self, interaction: discord.Interaction):
 
         # Actual command
         async def func():
+            await interaction.response.send_message(self.conversations[interaction.user.id].__send_query__("Please give a short and formal farewell.", "system"))
             del self.conversations[interaction.user.id]
-            await interaction.response.send_message("Deleted conversation history.")
         
         # checks because app_commands cannot use normal ones.
         if self.has_conversation(interaction.user.id):
             return await func()
         await interaction.response.send_message(NO_CONVO)
             
-    @discord.app_commands.command(name="engine", description="Create a custom GPT-3.5-Turbo Model")
-    async def custom_engine(self, interaction: discord.Interaction, ):
+    @discord.app_commands.command(name="engine", description="Create a custom OpenAI Chat AI Model")
+    async def custom_engine(self, interaction: discord.Interaction):
         ...
 
 async def setup(client):
