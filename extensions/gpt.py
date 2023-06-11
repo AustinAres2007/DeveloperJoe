@@ -36,7 +36,19 @@ class gpt_instance:
         if reply_code == 200:
             return reply_json["choices"][0]["message"]["content"]
         else:
-            ...
+            if reply_code == 400:
+            
+                if "error" in reply_code:
+                    try:
+                        return "You have reached your chats history limit."
+                    except KeyError:
+                        return f"Unknown Error: {reply_code}\nResponse: {str(reply_json)}"
+
+            elif reply_code == 429:
+                return "Set rate or maxium rate exceeded. Please contact DeveloperJoe owner for assistence.", 
+
+            else:
+                return f"Unknown Error: {reply_code}\nResponse: {str(reply_json)}"
 
     def ask(self, query: str) -> str:
         return self.__send_query__(query, "user")
