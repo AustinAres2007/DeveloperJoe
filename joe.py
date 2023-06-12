@@ -24,7 +24,9 @@ class DevJoe(commands.Bot):
         self.gpt_token = openai.api_key 
 
     async def on_ready(self):
-        print(f"{self.application.name} Online.")
+        proc_pid = os.getpid()
+        print(f"{self.application.name} Online. PID: {proc_pid}")
+        await discord.AppInfo.owner.send(f"{self.application.name} Proc PID: {proc_pid}")
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
