@@ -31,13 +31,11 @@ class gpt_instance:
 
     def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> str:
         
-        print(self.chat_history)
+        replied_content = "Unknown error, contact administrator."
+        error = False
+        r_history = []
         
         try:
-            replied_content = "Unknown error, contact administrator."
-            error = False
-            r_history = []
-
             if query_type == "query":
                 
 
@@ -89,7 +87,7 @@ class gpt_instance:
             error = e
             replied_content = f"Uncatched Error: {str(e)}. Please contact administrator"
 
-        else:
+        finally:
             if (not save_message or error) and query_type == "query":
                 self.chat_history = self.chat_history[:len(self.chat_history)-2]
                 self.readable_history.pop()
