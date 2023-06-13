@@ -126,7 +126,6 @@ class gpt(commands.Cog):
         print("GPT Loaded")
 
     @discord.app_commands.command(name="halt", description="Shuts down bot client")
-    @discord.app_commands.check(is_owner)
     async def halt(self, ctx: discord.Interaction):
 
         await ctx.user.send("Shutting Down")
