@@ -135,8 +135,9 @@ class gpt(commands.Cog):
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
     async def start(self, interaction: discord.Interaction):
         
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         async def func():
-            await interaction.response.defer(ephemeral=True, thinking=True)
 
             convo = gpt_instance(interaction.user.id)
             self.conversations[interaction.user.id] = convo
@@ -144,6 +145,7 @@ class gpt(commands.Cog):
 
         if not self.get_user_conversation(interaction.user.id):
             return await func()
+        
         await interaction.response.send_message(HAS_CONVO)
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
