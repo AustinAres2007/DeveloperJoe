@@ -1,10 +1,10 @@
 if [ "$1" != "" ]; then
 
+    echo $1
+    
     git add *
     git commit -m "Updating Version of DJ"
     git push
-
-    echo $1
 
     ssh samirohim@austinares.synology.me "
         cd ../../../.. && cd volume1/Git && cd developerjoe && 
