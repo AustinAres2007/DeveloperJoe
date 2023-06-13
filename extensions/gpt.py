@@ -180,8 +180,8 @@ class gpt(commands.Cog):
             return f"Uncaught Exception: {e}"
     
     @discord.app_commands.command(name="export", description="Export current chat history.")
-    async def export_chat_history(self, interaction: discord.Interaction):
-        if convo := self.get_user_conversation(interaction.user.id):
+    async def export_chat_history(self, interaction: discord.Interaction, uid: int=0):
+        if convo := self.get_user_conversation(uid if uid else interaction.user.id):
 
             def format(data: list) -> str:
                 final = ""
