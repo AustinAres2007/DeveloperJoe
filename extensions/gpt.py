@@ -23,9 +23,8 @@ GPT_HEADERS = {"Content-Type": "application/json", "Authorization": f"Bearer {AP
 openai.api_key = API_KEY
 
 class gpt_instance:
-    def __init__(self, id: int, *args):
-        self.id = id
-        self.args = args
+    def __init__(self, user: Union[discord.User, discord.Member]):
+        self.User: Union[discord.User, discord.Member] = user
         self.chat_history = []
         self.readable_history = []
 
@@ -106,9 +105,12 @@ class gpt_instance:
     def ask(self, query: str) -> str:
         return self.__send_query__(query_type="query", role="user", content=query)
     
-    def start(self, uid: int) -> str:
-        self.id = uid
+    def start(self) -> str:
         return self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations.")
+
+    def clear(self) -> None:
+        self.readable_history.clear()
+        self.chat_history.clear()
 
 class gpt(commands.Cog):
     
@@ -138,9 +140,9 @@ class gpt(commands.Cog):
 
         async def func():
 
-            convo = gpt_instance(interaction.user.id)
+            convo = gpt_instance(interaction.user)
             self.conversations[interaction.user.id] = convo
-            await interaction.followup.send(convo.start(interaction.user.id))
+            await interaction.followup.send(convo.start())
 
         if not self.get_user_conversation(interaction.user.id):
             return await func()
@@ -180,17 +182,14 @@ class gpt(commands.Cog):
             return f"Uncaught Exception: {e}"
     
     @discord.app_commands.command(name="export", description="Export current chat history.")
-    async def export_chat_history(self, interaction: discord.Interaction, uid: str="0"):
-        auid = int(uid) if uid != "0" and uid.isnumeric() else interaction.user.id
-        user = self.client.get_user(auid)
-
-        if (convo := self.get_user_conversation(auid)) and user:
+    async def export_chat_history(self, interaction: discord.Interaction):
+        if (convo := self.get_user_conversation(interaction.user.id)):
 
             def format(data: list) -> str:
                 final = ""
                 
                 for entry in data:
-                    final += f"{user.display_name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
+                    final += f"{convo.User.name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
                         if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
                 
                 return final
@@ -198,7 +197,7 @@ class gpt(commands.Cog):
             formatted_history_string = format(convo.readable_history)
             file_like = io.BytesIO(formatted_history_string.encode())
             file_like.name = f"{datetime.date}-transcript.txt"
-            return await interaction.response.send_message(f"{user.display_name}'s DeveloperJoe Transcript", file=discord.File(file_like))
+            return await interaction.response.send_message(f"{convo.User.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
         
         await interaction.response.send_message(NO_CONVO)
 
