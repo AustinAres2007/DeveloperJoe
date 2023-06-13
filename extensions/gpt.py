@@ -2,8 +2,6 @@ import discord, datetime, openai, io
 from discord.ext import commands
 from typing import Union
 
-# TODO: Handle GPT errors
-
 """
 Rant:
     This API / kit is so shit it makes me not want to code for discord anymore. It has become complex since the update and discords
@@ -24,7 +22,10 @@ openai.api_key = API_KEY
 
 class gpt_instance:
     def __init__(self, user: Union[discord.User, discord.Member]):
-        self.User: Union[discord.User, discord.Member] = user
+        self.user: Union[discord.User, discord.Member] = user
+        self.time: datetime.datetime = datetime.datetime.now()
+        self.tokens = 0
+
         self.chat_history = []
         self.readable_history = []
 
@@ -33,7 +34,8 @@ class gpt_instance:
         replied_content = "Unknown error, contact administrator."
         error = False
         r_history = []
-        
+        reply = None
+
         try:
             if query_type == "query":
                 
@@ -100,7 +102,15 @@ class gpt_instance:
                 if error:
                     self.readable_history.append(f"Error: {str(error)}")
 
+            if (reply and save_message and query_type == "query") and not error:
+                self.tokens += int(reply["usage"]["total_tokens"]) # type: ignore
+            
+            print(self.tokens)
+
             return replied_content
+
+    def calculate_tokens(self):
+        ...
 
     def ask(self, query: str) -> str:
         return self.__send_query__(query_type="query", role="user", content=query)
@@ -189,7 +199,7 @@ class gpt(commands.Cog):
                 final = ""
                 
                 for entry in data:
-                    final += f"{convo.User.name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
+                    final += f"{convo.user.name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
                         if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
                 
                 return final
@@ -197,9 +207,26 @@ class gpt(commands.Cog):
             formatted_history_string = format(convo.readable_history)
             file_like = io.BytesIO(formatted_history_string.encode())
             file_like.name = f"{datetime.date}-transcript.txt"
-            return await interaction.response.send_message(f"{convo.User.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
+
+            await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
+            return await interaction.response.send_message("I havee sent your conversation transcript to our direct messages.")
         
         await interaction.response.send_message(NO_CONVO)
+
+    @discord.app_commands.command(name="info", description="Displays information about your current DeveloperJoe Chat.")
+    async def get_info(self, interaction: discord.Interaction):
+        if convo := self.get_user_conversation(interaction.user.id):
+            
+            returned_embed = discord.Embed(title="Chat Information")
+
+            returned_embed.add_field(name="Started At", value=str(convo.time))
+            returned_embed.add_field(name="Used Tokens", value=f"{str(convo.tokens)} / 4096")
+            returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)))
+            returned_embed.color = discord.Colour.purple()
+
+            return await interaction.response.send_message(embed=returned_embed)
+        
+        await interaction.response.send_message(NO_CONVO) 
 
 async def setup(client):
     await client.add_cog(gpt(client))
