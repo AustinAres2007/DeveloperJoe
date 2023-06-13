@@ -180,22 +180,25 @@ class gpt(commands.Cog):
             return f"Uncaught Exception: {e}"
     
     @discord.app_commands.command(name="export", description="Export current chat history.")
-    async def export_chat_history(self, interaction: discord.Interaction, uid: str):
-        if convo := self.get_user_conversation(int(uid) if uid else interaction.user.id):
+    async def export_chat_history(self, interaction: discord.Interaction, uid: Union[float, int]):
+        auid = int(uid) if uid else interaction.user.id
+        user = self.client.get_user(auid)
+
+        if (convo := self.get_user_conversation(auid)) and user:
 
             def format(data: list) -> str:
                 final = ""
                 
                 for entry in data:
-                    final += f"{interaction.user.name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
+                    final += f"{user.display_name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
                         if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
                 
                 return final
             
             formatted_history_string = format(convo.readable_history)
             file_like = io.BytesIO(formatted_history_string.encode())
-            file_like.name = "transcript.txt"
-            return await interaction.response.send_message(f"{interaction.user.display_name}'s DeveloperJoe Transcript", file=discord.File(file_like))
+            file_like.name = f"{datetime.date}-transcript.txt"
+            return await interaction.response.send_message(f"{user.display_name}'s DeveloperJoe Transcript", file=discord.File(file_like))
         
         await interaction.response.send_message(NO_CONVO)
 
