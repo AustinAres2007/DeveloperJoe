@@ -181,7 +181,7 @@ class gpt(commands.Cog):
     
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction, uid: str="0"):
-        auid = int(uid) if uid and uid.isnumeric() else interaction.user.id
+        auid = int(uid) if uid != "0" and uid.isnumeric() else interaction.user.id
         user = self.client.get_user(auid)
 
         if (convo := self.get_user_conversation(auid)) and user:
