@@ -128,7 +128,6 @@ class gpt(commands.Cog):
     @discord.app_commands.command(name="halt", description="Shuts down bot client")
     async def halt(self, ctx: discord.Interaction):
 
-        await ctx.user.send("Shutting Down")
         await ctx.response.send_message("Shutting Down")
         await self.client.close()
     
@@ -145,7 +144,7 @@ class gpt(commands.Cog):
 
         if not self.get_user_conversation(interaction.user.id):
             return await func()
-        
+
         await interaction.response.send_message(HAS_CONVO)
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
