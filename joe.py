@@ -1,7 +1,7 @@
 import discord, openai, asyncio, os
 from discord.ext import commands
-from typing import Coroutine, Any
-
+from typing import Coroutine, Any, Union
+from objects import GPTChat
 # Configuration
 
 try:
@@ -10,18 +10,24 @@ try:
 except FileNotFoundError:
     print("Missing token file."); exit(1)
 
-INTENTS = discord.Intents.default()
+INTENTS = discord.Intents.all()
 
 # Main Bot Class
 
 class DevJoe(commands.Bot):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.gpt_token = openai.api_key 
 
+    def get_user_conversation(self, id_: int) -> Union[GPTChat.GPTChat, None]:
+        return self.chats[id_] if int(id_) in list(self.chats) else None
+    
     async def on_ready(self):
         if self.application:
             print(f"{self.application.name} Online")
+
+            self.chats = {}
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions."))
 
 
