@@ -6,13 +6,9 @@ from typing import Coroutine, Any
 
 try:
     with open('token', 'r') as tk_file:
-        tk_file_data = tk_file.read().splitlines()
-        TOKEN: str = tk_file_data[0]
-        openai.api_key = tk_file_data[1]
+        TOKEN: str = tk_file.read()
 except FileNotFoundError:
     print("Missing token file."); exit(1)
-except IndexError:
-    print("Missing tokens."); exit(1)
 
 INTENTS = discord.Intents.default()
 
@@ -26,6 +22,8 @@ class DevJoe(commands.Bot):
     async def on_ready(self):
         if self.application:
             print(f"{self.application.name} Online")
+            await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions."))
+
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
@@ -38,10 +36,13 @@ class DevJoe(commands.Bot):
 # Driver Code
 
 async def run_bot():
-    ...
-    async with DevJoe(command_prefix="?", intents=INTENTS) as client:
-        await client.start(TOKEN)
-
+    try:
+        async with DevJoe(command_prefix="?", intents=INTENTS) as client:
+            await client.start(TOKEN)
+    except KeyboardInterrupt:
+        if client:
+            await client.close()
+        
 if __name__ == "__main__":
     try:
         asyncio.run(run_bot())

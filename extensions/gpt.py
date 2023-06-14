@@ -109,9 +109,6 @@ class gpt_instance:
 
             return replied_content
 
-    def calculate_tokens(self):
-        ...
-
     def ask(self, query: str) -> str:
         return self.__send_query__(query_type="query", role="user", content=query)
     
@@ -223,7 +220,7 @@ class gpt(commands.Cog):
             file_like.name = f"{datetime.datetime.now()}-transcript.txt"
 
             await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
-            return await interaction.response.send_message("I havee sent your conversation transcript to our direct messages.")
+            return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
         
         await interaction.response.send_message(NO_CONVO)
 
