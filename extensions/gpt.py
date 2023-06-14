@@ -1,6 +1,6 @@
 import discord, datetime, openai, io
 from discord.ext import commands
-from typing import Union
+from typing import Union, Optional
 
 """
 Rant:
@@ -160,6 +160,7 @@ class gpt(commands.Cog):
         await interaction.response.send_message(HAS_CONVO)
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
+    @discord.app_commands.describe(message="The query you want to send DeveloperJoe")
     async def ask(self, interaction: discord.Interaction, message: str):
 
         if convo := self.get_user_conversation(interaction.user.id):
@@ -181,16 +182,29 @@ class gpt(commands.Cog):
         await interaction.response.send_message(NO_CONVO)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
-    async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str="512x512"):
-        r = ""
+    @discord.app_commands.describe(prompt="The keyword you want DeveloperJoe to describe.", resolution="Resolution of the final image.")
+    @discord.app_commands.choices(resolution=[
+        discord.app_commands.Choice(name="256x256", value="256x256"),
+        discord.app_commands.Choice(name="512x512", value="512x512"),
+        discord.app_commands.Choice(name="1024x1024", value="1024x1024")
+    ]) 
+    async def image_generate(self, interaction: discord.Interaction, prompt: discord.app_commands.Choice[str], resolution: Optional[discord.app_commands.Choice[str]]):
+        r = "Error"
         try:
             await interaction.response.defer(ephemeral=True, thinking=True)
-            if convo := self.get_user_conversation(interaction.user.id):
-                return await interaction.followup.send(convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
-            await interaction.response.send_message(NO_CONVO)    
+            if resolution in ["256x256", "512x512", "1024x1024"]:
+                if convo := self.get_user_conversation(interaction.user.id):
+                    r = convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1)
+                else:
+                    r = NO_CONVO
+            else:
+                r = "Incorrect resolution setting. (Must be: 256x256, 512x512, 1024x1024)"
         except Exception as e:
-            return f"Uncaught Exception: {e}"
-    
+            r = f"Uncaught Exception: {e}"
+
+        finally:
+            return await interaction.followup.send(r)
+        
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction):
         if (convo := self.get_user_conversation(interaction.user.id)):
@@ -206,7 +220,7 @@ class gpt(commands.Cog):
             
             formatted_history_string = format(convo.readable_history)
             file_like = io.BytesIO(formatted_history_string.encode())
-            file_like.name = f"{datetime.date}-transcript.txt"
+            file_like.name = f"{datetime.datetime.now()}-transcript.txt"
 
             await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
             return await interaction.response.send_message("I havee sent your conversation transcript to our direct messages.")

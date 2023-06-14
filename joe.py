@@ -24,9 +24,8 @@ class DevJoe(commands.Bot):
         self.gpt_token = openai.api_key 
 
     async def on_ready(self):
-        proc_pid = os.getpid()
-        print(f"{self.application.name} Online. PID: {proc_pid}")
-        await discord.AppInfo.owner.send(f"{self.application.name} Proc PID: {proc_pid}")
+        if self.application:
+            print(f"{self.application.name} Online")
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
@@ -34,9 +33,7 @@ class DevJoe(commands.Bot):
                 await self.load_extension(f"extensions.{file[:-3]}")
 
         await self.tree.sync()
-        #self.command_errors = {str(command.name): dict(command.extras) for command in self.tree.walk_commands()}
-
-        return await super().setup_hook()
+        return await super().setup_hook() # type: ignore
     
 # Driver Code
 
