@@ -42,6 +42,7 @@ class DevJoe(commands.Bot):
 # Driver Code
 
 async def run_bot():
+    client = None
     try:
         async with DevJoe(command_prefix="?", intents=INTENTS) as client:
             await client.start(TOKEN)

@@ -3,7 +3,7 @@ from discord.ext import commands
 from typing import Optional
 
 from joe import DevJoe
-from objects import GPTChat
+from objects import GPTChat, GPTHistory
 
 """
 Rant:
@@ -12,26 +12,40 @@ Rant:
 """
 # Errors
 
+GPT_HISTORY_ARGS = {
+    "user": "root",
+    "password": "\\15NavidRohim16/",
+    "database": "chats",
+    "host": "austinares.synology.me",
+    "port": 3306
+}
+
 NO_CONVO = "You do not have a conversation with DeveloperJoe. Do /start to do such."
 HAS_CONVO = 'You already have an ongoing conversation with DeveloperJoe. To reset, do "/stop."'
 GENERIC_ERROR = "Unknown error, contact administrator."
+
+DATABASE_FILE = "histories.db"
 
 class gpt(commands.Cog):
 
     def __init__(self, client):
         self.client: DevJoe = client
-        self.client.chats: dict[int, GPTChat.GPTChat] = {}
 
         print(f"{self.__cog_name__} Loaded") 
     
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
-    async def start(self, interaction: discord.Interaction):
+    @discord.app_commands.describe(name="The name of the chat you will start (Will be used when saving the transcript)")
+    async def start(self, interaction: discord.Interaction, name: str=""):
         
         await interaction.response.defer(ephemeral=True, thinking=True)
+        actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
 
+        if len(actual_name) > 39:
+            return await interaction.followup.send("The name of your chat must be less than 40 characters.")
+        
         async def func():
 
-            convo = GPTChat.GPTChat(interaction.user)
+            convo = GPTChat.GPTChat(interaction.user, actual_name)
             self.client.chats[interaction.user.id] = convo
             await interaction.followup.send(convo.start())
 
@@ -50,13 +64,23 @@ class gpt(commands.Cog):
         await interaction.response.send_message(NO_CONVO)
 
     @discord.app_commands.command(name="stop", description="Stop a DeveloperJoe session.")
-    async def stop(self, interaction: discord.Interaction):
-
+    @discord.app_commands.describe(save="If you want to save your transcript.")
+    @discord.app_commands.choices(save=[
+        discord.app_commands.Choice(name="No, do not save my transcript save.", value="n"),
+        discord.app_commands.Choice(name="Yes, please save my transcript.", value="y")
+    ])
+    async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str]):
+        
         # Actual command
-
+        if save.value not in ["n", "y"]:
+            return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.")
+            
         async def func(gpt: GPTChat.GPTChat):
-            await interaction.response.send_message(gpt.__send_query__(query_type="query", role="system", content="Please give a short and formal farewell."))
-            del self.client.chats[interaction.user.id]
+            with GPTHistory.GPTHistory(DATABASE_FILE) as history:
+                farewell, error = gpt.stop(history, save.value)
+                await interaction.response.send_message(farewell)
+                if error == 0:
+                    del self.client.chats[interaction.user.id]
         
         # checks because app_commands cannot use normal ones.
         if convo := self.client.get_user_conversation(interaction.user.id):
@@ -76,7 +100,7 @@ class gpt(commands.Cog):
             await interaction.response.defer(ephemeral=True, thinking=True)
             if resolution in ["256x256", "512x512", "1024x1024"]:
                 if convo := self.client.get_user_conversation(interaction.user.id):
-                    r = convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1)
+                    r = str(convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
                 else:
                     r = NO_CONVO
             else:
@@ -115,14 +139,17 @@ class gpt(commands.Cog):
             
             returned_embed = discord.Embed(title="Chat Information")
 
-            returned_embed.add_field(name="Started At", value=str(convo.time))
-            returned_embed.add_field(name="Used Tokens", value=f"{str(convo.tokens)} / 4096")
-            returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)))
+            returned_embed.add_field(name="Started At", value=str(convo.time), inline=False)
+            returned_embed.add_field(name="Used Tokens", value=f"{str(convo.tokens)} / 4096", inline=False)
+            returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)), inline=False)
+            returned_embed.add_field(name="Chat ID", value=str(convo.id), inline=False)
+            
             returned_embed.color = discord.Colour.purple()
 
             return await interaction.response.send_message(embed=returned_embed)
         
         await interaction.response.send_message(NO_CONVO) 
+
 
 async def setup(client):
     await client.add_cog(gpt(client))

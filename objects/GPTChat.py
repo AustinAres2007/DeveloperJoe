@@ -1,12 +1,15 @@
 from typing import Union
 import datetime, discord, openai
+from objects import GPTHistory
 
 openai.api_key = "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"
 
 class GPTChat:
-    def __init__(self, user: Union[discord.User, discord.Member]):
+    def __init__(self, user: Union[discord.User, discord.Member], name: str):
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
+        self.name = name
+        self.id = int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id)
 
         self.tokens = 0
         self.model = "gpt-3.5-turbo"
@@ -15,12 +18,13 @@ class GPTChat:
         self.chat_history = []
         self.readable_history = []
 
-    def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> str:
+    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs) -> Union[str, tuple[str, int]]:
         
         replied_content = "Unknown error, contact administrator."
         error = False
         r_history = []
         reply = None
+        error_code = 0
 
         try:
             if query_type == "query":
@@ -57,22 +61,27 @@ class GPTChat:
             
         except openai.InvalidRequestError as e:
             error = e
+            error_code = 1
             replied_content = str(e)
         
         except (openai.APIError, openai.error.ServiceUnavalibleError) as e: # type: ignore
             error = e
+            error_code = 1
             replied_content = "Generic GPT 3.5 Error, please try again later."
     
         except openai.error.RateLimitError as e: # type: ignore
             error = e
+            error_code = 1
             replied_content = "Hit set rate limit for this month. Please contact administrator."
 
         except openai.error.APIConnectionError as e: # type: ignore
             error = e
+            error_code = 1
             replied_content = "Could not connect to OpenAI API Endpoint, contact administrator."
 
         except Exception as e:
             error = e
+            error_code = 1
             replied_content = f"Uncatched Error: {str(e)}. Please contact administrator"
 
         finally:
@@ -92,17 +101,30 @@ class GPTChat:
 
             if (reply and save_message and query_type == "query") and not error:
                 self.tokens += int(reply["usage"]["total_tokens"]) # type: ignore
-            
-            print(self.tokens)
 
-            return replied_content
+            return replied_content if not give_err_code else (replied_content, error_code)
 
     def ask(self, query: str) -> str:
-        return self.__send_query__(query_type="query", role="user", content=query)
+        return str(self.__send_query__(query_type="query", role="user", content=query))
     
     def start(self) -> str:
-        return self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations.")
+        return str(self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
 
     def clear(self) -> None:
         self.readable_history.clear()
         self.chat_history.clear()
+    
+    def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> tuple[str, int]:
+        try:
+            farewell, error_code = self.__send_query__(query_type="query", role="system", content="Please give a short and formal farewell from yourself.", give_err_code=True)
+            if error_code == 0:
+                if save_history == "y":
+                    history.upload_chat_history(self)
+                    farewell += "\n\n\n*Saved chat history*"
+                else:
+                    farewell += "\n\n\n*Not saved chat history*"
+
+                return (farewell, int(error_code))
+            return (f"An unknown error occured. I have not saved any chat history or deleted your current conversation. \nERROR: ({farewell}, {error_code})", int(error_code))
+        except Exception as e:
+            return (str(e), 1)

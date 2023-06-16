@@ -1,9 +1,7 @@
 if [ "$1" != "" ]; then
 
-    echo $1
-
     git add *
-    git commit -m "Updating Version of DJ"
+    git commit -m "$1"
     git push
 
     ssh samirohim@austinares.synology.me "
@@ -12,6 +10,7 @@ if [ "$1" != "" ]; then
         git switch wait && cd .. && cd Working/developerjoe && . bin/activate && 
         python3 joe.py > out.log \&"
 
+    echo "Executing target on server."
     exit
 else
     echo "Missing positional arguments: run_on_server.sh {commit message}"

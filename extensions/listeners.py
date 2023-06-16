@@ -1,6 +1,7 @@
 import discord, threading, asyncio
 from discord.ext import commands
 from joe import DevJoe
+from typing import Union
 
 class listeners(commands.Cog):
     def __init__(self, client: DevJoe):
@@ -12,22 +13,24 @@ class listeners(commands.Cog):
         def _listener():
 
             def _send(msg: str):
-                asyncio.run_coroutine_threadsafe(thread.send(msg), self.client.loop)
+                if thread:
+                    asyncio.run_coroutine_threadsafe(thread.send(msg), self.client.loop)
 
             try:
                 if convo := self.client.get_user_conversation(message.author.id):
-                    thread: discord.Thread = discord.utils.get(message.guild.threads, id=message.channel.id)
-                    if (thread and thread.is_private() and thread.member_count == 2) and convo.is_processing != True:
-                        _send(convo.ask(message.content))
+                    thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) # type: ignore
+                    content: str = message.content
+                    if (thread and thread.is_private() and (thread.member_count == 2 or content.startswith(">"))) and convo.is_processing != True:
+                        _send(convo.ask(content))
                     elif not (thread and thread.is_private() and thread.member_count == 2):
                         return
                     else:
-                        _send(f"{self.client.application.name} is still processing your last request.")
+                        _send(f"{self.client.application.name} is still processing your last request.") # type: ignore
 
             except Exception as e:
-                print(e)
+                _send(str(e))
 
         threading.Thread(target=_listener).start()
 
-async def setup(client: commands.Bot):
+async def setup(client: DevJoe):
     await client.add_cog(listeners(client))
