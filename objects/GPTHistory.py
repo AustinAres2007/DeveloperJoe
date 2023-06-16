@@ -39,8 +39,8 @@ class GPTHistory:
         self.database.commit()
         return v
     
-    def retrieve_chat_history(self, user: Union[discord.User, discord.Member]) -> list:
-        return self._exec_db_command("SELECT * FROM chats WHERE author_id=?", (user.id,)).fetchall()
+    def retrieve_chat_history(self, history_id) -> list:
+        return self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,)).fetchall()
     
     def upload_chat_history(self, chat) -> list:
         return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.id, chat.user.id, chat.name, str(chat.chat_history),)).fetchall()

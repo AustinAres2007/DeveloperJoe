@@ -150,6 +150,12 @@ class gpt(commands.Cog):
         
         await interaction.response.send_message(NO_CONVO) 
 
+    @discord.app_commands.command(name="history", description="Get a past saved conversation.")
+    async def get_history(self, interaction: discord.Interaction, history_id: int):
+        with GPTHistory.GPTHistory(DATABASE_FILE) as history:
+            if h_file := history.retrieve_chat_history(history_id):
+                return await interaction.response.send_message(str(h_file))
+            return await interaction.response.send_message(f"No history with the ID: {history_id}")
 
 async def setup(client):
     await client.add_cog(gpt(client))
