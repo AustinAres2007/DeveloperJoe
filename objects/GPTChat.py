@@ -114,7 +114,7 @@ class GPTChat:
         self.readable_history.clear()
         self.chat_history.clear()
     
-    def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> tuple[str, int]:
+    def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> tuple:
         try:
             farewell, error_code = self.__send_query__(query_type="query", role="system", content="Please give a short and formal farewell from yourself.", give_err_code=True)
             if error_code == 0:
