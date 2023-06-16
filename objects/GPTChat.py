@@ -18,7 +18,7 @@ class GPTChat:
         self.chat_history = []
         self.readable_history = []
 
-    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs) -> Union[str, tuple[str, int]]:
+    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
         
         replied_content = "Unknown error, contact administrator."
         error = False
