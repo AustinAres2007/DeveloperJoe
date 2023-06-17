@@ -1,6 +1,4 @@
-import sqlite3, discord
-from objects import GPTChat
-from typing import Union
+import sqlite3, json
 
 class GPTHistory:
 
@@ -43,7 +41,8 @@ class GPTHistory:
         return self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,)).fetchall()
     
     def upload_chat_history(self, chat) -> list:
-        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.id, chat.user.id, chat.name, str(chat.chat_history),)).fetchall()
+        json_dump = json.dumps(chat.chat_history)
+        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.id, chat.user.id, chat.name, json_dump,)).fetchall()
 
     def init_history(self):
         return self._exec_db_command("CREATE TABLE history(uid INTEGER NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL)")

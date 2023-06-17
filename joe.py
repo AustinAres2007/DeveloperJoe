@@ -5,7 +5,7 @@ from objects import GPTChat
 # Configuration
 
 try:
-    with open('token', 'r') as tk_file:
+    with open('dependencies/token', 'r') as tk_file:
         TOKEN: str = tk_file.read()
 except FileNotFoundError:
     print("Missing token file."); exit(1)

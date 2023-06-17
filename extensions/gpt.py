@@ -24,7 +24,7 @@ NO_CONVO = "You do not have a conversation with DeveloperJoe. Do /start to do su
 HAS_CONVO = 'You already have an ongoing conversation with DeveloperJoe. To reset, do "/stop."'
 GENERIC_ERROR = "Unknown error, contact administrator."
 
-DATABASE_FILE = "histories.db"
+DATABASE_FILE = "dependencies/histories.db"
 
 class gpt(commands.Cog):
 
@@ -33,6 +33,14 @@ class gpt(commands.Cog):
 
         print(f"{self.__cog_name__} Loaded") 
     
+    def format(self, data: list, username: str) -> str:
+        final = ""
+        
+        for entry in data:
+            final += f"{username}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
+                if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
+        
+        return final
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
     @discord.app_commands.describe(name="The name of the chat you will start (Will be used when saving the transcript)")
     async def start(self, interaction: discord.Interaction, name: str=""):
@@ -115,16 +123,7 @@ class gpt(commands.Cog):
     async def export_chat_history(self, interaction: discord.Interaction):
         if (convo := self.client.get_user_conversation(interaction.user.id)):
 
-            def format(data: list) -> str:
-                final = ""
-                
-                for entry in data:
-                    final += f"{convo.user.name}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
-                        if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
-                
-                return final
-            
-            formatted_history_string = format(convo.readable_history)
+            formatted_history_string = self.format(convo.readable_history, convo.user.display_name)
             file_like = io.BytesIO(formatted_history_string.encode())
             file_like.name = f"{datetime.datetime.now()}-transcript.txt"
 
@@ -151,11 +150,25 @@ class gpt(commands.Cog):
         await interaction.response.send_message(NO_CONVO) 
 
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
-    async def get_history(self, interaction: discord.Interaction, history_id: int):
-        with GPTHistory.GPTHistory(DATABASE_FILE) as history:
-            if h_file := history.retrieve_chat_history(history_id):
-                return await interaction.response.send_message(str(h_file))
-            return await interaction.response.send_message(f"No history with the ID: {history_id}")
+    async def get_history(self, interaction: discord.Interaction, history_id: str):
+        try:
+            history_id = int(history_id) # type: ignore
+            with GPTHistory.GPTHistory(DATABASE_FILE) as history:
+                if h_file := history.retrieve_chat_history(history_id):
+                    
+                    l = list(h_file[0][3].strip('][').split(', '))
+                    history_user = self.client.get_user(h_file[0][1])
+                    print(l, history_user)
+
+                    for e in l:
+                        print(e)
+                    #formatted = self.format(data=l, username=history_user.display_name if history_user else "Deleted User")
+                    #return await interaction.response.send_message(str(formatted))
+                return await interaction.response.send_message(f"No history with the ID: {history_id}")
+        except ConnectionError:
+            return await interaction.response.send_message(f"Input a valid ID.")
+        except Exception as e:
+            print(e)
 
 async def setup(client):
     await client.add_cog(gpt(client))
