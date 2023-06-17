@@ -41,7 +41,7 @@ class GPTHistory:
         return self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,)).fetchall()
     
     def upload_chat_history(self, chat) -> list:
-        json_dump = json.dumps(chat.chat_history)
+        json_dump = json.dumps(chat.readable_history)
         return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.id, chat.user.id, chat.name, json_dump,)).fetchall()
 
     def init_history(self):

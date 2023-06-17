@@ -41,6 +41,7 @@ class gpt(commands.Cog):
                 if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
         
         return final
+    
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
     @discord.app_commands.describe(name="The name of the chat you will start (Will be used when saving the transcript)")
     async def start(self, interaction: discord.Interaction, name: str=""):
@@ -158,14 +159,16 @@ class gpt(commands.Cog):
                     
                     list_history = json.loads(h_file[0][3])
                     history_user = self.client.get_user(h_file[0][1])
-
                     formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User")
-                    return await interaction.response.send_message(str(formatted))
+
+                    history_file = io.BytesIO(formatted.encode())
+                    history_file.name = f"{datetime.datetime.now()}-transcript.txt"
+
+                    await interaction.user.send(file=discord.File(history_file))
+                    return await interaction.response.send_message("I have sent your history transcript to our direct messages.")
                 return await interaction.response.send_message(f"No history with the ID: {history_id}")
-        except ConnectionError:
+        except ValueError:
             return await interaction.response.send_message(f"Input a valid ID.")
-        except Exception as e:
-            print(e)
 
 async def setup(client):
     await client.add_cog(gpt(client))
