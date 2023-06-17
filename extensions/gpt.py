@@ -1,4 +1,4 @@
-import discord, datetime, io
+import discord, datetime, io, json
 from discord.ext import commands
 from typing import Optional
 
@@ -156,14 +156,11 @@ class gpt(commands.Cog):
             with GPTHistory.GPTHistory(DATABASE_FILE) as history:
                 if h_file := history.retrieve_chat_history(history_id):
                     
-                    l = list(h_file[0][3].strip('][').split(', '))
+                    list_history = json.loads(h_file[0][3])
                     history_user = self.client.get_user(h_file[0][1])
-                    print(l, history_user)
 
-                    for e in l:
-                        print(e)
-                    #formatted = self.format(data=l, username=history_user.display_name if history_user else "Deleted User")
-                    #return await interaction.response.send_message(str(formatted))
+                    formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User")
+                    return await interaction.response.send_message(str(formatted))
                 return await interaction.response.send_message(f"No history with the ID: {history_id}")
         except ConnectionError:
             return await interaction.response.send_message(f"Input a valid ID.")

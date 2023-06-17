@@ -120,7 +120,7 @@ class GPTChat:
             if error_code == 0:
                 if save_history == "y":
                     history.upload_chat_history(self)
-                    farewell += "\n\n\n*Saved chat history*"
+                    farewell += f"\n\n\n*Saved chat history with ID: {self.id}*"
                 else:
                     farewell += "\n\n\n*Not saved chat history*"
 
