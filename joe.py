@@ -28,7 +28,7 @@ class DevJoe(commands.Bot):
             print(f"{self.application.name} Online")
 
             self.chats = {}
-            await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions."))
+            await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
 
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
