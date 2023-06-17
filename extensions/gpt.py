@@ -69,7 +69,15 @@ class gpt(commands.Cog):
 
         if convo := self.client.get_user_conversation(interaction.user.id):
             await interaction.response.defer(ephemeral=True, thinking=True)
-            return await interaction.followup.send(convo.ask(message))
+            reply = convo.ask(message)
+
+            if len(reply) < 4000:
+                return await interaction.followup.send(convo.ask(message))
+            
+            file_reply = io.BytesIO(reply.encode())
+            file_reply.name = "reply"
+            return await interaction.followup.send(file=discord.File(file_reply))
+        
         await interaction.response.send_message(NO_CONVO)
 
     @discord.app_commands.command(name="stop", description="Stop a DeveloperJoe session.")

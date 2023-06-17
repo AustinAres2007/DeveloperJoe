@@ -1,4 +1,4 @@
-import discord, threading, asyncio
+import discord, threading, asyncio, io
 from discord.ext import commands
 from joe import DevJoe
 from typing import Union
@@ -11,10 +11,14 @@ class listeners(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         def _listener():
-
+            
             def _send(msg: str):
-                if thread:
-                    asyncio.run_coroutine_threadsafe(thread.send(msg), self.client.loop)
+                if thread: 
+                    if len(msg) > 2000:
+                        file_reply = io.BytesIO(msg.encode())
+                        file_reply.name = "reply.txt"
+                        return asyncio.run_coroutine_threadsafe(thread.send(file=discord.File(file_reply)), self.client.loop)    
+                    return asyncio.run_coroutine_threadsafe(thread.send(msg), self.client.loop)
 
             try:
                 if convo := self.client.get_user_conversation(message.author.id):

@@ -30,7 +30,6 @@ class DevJoe(commands.Bot):
             self.chats = {}
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
 
-
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
             if file.endswith(".py"):
