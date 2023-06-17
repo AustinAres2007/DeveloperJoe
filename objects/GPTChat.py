@@ -1,6 +1,7 @@
-from typing import Union
 import datetime, discord, openai, random
-from objects import GPTHistory
+
+from typing import Union
+from objects import GPTHistory, GPTErrors
 
 openai.api_key = "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"
 
@@ -9,22 +10,23 @@ class GPTChat:
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.name = name
-        self.id = int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500)
+        self.id = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
 
         self.tokens = 0
         self.model = "gpt-3.5-turbo"
         self.is_processing = False
 
-        self.chat_history = []
         self.readable_history = []
+        self.chat_history = []
+        self._image_history_pos_ = []
 
     def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
         
-        replied_content = "Unknown error, contact administrator."
-        error = False
+        error_code = GPTErrors.NONE
+        replied_content = GPTErrors.GENERIC_ERROR
+        error = GPTErrors.NONE
         r_history = []
         reply = None
-        error_code = 0
 
         try:
             if query_type == "query":
@@ -33,12 +35,15 @@ class GPTChat:
                 self.chat_history.append(kwargs)
                 r_history.append(kwargs)
 
+                self.is_processing = True
                 reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
                 actual_reply = reply.choices[0].message  # type: ignore
 
                 replied_content = actual_reply["content"]
 
                 self.chat_history.append(dict(actual_reply))
+
+                # TODO: Make chat_history and readable_history mapping
                 r_history.append(dict(actual_reply))
                 self.readable_history.append(r_history)
             
@@ -128,3 +133,6 @@ class GPTChat:
             return (f"An unknown error occured. I have not saved any chat history or deleted your current conversation. \nERROR: ({farewell}, {error_code})", int(error_code))
         except Exception as e:
             return (str(e), 1)
+    
+    def clear_specific(self, index: int) -> str:
+        return ""

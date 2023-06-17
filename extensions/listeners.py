@@ -15,9 +15,8 @@ class listeners(commands.Cog):
             def _send(msg: str):
                 if thread: 
                     if len(msg) > 2000:
-                        file_reply = io.BytesIO(msg.encode())
-                        file_reply.name = "reply.txt"
-                        return asyncio.run_coroutine_threadsafe(thread.send(file=discord.File(file_reply)), self.client.loop)    
+                        msg_reply: discord.File = self.client.to_file(msg, "reply.txt")
+                        return asyncio.run_coroutine_threadsafe(thread.send(file=msg_reply), self.client.loop)    
                     return asyncio.run_coroutine_threadsafe(thread.send(msg), self.client.loop)
 
             try:

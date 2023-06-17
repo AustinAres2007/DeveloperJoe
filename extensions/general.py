@@ -14,8 +14,14 @@ class general(commands.Cog):
         embed.color = discord.Colour.purple()
         embed.set_footer(text="For arguments, type the command and they will appear.")
         
-        for command in self.client.tree.walk_commands():
-            embed.add_field(name=f"/{command.name}", value=command.description, inline=False)
+        
+        for name, cog in self.client.cogs.items():
+            if not cog.get_app_commands():
+                continue
+        
+            embed.add_field(name=f" ~ {name}", value="commands", inline=False)
+            for command in cog.walk_app_commands():
+                embed.add_field(name=f"/{command.name}", value=command.description, inline=False)
 
         await interaction.response.send_message(embed=embed)
 

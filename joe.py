@@ -1,7 +1,9 @@
-import discord, openai, asyncio, os
+import discord, openai, asyncio, os, io
+
 from discord.ext import commands
 from typing import Coroutine, Any, Union
-from objects import GPTChat
+from objects import GPTChat, GPTHistory
+
 # Configuration
 
 try:
@@ -18,10 +20,14 @@ class DevJoe(commands.Bot):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gpt_token = openai.api_key 
 
     def get_user_conversation(self, id_: int) -> Union[GPTChat.GPTChat, None]:
         return self.chats[id_] if int(id_) in list(self.chats) else None
+    
+    def to_file(self, content: str, name: str) -> discord.File:
+        f = io.BytesIO(content.encode())
+        f.name = name
+        return discord.File(f)
     
     async def on_ready(self):
         if self.application:
@@ -29,6 +35,18 @@ class DevJoe(commands.Bot):
 
             self.chats = {}
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
+
+            _history = GPTHistory.GPTHistory()
+            async def _check_integrity(i: int):
+                if not i > 1:
+                    if not _history.__check__():
+                        print("Database file has been modified / deleted, rebuilding..")
+                        _history.init_history()
+                        return await _check_integrity(i+1)
+                    return print("Database all set.")
+                print("Database could not be rebuilt. Aborting. Check database files.")
+                return await self.close()
+            await _check_integrity(0)
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
