@@ -1,5 +1,5 @@
 from typing import Union
-import datetime, discord, openai
+import datetime, discord, openai, random
 from objects import GPTHistory
 
 openai.api_key = "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"
@@ -9,7 +9,7 @@ class GPTChat:
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.name = name
-        self.id = int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id)
+        self.id = int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500)
 
         self.tokens = 0
         self.model = "gpt-3.5-turbo"
