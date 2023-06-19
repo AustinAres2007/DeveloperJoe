@@ -41,7 +41,7 @@ class GPTHistory:
     def retrieve_chat_history(self, history_id: str) -> list:
         return self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,)).fetchall()
     
-    def delete_chat_history(self, history_id: str) -> Union[str, bool]:
+    def delete_chat_history(self, history_id: str) -> str:
         if self.retrieve_chat_history(history_id):
             self._exec_db_command("DELETE FROM history WHERE uid=?", (history_id,)).fetchall()
             return f"Deleted chat history with ID: {history_id}"

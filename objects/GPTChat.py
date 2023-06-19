@@ -18,7 +18,7 @@ class GPTChat:
 
         self.readable_history = []
         self.chat_history = []
-        self._image_history_pos_ = []
+        self._readable_history_map_ = []
 
     def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
         
@@ -46,6 +46,7 @@ class GPTChat:
                 # TODO: Make chat_history and readable_history mapping
                 r_history.append(dict(actual_reply))
                 self.readable_history.append(r_history)
+                self._readable_history_map_.append(len(self.readable_history) - 1)
             
             
             elif query_type == "image":
@@ -94,13 +95,13 @@ class GPTChat:
             if (not save_message or error) and query_type == "query":
                 self.chat_history = self.chat_history[:len(self.chat_history)-2]
                 self.readable_history.pop()
-
+                self._readable_history_map_.pop()
                 if error:
                     self.readable_history.append(f"Error: {str(error)}")
 
             elif (not save_message or error) and query_type == "image":
                 self.readable_history.pop()
-
+        
                 if error:
                     self.readable_history.append(f"Error: {str(error)}")
 

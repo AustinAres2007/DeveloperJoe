@@ -1,8 +1,9 @@
 import discord, openai, asyncio, os, io
 
+from discord import abc
 from discord.ext import commands
 from typing import Coroutine, Any, Union
-from objects import GPTChat, GPTHistory
+from objects import GPTChat, GPTHistory, GPTConfig
 
 # Configuration
 
@@ -29,6 +30,14 @@ class DevJoe(commands.Bot):
         f.name = name
         return discord.File(f)
     
+    async def get_confirmation(self, interaction: discord.Interaction, msg: str) -> discord.Message:
+        def _check_if_user(message: discord.Message) -> bool:
+            return message.author.id == interaction.user.id and message.channel == interaction.channel
+        
+        await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
+        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=GPTConfig.QUERY_TIMEOUT)
+        return message
+
     async def on_ready(self):
         if self.application:
             print(f"{self.application.name} Online")

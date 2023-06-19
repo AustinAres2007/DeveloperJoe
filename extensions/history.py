@@ -1,8 +1,8 @@
-import discord, json, datetime, io
+import discord, json, datetime, io, asyncio
 
 from discord.ext import commands
 from joe import DevJoe
-from objects import GPTHistory, GPTErrors
+from objects import GPTHistory, GPTErrors, GPTConfig
 
 class history(commands.Cog):
     def __init__(self, client):
@@ -21,11 +21,21 @@ class history(commands.Cog):
     @discord.app_commands.command(name="delete", description="Delete a past saved conversation.")
     async def delete_chat_history(self, interaction: discord.Interaction, history_id: str):
         try:
+            await interaction.response.defer(thinking=False, ephemeral=True)
             with GPTHistory.GPTHistory() as history:
-                return await interaction.response.send_message(history.delete_chat_history(history_id))
+                reply: discord.Message = await self.client.get_confirmation(interaction, f'Are you sure? \n(Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, \nand "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.)') # type: ignore
+                if reply.content == GPTConfig.QUERY_CONFIRMATION :
+                    return await interaction.followup.send(history.delete_chat_history(history_id))
+                return await interaction.followup.send("Cancelled action.")
+
         except ValueError:
             return await interaction.response.send_message(GPTErrors.HistoryErrors.INVALID_HISTORY_ID)
-        
+        except asyncio.TimeoutError:
+            return
+        except Exception as e:
+            if GPTConfig.DEBUG:
+                await interaction.followup.send(f"(Debug) Error > {e}")
+
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction):
         if (convo := self.client.get_user_conversation(interaction.user.id)):

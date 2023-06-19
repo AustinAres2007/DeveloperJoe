@@ -3,7 +3,7 @@ import discord, datetime
 from discord.ext import commands
 from typing import Optional
 from joe import DevJoe
-from objects import GPTChat, GPTHistory, GPTErrors
+from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig
 
 class gpt(commands.Cog):
 
@@ -43,7 +43,7 @@ class gpt(commands.Cog):
             if len(reply) > 2000:
                 file_reply: discord.File = self.client.to_file(reply, "reply.txt")
                 return await interaction.followup.send(file=file_reply)
-            return await interaction.followup.send(message)
+            return await interaction.followup.send(reply)
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
 
     @discord.app_commands.command(name="stop", description="Stop a DeveloperJoe session.")
@@ -54,21 +54,24 @@ class gpt(commands.Cog):
     ])
     async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str]):
         
-        # Actual command
         if save.value not in ["n", "y"]:
             return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.")
-            
+        
+        reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end this chat? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+        if reply.content != GPTConfig.QUERY_CONFIRMATION:
+            return await interaction.followup.send("Cancelled action.")
+        
         async def func(gpt: GPTChat.GPTChat):
             with GPTHistory.GPTHistory() as history:
                 farewell, error = gpt.stop(history, save.value)
-                await interaction.response.send_message(farewell)
+                await interaction.followup.send(farewell)
                 if error == 0:
                     del self.client.chats[interaction.user.id]
         
         # checks because app_commands cannot use normal ones.
         if convo := self.client.get_user_conversation(interaction.user.id):
             return await func(convo)
-        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+        await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt="The keyword you want DeveloperJoe to describe.", resolution="Resolution of the final image.")
@@ -114,7 +117,22 @@ class gpt(commands.Cog):
     @discord.app_commands.command(name="context", description="Remove a part of your current conversation with DeveloperJoe.")
     async def remove_context(self, interaction: discord.Interaction, message_index: int):
         if convo := self.client.get_user_conversation(interaction.user.id):
-            ...
+            print(len(convo.chat_history), len(convo.readable_history), len(convo._readable_history_map_), convo._readable_history_map_)
+            try:
+                message_index -= 1
+                #print(len(convo.chat_history))
+                del convo.chat_history[message_index:message_index + 2]
+                #print(len(convo.readable_history), message_index)
+                del convo.readable_history[convo._readable_history_map_[message_index]]
+                #print(convo._readable_history_map_)
+                del convo._readable_history_map_[message_index]
+
+                print(convo._readable_history_map_)
+                print(convo.readable_history)
+                print(convo.chat_history)
+                await interaction.response.send_message(f"Deleted Message & Response at position: {message_index + 1}")
+            except IndexError:
+                await interaction.response.send_message(f"No message at message index: {message_index}")
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
 async def setup(client):
     await client.add_cog(gpt(client))

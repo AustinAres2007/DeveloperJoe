@@ -13,15 +13,16 @@ class general(commands.Cog):
         embed = discord.Embed(title=f"DeveloperJoe Commands")
         embed.color = discord.Colour.purple()
         embed.set_footer(text="For arguments, type the command and they will appear.")
-        
-        
+        get_name = lambda cmd: cmd.name
+
         for name, cog in self.client.cogs.items():
             if not cog.get_app_commands():
                 continue
-        
-            embed.add_field(name=f" ~ {name}", value="commands", inline=False)
+            embed.add_field(name=f" ~ {name} ~", value="commands", inline=False)
+
             for command in cog.walk_app_commands():
-                embed.add_field(name=f"/{command.name}", value=command.description, inline=False)
+                params = ", ".join(list(map(get_name, command.parameters))) # type: ignore
+                embed.add_field(name=f"/{command.name}", value=f'{command.description} | /{command.name} {params}', inline=False)
 
         await interaction.response.send_message(embed=embed)
 

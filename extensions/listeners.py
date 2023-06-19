@@ -23,9 +23,9 @@ class listeners(commands.Cog):
                 if convo := self.client.get_user_conversation(message.author.id):
                     thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) # type: ignore
                     content: str = message.content
-                    if (thread and thread.is_private() and (thread.member_count == 2 or content.startswith(">"))) and convo.is_processing != True:
+                    if (thread and thread.is_private() and (thread.member_count == 2 or content.startswith(">"))) and convo.is_processing != True and not content.startswith(">"):
                         _send(convo.ask(content))
-                    elif not (thread and thread.is_private() and thread.member_count == 2):
+                    elif not (thread and thread.is_private() and thread.member_count == 2) or content.startswith(">"):
                         return
                     else:
                         _send(f"{self.client.application.name} is still processing your last request.") # type: ignore
