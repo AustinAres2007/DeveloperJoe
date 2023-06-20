@@ -128,8 +128,8 @@ class GPTChat:
 
             return replied_content if not give_err_code else (replied_content, error_code)
 
-    def ask(self, query: str, interaction: discord.Interaction=None) -> str: # type: ignore
-        return str(self.__send_query__(query_type="query", role="user", content=query, interaction=interaction))
+    def ask(self, query: str, message: discord.Message) -> str: # type: ignore
+        return str(self.__send_query__(query_type="query", role="user", content=query, message=message))
     
     def start(self, message: discord.Message) -> str:
         return str(self.__send_query__(save_message=False, query_type="query", message=message, role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
