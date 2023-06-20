@@ -6,14 +6,12 @@ from objects import GPTHistory, GPTErrors
 openai.api_key = "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"
 
 class GPTChat:
-    def __init__(self, user: Union[discord.User, discord.Member], name: str, stream: bool, client):
+    def __init__(self, user: Union[discord.User, discord.Member], name: str):
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.id = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
-        self.client = client
 
         self.name = name
-        self.stream = stream
 
         self.tokens = 0
         self.model = "gpt-3.5-turbo-16k-0613"
@@ -23,7 +21,7 @@ class GPTChat:
         self.chat_history = []
         self._readable_history_map_ = []
 
-    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, message: Union[discord.Message, None]=None, **kwargs):
+    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
             
         error_code = GPTErrors.NONE
         replied_content = GPTErrors.GENERIC_ERROR
@@ -39,37 +37,10 @@ class GPTChat:
                 self.is_processing = True
                 self.chat_history.append(kwargs)
 
-                if self.stream == True and message:
-
-                    def _edit_message_stream(txt: str):
-                        return asyncio.run_coroutine_threadsafe(message.edit(content=txt), self.client.loop)
-                    
-                    reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history, stream=self.stream)   
-                    
-                    try:
-                        for i, chunk in enumerate(reply):
-                            if chunk["choices"][0]["finish_reason"] != "stop":
-                                replied_content += chunk["choices"][0]["delta"]["content"] # type: ignore
-
-                                if i and i % 25 == 0:
-                                    print("New edit")
-                                    _edit_message_stream(replied_content)
-                
-                    except Exception as e:
-                        replied_content += f"\n\n\nThis is not DeveloperJoe. There was a critical error. This is unusual. Please report this to an administrator > {e}"
-
-                    finally:
-                        ...
-
-                    print("DINGUS >>>> ", replied_content)
-
-                    actual_reply = {"content": replied_content, "role": "assistent"}
-                    replied_content = ">"
-                else:
-                    # Reply format: ({"content": "Reply content", "role": "assistent"})
-                    reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
-                    actual_reply = reply.choices[0].message  # type: ignore
-                    replied_content = actual_reply["content"]
+                # Reply format: ({"content": "Reply content", "role": "assistent"})
+                reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
+                actual_reply = reply.choices[0].message  # type: ignore
+                replied_content = actual_reply["content"]
 
                 self.chat_history.append(dict(actual_reply))
 
@@ -140,11 +111,11 @@ class GPTChat:
 
             return replied_content if not give_err_code else (replied_content, error_code)
 
-    def ask(self, query: str, message: Union[discord.Message, None]=None) -> str: # type: ignore
-        return str(self.__send_query__(query_type="query", role="user", content=query, message=message))
+    def ask(self, query: str) -> str: # type: ignore
+        return str(self.__send_query__(query_type="query", role="user", content=query))
     
-    def start(self, message: Union[discord.Message, None]=None) -> str:
-        return str(self.__send_query__(save_message=False, query_type="query", message=message, role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
+    def start(self) -> str:
+        return str(self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
 
     def clear(self) -> None:
         self.readable_history.clear()
