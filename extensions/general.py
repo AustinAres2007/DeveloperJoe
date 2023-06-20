@@ -26,13 +26,5 @@ class general(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @discord.app_commands.command(name="shutdown", description="Shuts down bot client")
-    async def halt(self, interaction: discord.Interaction):
-        if interaction.user.id == 400089431933059072:
-            await interaction.response.send_message("Shutting Down")
-            return await self.client.close()
-        await interaction.response.send_message("You are not the owner.")
-
-
 async def setup(client):
     await client.add_cog(general(client))

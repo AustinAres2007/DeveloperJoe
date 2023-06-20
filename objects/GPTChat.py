@@ -1,4 +1,4 @@
-import datetime, discord, openai, random
+import datetime, discord, openai, random, asyncio, time
 
 from typing import Union
 from objects import GPTHistory, GPTErrors
@@ -6,44 +6,62 @@ from objects import GPTHistory, GPTErrors
 openai.api_key = "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"
 
 class GPTChat:
-    def __init__(self, user: Union[discord.User, discord.Member], name: str):
+    def __init__(self, user: Union[discord.User, discord.Member], name: str, stream: bool, client):
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
-        self.name = name
         self.id = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
+        self.client = client
+
+        self.name = name
+        self.stream = stream
 
         self.tokens = 0
-        self.model = "gpt-3.5-turbo"
+        self.model = "gpt-3.5-turbo-16k-0613"
         self.is_processing = False
 
         self.readable_history = []
         self.chat_history = []
         self._readable_history_map_ = []
 
-    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
+    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, message: discord.Message=None, **kwargs): # type: ignore
         
+        def _edit_message_stream(txt: str):
+            return asyncio.run_coroutine_threadsafe(message.edit(content=txt), self.client.loop)
+            
         error_code = GPTErrors.NONE
         replied_content = GPTErrors.GENERIC_ERROR
         error = GPTErrors.NONE
         r_history = []
         reply = None
+        replied_content = ""
 
         try:
             if query_type == "query":
                 
-
-                self.chat_history.append(kwargs)
-                r_history.append(kwargs)
-
+                # Put necessary variables here (Doesn't matter weather streaming or not)
                 self.is_processing = True
-                reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
-                actual_reply = reply.choices[0].message  # type: ignore
+                self.chat_history.append(kwargs)
 
-                replied_content = actual_reply["content"]
+                if self.stream == True:
+                    reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history, stream=self.stream)   
+                    for i, chunk in enumerate(reply):
+                        if chunk["choices"][0]["finish_reason"] != "stop": # type: ignore
+                            replied_content += chunk["choices"][0]["delta"]["content"] # type: ignore
+                            if i % 8 == 0:
+                                time.sleep(0.8)
+                                _edit_message_stream(replied_content)
+
+                    actual_reply = {"content": replied_content, "role": "assistent"}
+                    replied_content = ">"
+                else:
+                    # Reply format: ({"content": "Reply content", "role": "assistent"})
+                    reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
+                    actual_reply = reply.choices[0].message  # type: ignore
+                    replied_content = actual_reply["content"]
 
                 self.chat_history.append(dict(actual_reply))
 
-                # TODO: Make chat_history and readable_history mapping
+                r_history.append(kwargs)
                 r_history.append(dict(actual_reply))
                 self.readable_history.append(r_history)
                 self._readable_history_map_.append(len(self.readable_history) - 1)
@@ -110,11 +128,11 @@ class GPTChat:
 
             return replied_content if not give_err_code else (replied_content, error_code)
 
-    def ask(self, query: str) -> str:
-        return str(self.__send_query__(query_type="query", role="user", content=query))
+    def ask(self, query: str, interaction: discord.Interaction=None) -> str: # type: ignore
+        return str(self.__send_query__(query_type="query", role="user", content=query, interaction=interaction))
     
-    def start(self) -> str:
-        return str(self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
+    def start(self, message: discord.Message) -> str:
+        return str(self.__send_query__(save_message=False, query_type="query", message=message, role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
 
     def clear(self) -> None:
         self.readable_history.clear()

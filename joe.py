@@ -38,6 +38,10 @@ class DevJoe(commands.Bot):
         message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=GPTConfig.QUERY_TIMEOUT)
         return message
 
+    async def send_debug_message(self, interaction: discord.Interaction, error: Exception) -> None:
+        if GPTConfig.DEBUG == True:
+            await interaction.followup.send(str(error)) if interaction.response.is_done() else await interaction.response.send_message(str(error)) 
+            
     async def on_ready(self):
         if self.application:
             print(f"{self.application.name} Online")
