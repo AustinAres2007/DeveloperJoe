@@ -21,7 +21,6 @@ class gpt(commands.Cog):
     ])
     async def start(self, interaction: discord.Interaction, name: str="", stream: str="False"):
         
-        await interaction.response.defer()
         actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
 
         if len(actual_name) > 39:
@@ -32,11 +31,19 @@ class gpt(commands.Cog):
             return await interaction.followup.send("You cannot use the stream parameter whilst in Direct Messages.")
         
         async def func():
-            
-            message = await interaction.channel.send("Asking...") # type: ignore    
             convo = GPTChat.GPTChat(interaction.user, actual_name, True if stream == "True" else False, self.client)
+            
+            if stream == "True":
+                await interaction.response.defer()
+                message = await interaction.channel.send("Starting...") # type: ignore    
+                convo.start(message)
+
+                self.client.chats[interaction.user.id] = convo
+                return await interaction.followup.delete()
+
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            await interaction.followup.send(convo.start())
             self.client.chats[interaction.user.id] = convo
-            await interaction.followup.send(convo.start(message))
 
         if not self.client.get_user_conversation(interaction.user.id):
             return await func()
@@ -49,15 +56,13 @@ class gpt(commands.Cog):
         try:
             if convo := self.client.get_user_conversation(interaction.user.id):
                 if convo.stream == True:
-                    await interaction.response.send_message("\n")
+                    await interaction.response.defer()
 
-                    reply = convo.ask(message)
-                    for text_portion in reply:
-                        await interaction.response.edit_message(content=text_portion)    
-                    return
-            
+                    channel_message = await interaction.channel.send("Asking...") # type: ignore
+                    return convo.ask(message, channel_message)
+                    
                 await interaction.response.defer(ephemeral=True, thinking=True)
-                reply = convo.ask(message)
+                reply = convo.ask(message, None)
 
                 if len(reply) > 2000:
                     file_reply: discord.File = self.client.to_file(reply, "reply.txt")
