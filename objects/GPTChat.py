@@ -1,9 +1,17 @@
 import datetime, discord, openai, random, asyncio, time
 
-from typing import Union
+from typing import Union, Any
 from objects import GPTHistory, GPTErrors
 
 openai.api_key = "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"
+
+errors = {
+    openai.InvalidRequestError: lambda err: str(err),
+    openai.APIError: lambda err: "Generic GPT 3.5 Error, please try again later.",
+    openai.error.ServiceUnavailableError: lambda err: "Generic GPT 3.5 Error, please try again later.",
+    openai.error.RateLimitError: lambda err: "Hit set rate limit for this month. Please contact administrator.",
+    openai.error.APIConnectionError: lambda err: "Could not connect to OpenAI API Endpoint, contact administrator."
+}
 
 class GPTChat:
     def __init__(self, user: Union[discord.User, discord.Member], name: str):
@@ -21,6 +29,24 @@ class GPTChat:
         self.chat_history = []
         self._readable_history_map_ = []
 
+    def __manage_history__(is_gpt_reply: Any, query_type: str, save_message: bool, any_error: Exception, tokens: int):
+        self.is_processing = False
+        if (not save_message or any_error) and query_type == "query":
+            self.chat_history = self.chat_history[:len(self.chat_history)-2]
+            self.readable_history.pop()
+            self._readable_history_map_.pop()
+            if error:
+                self.readable_history.append(f"Error: {str(error)}")
+
+        elif (not save_message or any_error) and query_type == "image":
+            self.readable_history.pop()
+    
+            if any_error:
+                self.readable_history.append(f"Error: {str(error)}")
+
+        if (is_gpt_reply and save_message and query_type == "query") and not any_error:
+            self.tokens += tokens # type: ignore
+
     def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
             
         error_code = GPTErrors.NONE
@@ -37,6 +63,7 @@ class GPTChat:
                 self.is_processing = True
                 self.chat_history.append(kwargs)
 
+                # TODO: If streaming, place code here
                 # Reply format: ({"content": "Reply content", "role": "assistent"})
                 reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
                 actual_reply = reply.choices[0].message  # type: ignore
@@ -65,50 +92,14 @@ class GPTChat:
             else:
                 error = f"Generic ({query_type})"
                 replied_content = f"Unknown Error, contact administrator. (Error Code: {query_type})"
-            
-        except openai.InvalidRequestError as e:
-            error = e
-            error_code = 1
-            replied_content = str(e)
-        
-        except (openai.APIError, openai.error.ServiceUnavalibleError) as e: # type: ignore
-            error = e
-            error_code = 1
-            replied_content = "Generic GPT 3.5 Error, please try again later."
-    
-        except openai.error.RateLimitError as e: # type: ignore
-            error = e
-            error_code = 1
-            replied_content = "Hit set rate limit for this month. Please contact administrator."
 
-        except openai.error.APIConnectionError as e: # type: ignore
+        except Exception as e:            
             error = e
             error_code = 1
-            replied_content = "Could not connect to OpenAI API Endpoint, contact administrator."
-
-        except Exception as e:
-            error = e
-            error_code = 1
-            replied_content = f"Uncatched Error: {str(e)}. Please contact administrator"
+            replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:
-            self.is_processing = False
-            if (not save_message or error) and query_type == "query":
-                self.chat_history = self.chat_history[:len(self.chat_history)-2]
-                self.readable_history.pop()
-                self._readable_history_map_.pop()
-                if error:
-                    self.readable_history.append(f"Error: {str(error)}")
-
-            elif (not save_message or error) and query_type == "image":
-                self.readable_history.pop()
-        
-                if error:
-                    self.readable_history.append(f"Error: {str(error)}")
-
-            if (reply and save_message and query_type == "query") and not error:
-                self.tokens += int(reply["usage"]["total_tokens"]) # type: ignore
-
+            self.__manage_history__(reply, query_type, save_message, error, reply["usage"]["total_tokens"])
             return replied_content if not give_err_code else (replied_content, error_code)
 
     def ask(self, query: str) -> str: # type: ignore
@@ -135,6 +126,48 @@ class GPTChat:
             return (f"An unknown error occured. I have not saved any chat history or deleted your current conversation. \nERROR: ({farewell}, {error_code})", int(error_code))
         except Exception as e:
             return (str(e), 1)
-    
-    def clear_specific(self, index: int) -> str:
-        return ""
+
+    def __stream_send_query__(self, save_message: bool, **kwargs):
+        error_code = GPTErrors.NONE
+        replied_content = GPTErrors.GENERIC_ERROR
+        error = GPTErrors.NONE
+        r_history = []
+        generator_reply = None
+        replied_content = ""
+        tk = 0
+
+        try:
+            self.is_processing = True
+            self.chat_history.append(kwargs)
+
+            generator_reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
+
+            for tk, chunk in enumerate(generator_reply):
+                if chunk["choices"][0]["finish_reason"] != "stop":
+                    c_token = chunk["choices"][0]["delta"]["content"]
+                    replied_content += c_token
+                    yield c_token
+
+            replicate_reply = {"content": replied_content, "role": "assistent"}
+            self.chat_history.append(replicate_reply)
+
+            r_history.append(kwargs)
+            r_history.append(replicate_reply)
+
+            self.readable_history.append(r_history)
+            self._readable_history_map_.append(len(self.readable_history) - 1)
+
+        except Exception as e:
+            error = e
+            error_code = 1
+            replied_content = errors[type(e)] if type(e) in errors else str(e)
+
+        finally:
+            self.__manage_history__(generator_reply, "query", save_message, error, tk)
+            return replied_content
+
+
+
+
+
+

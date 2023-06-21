@@ -34,7 +34,8 @@ class gpt(commands.Cog):
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
     @discord.app_commands.describe(message="The query you want to send DeveloperJoe")
-    async def ask(self, interaction: discord.Interaction, message: str):
+    @discord.app_commands.Choice
+    async def ask(self, interaction: discord.Interaction, message: str, stream: str):
         try:
             if convo := self.client.get_user_conversation(interaction.user.id):
                     
