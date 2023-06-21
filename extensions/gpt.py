@@ -15,30 +15,48 @@ class gpt(commands.Cog):
     @discord.app_commands.describe(name="The name of the chat you will start (Will be used when saving the transcript)")
     async def start(self, interaction: discord.Interaction, name: str=""):
         
-        actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
+        try:
+            actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
 
-        if len(actual_name) > 39:
-            return await interaction.followup.send("The name of your chat must be less than 40 characters.")
+            if len(actual_name) > 39:
+                return await interaction.followup.send("The name of your chat must be less than 40 characters.")
     
-        async def func():
-            convo = GPTChat.GPTChat(interaction.user, actual_name)
+            async def func():
+                convo = GPTChat.GPTChat(interaction.user, actual_name)
 
-            await interaction.response.defer(ephemeral=True, thinking=True)
-            await interaction.followup.send(convo.start())
-            self.client.chats[interaction.user.id] = convo
+                await interaction.response.defer(ephemeral=True, thinking=True)
+                await interaction.followup.send(convo.start())
+                self.client.chats[interaction.user.id] = convo
 
-        if not self.client.get_user_conversation(interaction.user.id):
-            return await func()
+            if not self.client.get_user_conversation(interaction.user.id):
+                return await func()
 
-        await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO)
+            await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO)
+        except Exception as e:
+            await self.client.send_debug_message(interaction, e)
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
     @discord.app_commands.describe(message="The query you want to send DeveloperJoe")
-    @discord.app_commands.Choice
+    @discord.app_commands.choices(stream=[
+        discord.app_commands.Choice(name="Yes", value="y"),
+        discord.app_commands.Choice(name="No", value="n")
+    ])
     async def ask(self, interaction: discord.Interaction, message: str, stream: str):
         try:
             if convo := self.client.get_user_conversation(interaction.user.id):
-                    
+                
+                if stream == "y":
+                    await interaction.response.send_message("Asking...")
+                    reply = convo.ask_stream(message)
+                    reply_together = ""
+
+                    for i, t in enumerate(reply):
+                        reply_together += t
+                        if i and i % 5 == 0:
+                            await interaction.edit_original_response(content=reply_together)
+                    else:                                
+                        return await interaction.edit_original_response(content=reply_together)
+
                 await interaction.response.defer(ephemeral=True, thinking=True)
                 reply = convo.ask(message)
 

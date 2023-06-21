@@ -1,6 +1,6 @@
 import datetime, discord, openai, random, asyncio, time
 
-from typing import Union, Any
+from typing import Union, Any, Generator
 from objects import GPTHistory, GPTErrors
 
 openai.api_key = "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"
@@ -29,20 +29,21 @@ class GPTChat:
         self.chat_history = []
         self._readable_history_map_ = []
 
-    def __manage_history__(is_gpt_reply: Any, query_type: str, save_message: bool, any_error: Exception, tokens: int):
+    def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, any_error: Exception, tokens: int):
         self.is_processing = False
+
         if (not save_message or any_error) and query_type == "query":
             self.chat_history = self.chat_history[:len(self.chat_history)-2]
             self.readable_history.pop()
             self._readable_history_map_.pop()
-            if error:
-                self.readable_history.append(f"Error: {str(error)}")
+            if any_error:
+                self.readable_history.append(f"Error: {str(any_error)}")
 
         elif (not save_message or any_error) and query_type == "image":
             self.readable_history.pop()
     
             if any_error:
-                self.readable_history.append(f"Error: {str(error)}")
+                self.readable_history.append(f"Error: {str(any_error)}")
 
         if (is_gpt_reply and save_message and query_type == "query") and not any_error:
             self.tokens += tokens # type: ignore
@@ -102,9 +103,50 @@ class GPTChat:
             self.__manage_history__(reply, query_type, save_message, error, reply["usage"]["total_tokens"])
             return replied_content if not give_err_code else (replied_content, error_code)
 
+    def __stream_send_query__(self, save_message: bool=True, **kwargs):
+        error_code = GPTErrors.NONE
+        replied_content = GPTErrors.GENERIC_ERROR
+        error = GPTErrors.NONE
+        r_history = []
+        generator_reply = None
+        replied_content = ""
+        tk = 0
+
+        try:
+            self.is_processing = True
+            self.chat_history.append(kwargs)
+            generator_reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history, stream=True)
+
+            for tk, chunk in enumerate(generator_reply):
+                if chunk["choices"][0]["finish_reason"] != "stop":
+                    c_token = chunk["choices"][0]["delta"]["content"]
+                    replied_content += c_token
+                    yield c_token
+
+            replicate_reply = {"role": "assistant", "content": replied_content}
+            self.chat_history.append(replicate_reply)
+
+            r_history.append(kwargs)
+            r_history.append(replicate_reply)
+
+            self.readable_history.append(r_history)
+            self._readable_history_map_.append(len(self.readable_history) - 1)
+
+        except Exception as e:
+            error = e
+            error_code = 1
+            replied_content = errors[type(e)] if type(e) in errors else str(e)
+
+        finally:
+            self.__manage_history__(generator_reply, "query", save_message, error, tk)
+            return replied_content
+
     def ask(self, query: str) -> str: # type: ignore
         return str(self.__send_query__(query_type="query", role="user", content=query))
     
+    def ask_stream(self, query: str) -> Generator:
+        return self.__stream_send_query__(role="user", content=query)
+
     def start(self) -> str:
         return str(self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
 
@@ -126,48 +168,3 @@ class GPTChat:
             return (f"An unknown error occured. I have not saved any chat history or deleted your current conversation. \nERROR: ({farewell}, {error_code})", int(error_code))
         except Exception as e:
             return (str(e), 1)
-
-    def __stream_send_query__(self, save_message: bool, **kwargs):
-        error_code = GPTErrors.NONE
-        replied_content = GPTErrors.GENERIC_ERROR
-        error = GPTErrors.NONE
-        r_history = []
-        generator_reply = None
-        replied_content = ""
-        tk = 0
-
-        try:
-            self.is_processing = True
-            self.chat_history.append(kwargs)
-
-            generator_reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
-
-            for tk, chunk in enumerate(generator_reply):
-                if chunk["choices"][0]["finish_reason"] != "stop":
-                    c_token = chunk["choices"][0]["delta"]["content"]
-                    replied_content += c_token
-                    yield c_token
-
-            replicate_reply = {"content": replied_content, "role": "assistent"}
-            self.chat_history.append(replicate_reply)
-
-            r_history.append(kwargs)
-            r_history.append(replicate_reply)
-
-            self.readable_history.append(r_history)
-            self._readable_history_map_.append(len(self.readable_history) - 1)
-
-        except Exception as e:
-            error = e
-            error_code = 1
-            replied_content = errors[type(e)] if type(e) in errors else str(e)
-
-        finally:
-            self.__manage_history__(generator_reply, "query", save_message, error, tk)
-            return replied_content
-
-
-
-
-
-
