@@ -7,4 +7,4 @@ token
 *.cfg
 *.pyc
 .DS_Store
-bot_log.log
+misc/bot_log.log
