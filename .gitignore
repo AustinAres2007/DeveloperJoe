@@ -2,6 +2,7 @@
 __pycache__
 bin/
 lib/
+lib64/
 token
 *.cfg
 *.pyc
