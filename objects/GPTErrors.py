@@ -1,4 +1,4 @@
-NONE = 0
+NONE = None
 GENERIC_ERROR = "Unknown error, contact administrator."
 
 class ConversationErrors:

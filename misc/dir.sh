@@ -1,0 +1,1 @@
+ssh samirohim@austinares.synology.me "cd ../../../../volume1/Git/Working/developerjoe"

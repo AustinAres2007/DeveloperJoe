@@ -12,6 +12,8 @@ class history(commands.Cog):
     def format(self, data: list, username: str) -> str:
         final = ""
         
+        print(data)
+        
         for entry in data:
             final += f"{username}: {entry[0]['content']}\nGPT 3.5: {entry[1]['content']}\n\n{'~' * 15}\n\n" \
                 if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"

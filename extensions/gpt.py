@@ -1,9 +1,14 @@
-import discord, datetime
+import discord, datetime, logging
 
 from discord.ext import commands
-from typing import Optional
+from typing import Union
 from joe import DevJoe
 from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig
+
+stream_choices = [
+        discord.app_commands.Choice(name="Yes", value="y"),
+        discord.app_commands.Choice(name="No", value="n")
+]
 
 class gpt(commands.Cog):
 
@@ -13,8 +18,9 @@ class gpt(commands.Cog):
     
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
     @discord.app_commands.describe(name="The name of the chat you will start (Will be used when saving the transcript)")
-    async def start(self, interaction: discord.Interaction, name: str=""):
-        
+    @discord.app_commands.choices(stream_conversation=stream_choices)
+    async def start(self, interaction: discord.Interaction, name: str="", stream_conversation: Union[str, None]=None):
+        actual_choice = True if stream_conversation == "y" else False
         try:
             actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
 
@@ -23,6 +29,7 @@ class gpt(commands.Cog):
     
             async def func():
                 convo = GPTChat.GPTChat(interaction.user, actual_name)
+                convo.stream = actual_choice
 
                 await interaction.response.defer(ephemeral=True, thinking=True)
                 await interaction.followup.send(convo.start())
@@ -37,22 +44,18 @@ class gpt(commands.Cog):
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
     @discord.app_commands.describe(message="The query you want to send DeveloperJoe")
-    @discord.app_commands.choices(stream=[
-        discord.app_commands.Choice(name="Yes", value="y"),
-        discord.app_commands.Choice(name="No", value="n")
-    ])
-    async def ask(self, interaction: discord.Interaction, message: str, stream: str):
+    @discord.app_commands.choices(stream=stream_choices)
+    async def ask(self, interaction: discord.Interaction, message: str, stream: Union[str, None]=None):
         try:
             if convo := self.client.get_user_conversation(interaction.user.id):
-                
-                if stream == "y":
+                if stream == "y" or (convo.stream == True and stream != "n"):
                     await interaction.response.send_message("Asking...")
                     reply = convo.ask_stream(message)
                     reply_together = ""
 
                     for i, t in enumerate(reply):
                         reply_together += t
-                        if i and i % 5 == 0:
+                        if i and i % GPTConfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
                             await interaction.edit_original_response(content=reply_together)
                     else:                                
                         return await interaction.edit_original_response(content=reply_together)
@@ -85,9 +88,9 @@ class gpt(commands.Cog):
         
         async def func(gpt: GPTChat.GPTChat):
             with GPTHistory.GPTHistory() as history:
-                farewell, error = gpt.stop(history, save.value)
+                farewell = gpt.stop(history, save.value)
                 await interaction.followup.send(farewell)
-                if error == 0:
+                if not farewell.startswith("Critical Error:"):
                     del self.client.chats[interaction.user.id]
         
         # checks because app_commands cannot use normal ones.
@@ -102,10 +105,11 @@ class gpt(commands.Cog):
         discord.app_commands.Choice(name="512x512", value="512x512"),
         discord.app_commands.Choice(name="1024x1024", value="1024x1024")
     ]) 
-    async def image_generate(self, interaction: discord.Interaction, prompt: discord.app_commands.Choice[str], resolution: Optional[discord.app_commands.Choice[str]]):
-        r = "Error"
+    async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str):
+        r = GPTErrors.GENERIC_ERROR
         try:
             await interaction.response.defer(ephemeral=True, thinking=True)
+
             if resolution in ["256x256", "512x512", "1024x1024"]:
                 if convo := self.client.get_user_conversation(interaction.user.id):
                     r = str(convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))

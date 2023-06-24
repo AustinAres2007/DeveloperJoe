@@ -1,4 +1,4 @@
-import datetime, discord, openai, random, asyncio, time
+import datetime, discord, openai, random
 
 from typing import Union, Any, Generator
 from objects import GPTHistory, GPTErrors
@@ -8,9 +8,9 @@ openai.api_key = "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"
 errors = {
     openai.InvalidRequestError: lambda err: str(err),
     openai.APIError: lambda err: "Generic GPT 3.5 Error, please try again later.",
-    openai.error.ServiceUnavailableError: lambda err: "Generic GPT 3.5 Error, please try again later.",
-    openai.error.RateLimitError: lambda err: "Hit set rate limit for this month. Please contact administrator.",
-    openai.error.APIConnectionError: lambda err: "Could not connect to OpenAI API Endpoint, contact administrator."
+    openai.error.ServiceUnavailableError: lambda err: "Generic GPT 3.5 Error, please try again later.", # type: ignore
+    openai.error.RateLimitError: lambda err: "Hit set rate limit for this month. Please contact administrator.", # type: ignore
+    openai.error.APIConnectionError: lambda err: "Could not connect to OpenAI API Endpoint, contact administrator." # type: ignore
 }
 
 class GPTChat:
@@ -20,6 +20,7 @@ class GPTChat:
         self.id = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
 
         self.name = name
+        self.stream = False
 
         self.tokens = 0
         self.model = "gpt-3.5-turbo-16k-0613"
@@ -29,28 +30,32 @@ class GPTChat:
         self.chat_history = []
         self._readable_history_map_ = []
 
-    def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, any_error: Exception, tokens: int):
+    def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, any_error: Union[Exception, None, str], tokens: int):
         self.is_processing = False
 
         if (not save_message or any_error) and query_type == "query":
-            self.chat_history = self.chat_history[:len(self.chat_history)-2]
-            self.readable_history.pop()
-            self._readable_history_map_.pop()
+            
+            try:
+                self.chat_history = self.chat_history[:len(self.chat_history)-2]
+                self.readable_history.pop()
+                self._readable_history_map_.pop()
+            except IndexError:
+                pass
             if any_error:
-                self.readable_history.append(f"Error: {str(any_error)}")
+                return str(any_error)
 
         elif (not save_message or any_error) and query_type == "image":
             self.readable_history.pop()
     
             if any_error:
-                self.readable_history.append(f"Error: {str(any_error)}")
+                return str(any_error)
 
         if (is_gpt_reply and save_message and query_type == "query") and not any_error:
             self.tokens += tokens # type: ignore
 
+        return 
     def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
             
-        error_code = GPTErrors.NONE
         replied_content = GPTErrors.GENERIC_ERROR
         error = GPTErrors.NONE
         r_history = []
@@ -92,19 +97,17 @@ class GPTChat:
                 self.readable_history.append(r_history)
             else:
                 error = f"Generic ({query_type})"
-                replied_content = f"Unknown Error, contact administrator. (Error Code: {query_type})"
 
         except Exception as e:            
             error = e
-            error_code = 1
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:
-            self.__manage_history__(reply, query_type, save_message, error, reply["usage"]["total_tokens"])
-            return replied_content if not give_err_code else (replied_content, error_code)
+
+            final_error = self.__manage_history__(reply, query_type, save_message, error, reply["usage"]["total_tokens"] if reply else 0)
+            return replied_content if not final_error else f"Critical Error: {final_error}\nContact Administrator."
 
     def __stream_send_query__(self, save_message: bool=True, **kwargs):
-        error_code = GPTErrors.NONE
         replied_content = GPTErrors.GENERIC_ERROR
         error = GPTErrors.NONE
         r_history = []
@@ -134,12 +137,12 @@ class GPTChat:
 
         except Exception as e:
             error = e
-            error_code = 1
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:
-            self.__manage_history__(generator_reply, "query", save_message, error, tk)
-            return replied_content
+            err = self.__manage_history__(generator_reply, "query", save_message, error, tk)
+            if err:
+                yield f"Critical Error: {err}\nContact Administrator."
 
     def ask(self, query: str) -> str: # type: ignore
         return str(self.__send_query__(query_type="query", role="user", content=query))
@@ -154,17 +157,15 @@ class GPTChat:
         self.readable_history.clear()
         self.chat_history.clear()
     
-    def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> tuple:
+    def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> str:
         try:
-            farewell, error_code = self.__send_query__(query_type="query", role="system", content="Please give a short and formal farewell from yourself.", give_err_code=True)
-            if error_code == 0:
-                if save_history == "y":
-                    history.upload_chat_history(self)
-                    farewell += f"\n\n\n*Saved chat history with ID: {self.id}*"
-                else:
-                    farewell += "\n\n\n*Not saved chat history*"
+            farewell = "Ended chat with DeveloperJoe!"
+            if save_history == "y":
+                history.upload_chat_history(self)
+                farewell += f"\n\n\n*Saved chat history with ID: {self.id}*"
+            else:
+                farewell += "\n\n\n*Not saved chat history*"
 
-                return (farewell, int(error_code))
-            return (f"An unknown error occured. I have not saved any chat history or deleted your current conversation. \nERROR: ({farewell}, {error_code})", int(error_code))
+            return farewell
         except Exception as e:
-            return (str(e), 1)
+            return f"Critical Error: {e}"

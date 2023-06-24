@@ -1,4 +1,4 @@
-import discord, openai, asyncio, os, io
+import discord, logging, asyncio, os, io
 
 from discord import abc
 from discord.ext import commands
@@ -14,6 +14,7 @@ except FileNotFoundError:
     print("Missing token file."); exit(1)
 
 INTENTS = discord.Intents.all()
+
 
 # Main Bot Class
 
@@ -37,7 +38,7 @@ class DevJoe(commands.Bot):
         await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
         message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=GPTConfig.QUERY_TIMEOUT)
         return message
-
+    
     async def send_debug_message(self, interaction: discord.Interaction, error: Exception) -> None:
         if GPTConfig.DEBUG == True:
             await interaction.followup.send(str(error)) if interaction.response.is_done() else await interaction.response.send_message(str(error)) 
@@ -74,6 +75,9 @@ class DevJoe(commands.Bot):
 async def run_bot():
     client = None
     try:
+        logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
+        discord.utils.setup_logging(level=logging.DEBUG, handler=logging_handler)
+        
         async with DevJoe(command_prefix="?", intents=INTENTS) as client:
             await client.start(TOKEN)
     except KeyboardInterrupt:
