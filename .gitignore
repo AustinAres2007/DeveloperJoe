@@ -6,5 +6,6 @@ lib64/
 token
 *.cfg
 *.pyc
+*.log
+*.db
 .DS_Store
-misc/bot_log.log
