@@ -15,6 +15,10 @@ except FileNotFoundError:
 
 INTENTS = discord.Intents.all()
 
+"""Changelog:
+    Fixed streaming message size error
+    Secured DeveloperJoe chat requirements (What channels it may speak in)
+"""
 
 # Main Bot Class
 

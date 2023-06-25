@@ -1,4 +1,4 @@
-import discord, datetime, logging
+import discord, datetime
 
 from discord.ext import commands
 from typing import Union
@@ -47,27 +47,51 @@ class gpt(commands.Cog):
     @discord.app_commands.choices(stream=stream_choices)
     async def ask(self, interaction: discord.Interaction, message: str, stream: Union[str, None]=None):
         try:
-            if convo := self.client.get_user_conversation(interaction.user.id):
-                if stream == "y" or (convo.stream == True and stream != "n"):
-                    await interaction.response.send_message("Asking...")
-                    reply = convo.ask_stream(message)
-                    reply_together = ""
+            if interaction.channel and interaction.channel.type in [discord.ChannelType.private_thread, discord.ChannelType.text, discord.ChannelType.private, discord.TextChannel]:
+                if convo := self.client.get_user_conversation(interaction.user.id):
+                    if stream == "y" or (convo.stream == True and stream != "n"):
+                        await interaction.response.send_message("Asking...")
+                        
+                        msg: list[discord.Message] = []
+                        reply = convo.ask_stream(message)
+                        full_message = ""
+                        start_message_at = 0
+                        sendable_portion = "<>"
 
-                    for i, t in enumerate(reply):
-                        reply_together += t
-                        if i and i % GPTConfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
-                            await interaction.edit_original_response(content=reply_together)
-                    else:                                
-                        return await interaction.edit_original_response(content=reply_together)
+                        for i, t in enumerate(reply):
+                            full_message += t
+                            sendable_portion = full_message[start_message_at * GPTConfig.CHARACTER_LIMIT:((start_message_at + 1) * GPTConfig.CHARACTER_LIMIT)]
 
-                await interaction.response.defer(ephemeral=True, thinking=True)
-                reply = convo.ask(message)
+                            if len(full_message) and len(full_message) >= (start_message_at + 1) * GPTConfig.CHARACTER_LIMIT:
+                                if not msg:
+                                    await interaction.edit_original_response(content=sendable_portion)
+                                    msg.append(await interaction.channel.send(":)")) # type: ignore
+                                else:
+                                    await msg[-1].edit(content=sendable_portion)
+                                    msg.append(await msg[-1].channel.send(":)"))
 
-                if len(reply) > 2000:
-                    file_reply: discord.File = self.client.to_file(reply, "reply.txt")
-                    return await interaction.followup.send(file=file_reply)
-                return await interaction.followup.send(reply)
-            await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+                            start_message_at = len(full_message) // GPTConfig.CHARACTER_LIMIT
+                            if i and i % GPTConfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
+                                if not msg:
+                                    await interaction.edit_original_response(content=sendable_portion)
+                                else:
+                                    await msg[-1].edit(content=sendable_portion)
+
+                        else:
+                            if not msg:
+                                return await interaction.edit_original_response(content=sendable_portion)
+                            return await msg[-1].edit(content=sendable_portion)
+                    await interaction.response.defer(ephemeral=True, thinking=True)
+                    reply = convo.ask(message)
+
+                    if len(reply) > GPTConfig.CHARACTER_LIMIT:
+                        file_reply: discord.File = self.client.to_file(reply, "reply.txt")
+                        return await interaction.followup.send(file=file_reply)
+                    return await interaction.followup.send(reply)
+                await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+            else:
+                await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO)
+        
         except Exception as e:
             await self.client.send_debug_message(interaction, e)   
 
