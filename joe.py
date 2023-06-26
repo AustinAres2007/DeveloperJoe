@@ -1,4 +1,4 @@
-import discord, logging, asyncio, os, io
+import discord, logging, asyncio, os, io, datetime
 
 from discord import abc
 from discord.ext import commands
@@ -27,6 +27,9 @@ class DevJoe(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def get_uptime(self) -> datetime.timedelta:
+        return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
+    
     def get_user_conversation(self, id_: int) -> Union[GPTChat.GPTChat, None]:
         return self.chats[id_] if int(id_) in list(self.chats) else None
     
@@ -52,6 +55,7 @@ class DevJoe(commands.Bot):
             print(f"{self.application.name} Online")
 
             self.chats = {}
+            self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
 
             _history = GPTHistory.GPTHistory()

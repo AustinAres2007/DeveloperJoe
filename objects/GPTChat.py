@@ -21,7 +21,7 @@ class GPTChat:
 
         self.name = name
         self.stream = False
-
+        
         self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
         self.tokens = 0
         self.model = "gpt-3.5-turbo-16k-0613"

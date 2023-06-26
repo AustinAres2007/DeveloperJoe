@@ -152,12 +152,14 @@ class gpt(commands.Cog):
     async def get_info(self, interaction: discord.Interaction):
         if convo := self.client.get_user_conversation(interaction.user.id):
             
+            uptime_delta = self.client.get_uptime()
             returned_embed = discord.Embed(title="Chat Information")
 
             returned_embed.add_field(name="Started At", value=str(convo.time), inline=False)
             returned_embed.add_field(name="Used Tokens", value=f"{str(convo.tokens)}", inline=False)
             returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)), inline=False)
             returned_embed.add_field(name="Chat ID", value=str(convo.id), inline=False)
+            returned_embed.add_field(name=f"{self.client.application.name} Uptime", value=f"{uptime_delta.days} Days ({uptime_delta})", inline=False)
             
             returned_embed.color = discord.Colour.purple()
 
