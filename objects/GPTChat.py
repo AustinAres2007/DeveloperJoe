@@ -1,9 +1,10 @@
-import datetime, discord, openai, random
+import datetime, discord, openai, random, openai_async
 
 from typing import Union, Any, Generator
 from objects import GPTHistory, GPTErrors
 
-openai.api_key = "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"
+open_ai_api_key = "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"
+openai.api_key = open_ai_api_key
 
 errors = {
     openai.InvalidRequestError: lambda err: str(err),
@@ -54,13 +55,16 @@ class GPTChat:
             self.tokens += tokens # type: ignore
 
         return 
-    def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
+    
+    async def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
             
         replied_content = GPTErrors.GENERIC_ERROR
         error = GPTErrors.NONE
         r_history = []
-        reply = None
         replied_content = ""
+
+        reply = None
+        usage = None
 
         try:
             if query_type == "query":
@@ -69,10 +73,16 @@ class GPTChat:
                 self.is_processing = True
                 self.chat_history.append(kwargs)
 
-                # TODO: If streaming, place code here
+                # TODO: Test async module
                 # Reply format: ({"content": "Reply content", "role": "assistent"})
-                reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history)
-                actual_reply = reply.choices[0].message  # type: ignore
+                _reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=20,
+                                                         payload={
+                                                             "model": self.model,
+                                                             "messages": self.chat_history    
+                                                         })
+                reply: dict = _reply.json()["choices"][0]
+                usage: dict = _reply.json()["usage"]
+                actual_reply = reply["message"]  # type: ignore
                 replied_content = actual_reply["content"]
 
                 self.chat_history.append(dict(actual_reply))
@@ -81,7 +91,6 @@ class GPTChat:
                 r_history.append(dict(actual_reply))
                 self.readable_history.append(r_history)
                 self._readable_history_map_.append(len(self.readable_history) - 1)
-            
             
             elif query_type == "image":
                 # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
@@ -102,9 +111,11 @@ class GPTChat:
             error = e
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
-        finally:
+        finally:    
+            
+            print(reply, query_type, save_message, error, usage)
 
-            final_error = self.__manage_history__(reply, query_type, save_message, error, reply["usage"]["total_tokens"] if reply else 0)
+            final_error = self.__manage_history__(reply, query_type, save_message, error, usage["total_tokens"] if reply else 0)
             return replied_content if not final_error else f"Critical Error: {final_error}\nContact Administrator."
 
     def __stream_send_query__(self, save_message: bool=True, **kwargs):
@@ -144,14 +155,14 @@ class GPTChat:
             if err:
                 yield f"Critical Error: {err}\nContact Administrator."
 
-    def ask(self, query: str) -> str: # type: ignore
-        return str(self.__send_query__(query_type="query", role="user", content=query))
+    async def ask(self, query: str) -> str: # type: ignore
+        return str(await self.__send_query__(query_type="query", role="user", content=query))
     
     def ask_stream(self, query: str) -> Generator:
         return self.__stream_send_query__(role="user", content=query)
 
-    def start(self) -> str:
-        return str(self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
+    async def start(self) -> str:
+        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
 
     def clear(self) -> None:
         self.readable_history.clear()

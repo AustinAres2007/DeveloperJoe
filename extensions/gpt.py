@@ -32,7 +32,7 @@ class gpt(commands.Cog):
                 convo.stream = actual_choice
 
                 await interaction.response.defer(ephemeral=True, thinking=True)
-                await interaction.followup.send(convo.start())
+                await interaction.followup.send(await convo.start())
                 self.client.chats[interaction.user.id] = convo
 
             if not self.client.get_user_conversation(interaction.user.id):
@@ -82,7 +82,7 @@ class gpt(commands.Cog):
                                 return await interaction.edit_original_response(content=sendable_portion)
                             return await msg[-1].edit(content=sendable_portion)
                     await interaction.response.defer(ephemeral=True, thinking=True)
-                    reply = convo.ask(message)
+                    reply = await convo.ask(message)
 
                     if len(reply) > GPTConfig.CHARACTER_LIMIT:
                         file_reply: discord.File = self.client.to_file(reply, "reply.txt")
