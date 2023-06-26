@@ -1,8 +1,8 @@
-import discord, asyncio
+import discord
 
 from discord.ext import commands
 from joe import DevJoe
-from typing import Union, Generator
+from typing import Union, AsyncGenerator
 from objects import GPTConfig
 
 class listeners(commands.Cog):
@@ -27,12 +27,14 @@ class listeners(commands.Cog):
 
                     if convo.stream == True:
                         msg: list[discord.Message] = [await message.channel.send("Asking...")]
-                        streamed_reply: Generator = convo.ask_stream(content)
+                        streamed_reply: AsyncGenerator = convo.ask_stream(content)
                         full_message = ""
                         sendable_portion = "<>"
-                        start_message_at = 0
-
-                        for ind, token in enumerate(streamed_reply):
+                        ind, start_message_at = 0, 0
+                        
+                        # enumerate is not compatible with async syntax. There are some external modules that can do just that. But I do not want to rely on those.
+                        async for token in streamed_reply:
+                            ind += 1
                             full_message += token
                             sendable_portion = full_message[start_message_at * GPTConfig.CHARACTER_LIMIT:((start_message_at + 1) * GPTConfig.CHARACTER_LIMIT)]
 
@@ -47,7 +49,7 @@ class listeners(commands.Cog):
                         else:
                             return await msg[-1].edit(content=sendable_portion)
 
-                    await message.channel.send(convo.ask(content))
+                    await message.channel.send(await convo.ask(content))
                 elif not (thread and thread.is_private() and thread.member_count == 2) or content.startswith(">"):
                     return
                 else:

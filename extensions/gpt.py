@@ -55,10 +55,11 @@ class gpt(commands.Cog):
                         msg: list[discord.Message] = []
                         reply = convo.ask_stream(message)
                         full_message = ""
-                        start_message_at = 0
+                        i, start_message_at = 0, 0
                         sendable_portion = "<>"
 
-                        for i, t in enumerate(reply):
+                        async for t in reply:
+                            i += 1
                             full_message += t
                             sendable_portion = full_message[start_message_at * GPTConfig.CHARACTER_LIMIT:((start_message_at + 1) * GPTConfig.CHARACTER_LIMIT)]
 

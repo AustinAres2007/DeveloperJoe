@@ -1,10 +1,9 @@
-import datetime, discord, openai, random, openai_async
+import datetime, discord, openai, random, openai_async, json, tiktoken
 
-from typing import Union, Any, Generator
-from objects import GPTHistory, GPTErrors
+from typing import Union, Any, Generator, AsyncGenerator
+from objects import GPTHistory, GPTErrors, GPTConfig
 
-open_ai_api_key = "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"
-openai.api_key = open_ai_api_key
+open_ai_api_key = GPTConfig.OPENAI_API_KEY
 
 errors = {
     openai.InvalidRequestError: lambda err: str(err),
@@ -23,6 +22,7 @@ class GPTChat:
         self.name = name
         self.stream = False
 
+        self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
         self.tokens = 0
         self.model = "gpt-3.5-turbo-16k-0613"
         self.is_processing = False
@@ -56,6 +56,32 @@ class GPTChat:
 
         return 
     
+    async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> AsyncGenerator:
+        payload = {"model": self.model, "messages": messages, "stream": True} | kwargs
+        reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=20, payload=payload)
+
+        # Setup the list of responses
+        responses: list[str] = [""]
+        last_char = 0
+
+        # For every character byte in byte stream
+        for char in reply.read():
+            # Check if current character and last char are line feed characters (Represents new chunk)
+            if char == 10 and last_char == 10:
+                
+                # Check if chunk is the right format, or doesn't equal anything
+                if responses[-1].strip("\n") in ["data: [DONE]", ""]:
+                    responses.pop()
+                else:
+                    responses[-1] = json.loads(responses[-1][6:]) # Filter out the "data: " part, and translate to a dictionary
+
+                    yield responses[-1] # Yield finished chunk
+                    responses.append("") # Append start of a new chunk
+            else:
+                # Append part of new chunk to string
+                responses[-1] += chr(char)
+            last_char = char
+
     async def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
             
         replied_content = GPTErrors.GENERIC_ERROR
@@ -63,8 +89,8 @@ class GPTChat:
         r_history = []
         replied_content = ""
 
-        reply = None
-        usage = None
+        reply: Union[None, dict] = None
+        usage: Union[None, dict] = None
 
         try:
             if query_type == "query":
@@ -80,8 +106,8 @@ class GPTChat:
                                                              "model": self.model,
                                                              "messages": self.chat_history    
                                                          })
-                reply: dict = _reply.json()["choices"][0]
-                usage: dict = _reply.json()["usage"]
+                reply = _reply.json()["choices"][0]
+                usage = _reply.json()["usage"]
                 actual_reply = reply["message"]  # type: ignore
                 replied_content = actual_reply["content"]
 
@@ -112,29 +138,28 @@ class GPTChat:
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:    
-            
-            print(reply, query_type, save_message, error, usage)
-
-            final_error = self.__manage_history__(reply, query_type, save_message, error, usage["total_tokens"] if reply else 0)
+            final_error = self.__manage_history__(reply, query_type, save_message, error, usage["total_tokens"] if reply and usage else 0)
             return replied_content if not final_error else f"Critical Error: {final_error}\nContact Administrator."
 
-    def __stream_send_query__(self, save_message: bool=True, **kwargs):
+    async def __stream_send_query__(self, save_message: bool=True, **kwargs):
+        total_tokens = len(self.encoding.encode(kwargs["content"]))
         replied_content = GPTErrors.GENERIC_ERROR
         error = GPTErrors.NONE
         r_history = []
         generator_reply = None
         replied_content = ""
-        tk = 0
 
         try:
             self.is_processing = True
             self.chat_history.append(kwargs)
-            generator_reply = openai.ChatCompletion.create(model=self.model, messages=self.chat_history, stream=True)
+            generator_reply = self.__get_stream_parsed_data__(self.chat_history)
 
-            for tk, chunk in enumerate(generator_reply):
+            async for chunk in generator_reply:
                 if chunk["choices"][0]["finish_reason"] != "stop":
                     c_token = chunk["choices"][0]["delta"]["content"]
                     replied_content += c_token
+                    total_tokens += len(self.encoding.encode(c_token))
+
                     yield c_token
 
             replicate_reply = {"role": "assistant", "content": replied_content}
@@ -151,14 +176,14 @@ class GPTChat:
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:
-            err = self.__manage_history__(generator_reply, "query", save_message, error, tk)
+            err = self.__manage_history__(generator_reply, "query", save_message, error, total_tokens)
             if err:
                 yield f"Critical Error: {err}\nContact Administrator."
 
     async def ask(self, query: str) -> str: # type: ignore
         return str(await self.__send_query__(query_type="query", role="user", content=query))
     
-    def ask_stream(self, query: str) -> Generator:
+    def ask_stream(self, query: str) -> AsyncGenerator:
         return self.__stream_send_query__(role="user", content=query)
 
     async def start(self) -> str:
