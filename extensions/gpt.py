@@ -25,20 +25,20 @@ class gpt(commands.Cog):
             actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
 
             if len(actual_name) > 39:
-                return await interaction.followup.send("The name of your chat must be less than 40 characters.")
+                return await interaction.followup.send("The name of your chat must be less than 40 characters.", ephemeral=False)
     
             async def func():
                 convo = GPTChat.GPTChat(interaction.user, actual_name)
                 convo.stream = actual_choice
 
                 await interaction.response.defer(ephemeral=True, thinking=True)
-                await interaction.followup.send(await convo.start())
+                await interaction.followup.send(await convo.start(), ephemeral=False)
                 self.client.chats[interaction.user.id] = convo
 
             if not self.client.get_user_conversation(interaction.user.id):
                 return await func()
 
-            await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO)
+            await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
         except Exception as e:
             await self.client.send_debug_message(interaction, e)
 
@@ -50,7 +50,7 @@ class gpt(commands.Cog):
             if interaction.channel and interaction.channel.type in [discord.ChannelType.private_thread, discord.ChannelType.text, discord.ChannelType.private, discord.TextChannel]:
                 if convo := self.client.get_user_conversation(interaction.user.id):
                     if stream == "y" or (convo.stream == True and stream != "n"):
-                        await interaction.response.send_message("Asking...")
+                        await interaction.response.send_message("Asking...", ephemeral=False)
                         
                         msg: list[discord.Message] = []
                         reply = convo.ask_stream(message)
@@ -87,11 +87,11 @@ class gpt(commands.Cog):
 
                     if len(reply) > GPTConfig.CHARACTER_LIMIT:
                         file_reply: discord.File = self.client.to_file(reply, "reply.txt")
-                        return await interaction.followup.send(file=file_reply)
-                    return await interaction.followup.send(reply)
-                await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+                        return await interaction.followup.send(file=file_reply, ephemeral=False)
+                    return await interaction.followup.send(reply, ephemeral=False)
+                await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
             else:
-                await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO)
+                await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO, ephemeral=False)
         
         except Exception as e:
             await self.client.send_debug_message(interaction, e)   
@@ -105,23 +105,23 @@ class gpt(commands.Cog):
     async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str]):
         
         if save.value not in ["n", "y"]:
-            return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.")
+            return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.", ephemeral=False)
         
         reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end this chat? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
         if reply.content != GPTConfig.QUERY_CONFIRMATION:
-            return await interaction.followup.send("Cancelled action.")
+            return await interaction.followup.send("Cancelled action.", ephemeral=False)
         
         async def func(gpt: GPTChat.GPTChat):
             with GPTHistory.GPTHistory() as history:
                 farewell = gpt.stop(history, save.value)
-                await interaction.followup.send(farewell)
+                await interaction.followup.send(farewell, ephemeral=False)
                 if not farewell.startswith("Critical Error:"):
                     del self.client.chats[interaction.user.id]
         
         # checks because app_commands cannot use normal ones.
         if convo := self.client.get_user_conversation(interaction.user.id):
             return await func(convo)
-        await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO)
+        await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt="The keyword you want DeveloperJoe to describe.", resolution="Resolution of the final image.")
@@ -137,7 +137,7 @@ class gpt(commands.Cog):
 
             if resolution in ["256x256", "512x512", "1024x1024"]:
                 if convo := self.client.get_user_conversation(interaction.user.id):
-                    r = str(convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
+                    r = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
                 else:
                     r = GPTErrors.ConversationErrors.NO_CONVO
             else:
@@ -146,7 +146,7 @@ class gpt(commands.Cog):
             r = f"Uncaught Exception: {e}"
 
         finally:
-            return await interaction.followup.send(r)
+            return await interaction.followup.send(r, ephemeral=False)
 
     @discord.app_commands.command(name="info", description="Displays information about your current DeveloperJoe Chat.")
     async def get_info(self, interaction: discord.Interaction):
@@ -163,9 +163,9 @@ class gpt(commands.Cog):
             
             returned_embed.color = discord.Colour.purple()
 
-            return await interaction.response.send_message(embed=returned_embed)
+            return await interaction.response.send_message(embed=returned_embed, ephemeral=False)
         
-        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)  
+        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)  
 
 async def setup(client):
     await client.add_cog(gpt(client))

@@ -24,7 +24,7 @@ class general(commands.Cog):
                 params = ", ".join(list(map(get_name, command.parameters))) # type: ignore
                 embed.add_field(name=f"/{command.name}", value=f'{command.description} | /{command.name} {params}', inline=False)
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(client):
     await client.add_cog(general(client))

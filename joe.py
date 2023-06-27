@@ -84,7 +84,7 @@ async def run_bot():
     client = None
     try:
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
-        discord.utils.setup_logging(level=logging.DEBUG, handler=logging_handler)
+        discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
         async with DevJoe(command_prefix="?", intents=INTENTS) as client:
             await client.start(TOKEN)

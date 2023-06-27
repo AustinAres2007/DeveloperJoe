@@ -4,7 +4,7 @@ from typing import Union, Any, Generator, AsyncGenerator
 from objects import GPTHistory, GPTErrors, GPTConfig
 
 open_ai_api_key = GPTConfig.OPENAI_API_KEY
-
+openai.api_key = open_ai_api_key
 errors = {
     openai.InvalidRequestError: lambda err: str(err),
     openai.APIError: lambda err: "Generic GPT 3.5 Error, please try again later.",
@@ -31,10 +31,10 @@ class GPTChat:
         self.chat_history = []
         self._readable_history_map_ = []
 
-    def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, any_error: Union[Exception, None, str], tokens: int):
+    def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
 
-        if (not save_message or any_error) and query_type == "query":
+        if not save_message and query_type == "query":
             
             try:
                 self.chat_history = self.chat_history[:len(self.chat_history)-2]
@@ -42,16 +42,11 @@ class GPTChat:
                 self._readable_history_map_.pop()
             except IndexError:
                 pass
-            if any_error:
-                return str(any_error)
 
-        elif (not save_message or any_error) and query_type == "image":
+        elif not save_message and query_type == "image":
             self.readable_history.pop()
-    
-            if any_error:
-                return str(any_error)
 
-        if (is_gpt_reply and save_message and query_type == "query") and not any_error:
+        if is_gpt_reply and save_message and query_type == "query":
             self.tokens += tokens # type: ignore
 
         return 
@@ -133,13 +128,13 @@ class GPTChat:
             else:
                 error = f"Generic ({query_type})"
 
-        except Exception as e:            
+        except Exception as e:      
             error = e
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:    
-            final_error = self.__manage_history__(reply, query_type, save_message, error, usage["total_tokens"] if reply and usage else 0)
-            return replied_content if not final_error else f"Critical Error: {final_error}\nContact Administrator."
+            self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
+            return replied_content if not error else f"Error: {error}"
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.encoding.encode(kwargs["content"]))
@@ -176,9 +171,9 @@ class GPTChat:
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:
-            err = self.__manage_history__(generator_reply, "query", save_message, error, total_tokens)
-            if err:
-                yield f"Critical Error: {err}\nContact Administrator."
+            self.__manage_history__(generator_reply, "query", save_message, total_tokens)
+            if error:
+                yield f"Error: {error}"
 
     async def ask(self, query: str) -> str: # type: ignore
         return str(await self.__send_query__(query_type="query", role="user", content=query))
