@@ -2,10 +2,11 @@
 __pycache__
 bin/
 lib/
-lib64/
+lib64
 token
 *.cfg
 *.pyc
 *.log
 *.db
+@eaDir
 .DS_Store
