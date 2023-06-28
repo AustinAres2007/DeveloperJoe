@@ -160,6 +160,7 @@ class gpt(commands.Cog):
             returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)), inline=False)
             returned_embed.add_field(name="Chat ID", value=str(convo.id), inline=False)
             returned_embed.add_field(name=f"{self.client.application.name} Uptime", value=f"{uptime_delta.days} Days ({uptime_delta})", inline=False)
+            returned_embed.add_field(name=f"{self.client.application.name} Version", value=f"{GPTConfig.VERSION}", inline=False)
             
             returned_embed.color = discord.Colour.purple()
 
