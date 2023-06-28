@@ -11,7 +11,9 @@ class admin(commands.Cog):
     async def halt(self, interaction: discord.Interaction):
         if interaction.user.id == 400089431933059072:
             await interaction.response.send_message("Shutting Down")
-            return await self.client.close()
+            await self.client.close()
+
+            exit(0)
         await interaction.response.send_message("You are not the owner.")
         
 async def setup(client):

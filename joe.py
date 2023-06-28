@@ -91,6 +91,7 @@ async def run_bot():
     except KeyboardInterrupt:
         if client:
             await client.close()
+            exit(0)
         
 if __name__ == "__main__":
     try:
