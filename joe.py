@@ -52,7 +52,7 @@ class DevJoe(commands.Bot):
             
     async def on_ready(self):
         if self.application:
-            print(f"{self.application.name} Online")
+            print(f"{self.application.name} Online (V: {GPTConfig.VERSION})")
 
             self.chats = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
