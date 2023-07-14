@@ -135,7 +135,7 @@ class GPTChat:
 
         finally:    
             self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
-            return replied_content if not error else f"Error: {error}"
+            return replied_content if not error else f"Error: {str(error)}"
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.encoding.encode(kwargs["content"]))

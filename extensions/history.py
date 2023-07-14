@@ -40,17 +40,20 @@ class history(commands.Cog):
 
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction):
-        if (convo := self.client.get_user_conversation(interaction.user.id)):
+        try:
+            if (convo := self.client.get_user_conversation(interaction.user.id)):
 
-            formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else "No chat history."
-            file_like = io.BytesIO(formatted_history_string.encode())
-            file_like.name = f"{datetime.datetime.now()}-transcript.txt"
+                formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else "No chat history."
+                file_like = io.BytesIO(formatted_history_string.encode())
+                file_like.name = f"{datetime.datetime.now()}-transcript.txt"
 
-            await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
-            return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
+                await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
+                return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
         
-        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
-    
+            await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+        except Exception as e:
+            await self.client.send_debug_message(interaction, e)
+            
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
     async def get_chat_history(self, interaction: discord.Interaction, history_id: str):
         try:

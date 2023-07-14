@@ -48,7 +48,8 @@ class DevJoe(commands.Bot):
     
     async def send_debug_message(self, interaction: discord.Interaction, error: Exception) -> None:
         if GPTConfig.DEBUG == True:
-            await interaction.followup.send(str(error)) if interaction.response.is_done() else await interaction.response.send_message(str(error)) 
+            await interaction.followup.send(f"From main class error handler: {str(Exception)}") if interaction.response.is_done() else await interaction.response.send_message(f"From main class error handler: {str(Exception)}") 
+            raise error
             
     async def on_ready(self):
         if self.application:
