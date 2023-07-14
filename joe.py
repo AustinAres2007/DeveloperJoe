@@ -30,8 +30,12 @@ class DevJoe(commands.Bot):
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
     
-    def get_user_conversation(self, id_: int) -> Union[GPTChat.GPTChat, None]:
-        return self.chats[id_] if int(id_) in list(self.chats) else None
+    def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None) -> Union[GPTChat.GPTChat, None]:
+        if int(id_) in list(self.chats) and not chat_name:
+            return self.chats[id_]["0"]
+        elif int(id_) in list(self.chats) and chat_name:
+            return self.chats[id_][chat_name]
+        return None
     
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
@@ -55,8 +59,9 @@ class DevJoe(commands.Bot):
         if self.application:
             print(f"{self.application.name} Online (V: {GPTConfig.VERSION})")
 
-            self.chats = {}
+            self.chats: dict[int, Union[dict[str, GPTChat.GPTChat], dict]] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
+            
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
 
             _history = GPTHistory.GPTHistory()
@@ -69,7 +74,9 @@ class DevJoe(commands.Bot):
                     return print("Database all set.")
                 print("Database could not be rebuilt. Aborting. Check database files.")
                 return await self.close()
+            
             await _check_integrity(0)
+            self.chats = {user.id: {} for user in self.users}
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
