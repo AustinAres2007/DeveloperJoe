@@ -101,6 +101,7 @@ class GPTChat:
                                                              "model": self.model,
                                                              "messages": self.chat_history    
                                                          })
+                
                 reply = _reply.json()["choices"][0]
                 usage = _reply.json()["usage"]
                 actual_reply = reply["message"]  # type: ignore
