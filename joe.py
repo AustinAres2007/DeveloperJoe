@@ -14,6 +14,7 @@ except FileNotFoundError:
     print("Missing token file."); exit(1)
 
 INTENTS = discord.Intents.all()
+full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
 
 """Changelog:
     Fixed streaming message size error
@@ -30,12 +31,15 @@ class DevJoe(commands.Bot):
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
     
-    def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None) -> Union[GPTChat.GPTChat, None]:
-        if int(id_) in list(self.chats) and not chat_name:
-            return self.chats[id_]["0"]
-        elif int(id_) in list(self.chats) and chat_name:
-            return self.chats[id_][chat_name]
-        return None
+    def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None, all: bool=False) -> Union[Union[GPTChat.GPTChat, int], full_user_chat_return_type]:
+        if int(id_) in list(self.chats) and self.chats[id_]:
+            if all == True:
+                return self.chats[id_]
+            if not chat_name:
+                return self.chats[id_]["0"]
+            elif chat_name:
+                return self.chats[id_][chat_name]
+        return 0
     
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
@@ -50,16 +54,17 @@ class DevJoe(commands.Bot):
         message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=GPTConfig.QUERY_TIMEOUT)
         return message
     
-    async def send_debug_message(self, interaction: discord.Interaction, error: Exception) -> None:
+    async def send_debug_message(self, interaction: discord.Interaction, error: BaseException, cog: str) -> None:
         if GPTConfig.DEBUG == True:
-            await interaction.followup.send(f"From main class error handler: {str(Exception)}") if interaction.response.is_done() else await interaction.response.send_message(f"From main class error handler: {str(Exception)}") 
+            exception_text = f"From main class error handler \n\nError Class: {str(Exception)}\nError Arguments: {str(Exception.args)}\nFrom cog: {cog} "
+            await interaction.followup.send(exception_text) if interaction.response.is_done() else await interaction.response.send_message(exception_text) 
             raise error
             
     async def on_ready(self):
         if self.application:
             print(f"{self.application.name} Online (V: {GPTConfig.VERSION})")
 
-            self.chats: dict[int, Union[dict[str, GPTChat.GPTChat], dict]] = {}
+            self.chats: dict[int, full_user_chat_return_type] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
             
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))

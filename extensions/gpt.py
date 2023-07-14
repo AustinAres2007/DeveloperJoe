@@ -19,7 +19,7 @@ class gpt(commands.Cog):
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
     @discord.app_commands.describe(name="The name of the chat you will start (Will be used when saving the transcript)")
     @discord.app_commands.choices(stream_conversation=stream_choices)
-    async def start(self, interaction: discord.Interaction, name: str="", stream_conversation: Union[str, None]=None):
+    async def start(self, interaction: discord.Interaction, name: str="0", stream_conversation: Union[str, None]=None):
         actual_choice = True if stream_conversation == "y" else False
         try:
             actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
@@ -33,14 +33,18 @@ class gpt(commands.Cog):
 
                 await interaction.response.defer(ephemeral=True, thinking=True)
                 await interaction.followup.send(await convo.start(), ephemeral=False)
-                self.client.chats[interaction.user.id] = convo
+                chats = self.client.get_user_conversation(interaction.user.id, None, True)
+
+                if chats != 0 and name == "0":
+                    return await interaction.response.send_message("If you have any more than 1 chat, you must chose a name.", ephemeral=False) 
+                self.client.chats[interaction.user.id][name] = convo
 
             if not self.client.get_user_conversation(interaction.user.id):
                 return await func()
 
             await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
         except Exception as e:
-            await self.client.send_debug_message(interaction, e)
+            await self.client.send_debug_message(interaction, e, self.__cog_name__)
 
     @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
     @discord.app_commands.describe(message="The query you want to send DeveloperJoe")
@@ -96,7 +100,7 @@ class gpt(commands.Cog):
                 await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO, ephemeral=False)
         
         except Exception as e:
-            await self.client.send_debug_message(interaction, e)   
+            await self.client.send_debug_message(interaction, e, self.__cog_name__)   
 
     @discord.app_commands.command(name="stop", description="Stop a DeveloperJoe session.")
     @discord.app_commands.describe(save="If you want to save your transcript.")
@@ -104,22 +108,27 @@ class gpt(commands.Cog):
         discord.app_commands.Choice(name="No, do not save my transcript save.", value="n"),
         discord.app_commands.Choice(name="Yes, please save my transcript.", value="y")
     ])
-    async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str]):
+    async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str], name: str):
+        
+        # TODO: Fix broken chat name checking.
         
         if save.value not in ["n", "y"]:
             return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.", ephemeral=False)
         
-        reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end this chat? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
-        if reply.content != GPTConfig.QUERY_CONFIRMATION:
-            return await interaction.followup.send("Cancelled action.", ephemeral=False)
-        
         async def func(gpt: GPTChat.GPTChat):
             with GPTHistory.GPTHistory() as history:
                 farewell = gpt.stop(history, save.value)
-                await interaction.followup.send(farewell, ephemeral=False)
-                if not farewell.startswith("Critical Error:"):
-                    del self.client.chats[interaction.user.id]
-        
+    
+                if self.client.get_user_conversation(interaction.user.id, name, True):
+                    reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end this chat? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+                    if reply.content != GPTConfig.QUERY_CONFIRMATION:
+                        return await interaction.followup.send("Cancelled action.", ephemeral=False)
+                    
+                    await interaction.followup.send(farewell, ephemeral=False)
+                    del self.client.chats[interaction.user.id][name]
+                else:
+                    await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
+
         # checks because app_commands cannot use normal ones.
         if convo := self.client.get_user_conversation(interaction.user.id):
             return await func(convo)

@@ -52,7 +52,7 @@ class history(commands.Cog):
         
             await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
         except Exception as e:
-            await self.client.send_debug_message(interaction, e)
+            await self.client.send_debug_message(interaction, e, self.__cog_name__)
             
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
     async def get_chat_history(self, interaction: discord.Interaction, history_id: str):
