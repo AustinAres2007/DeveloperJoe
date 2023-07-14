@@ -82,13 +82,15 @@ class gpt(commands.Cog):
                             if not msg:
                                 return await interaction.edit_original_response(content=sendable_portion)
                             return await msg[-1].edit(content=sendable_portion)
-                    await interaction.response.defer(ephemeral=True, thinking=True)
+                        
+                    await interaction.response.defer(ephemeral=False, thinking=True)
                     reply = await convo.ask(message)
 
                     if len(reply) > GPTConfig.CHARACTER_LIMIT:
                         file_reply: discord.File = self.client.to_file(reply, "reply.txt")
                         return await interaction.followup.send(file=file_reply, ephemeral=False)
                     return await interaction.followup.send(reply, ephemeral=False)
+                
                 await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
             else:
                 await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO, ephemeral=False)
