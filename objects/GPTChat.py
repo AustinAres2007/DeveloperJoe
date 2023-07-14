@@ -24,7 +24,7 @@ class GPTChat:
         
         self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
         self.tokens = 0
-        self.model = "gpt-3.5-turbo-16k-0613"
+        self.model = GPTConfig.GPT_MODAL
         self.is_processing = False
 
         self.readable_history = []
