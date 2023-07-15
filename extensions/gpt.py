@@ -27,22 +27,23 @@ class gpt(commands.Cog):
             if len(actual_name) > 39:
                 return await interaction.followup.send("The name of your chat must be less than 40 characters.", ephemeral=False)
     
-            async def func():
-                convo = GPTChat.GPTChat(interaction.user, actual_name)
-                convo.stream = actual_choice
+            chats = self.client.get_user_conversation(interaction.user.id, None, True)
+    
+            if chats != 0 and name == "0":
+                return await interaction.response.send_message(GPTErrors.ConversationErrors.INVALID_NAME, ephemeral=False) 
+            elif isinstance(chats, dict) and name in list(chats):
+                return await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False) 
+            elif isinstance(chats, dict) and len(chats) > GPTConfig.CHATS_LIMIT:
+                return await interaction.response.send_message(GPTErrors.ConversationErrors.TOO_MANY_CONVOS, ephemeral=False) 
+            
+            convo = GPTChat.GPTChat(interaction.user, actual_name)
+            convo.stream = actual_choice
 
-                await interaction.response.defer(ephemeral=True, thinking=True)
-                await interaction.followup.send(await convo.start(), ephemeral=False)
-                chats = self.client.get_user_conversation(interaction.user.id, None, True)
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            await interaction.followup.send(await convo.start(), ephemeral=False)
 
-                if chats != 0 and name == "0":
-                    return await interaction.response.send_message("If you have any more than 1 chat, you must chose a name.", ephemeral=False) 
-                self.client.chats[interaction.user.id][name] = convo
+            self.client.add_user_conversation(interaction.user.id, name, convo)
 
-            if not self.client.get_user_conversation(interaction.user.id):
-                return await func()
-
-            await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
         except Exception as e:
             await self.client.send_debug_message(interaction, e, self.__cog_name__)
 
