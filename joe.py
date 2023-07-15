@@ -41,6 +41,9 @@ class DevJoe(commands.Bot):
                 return self.chats[id_][chat_name]
         return 0
     
+    def add_conversation(self, uid: int, name: str, conversation: GPTChat.GPTChat) -> None:
+        self.chats[uid][name] = conversation
+        
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name
