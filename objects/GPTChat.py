@@ -192,7 +192,7 @@ class GPTChat:
     
     def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> str:
         try:
-            farewell = "Ended chat with DeveloperJoe!"
+            farewell = f"Ended chat: {self.display_name} with DeveloperJoe!"
             if save_history == "y":
                 history.upload_chat_history(self)
                 farewell += f"\n\n\n*Saved chat history with ID: {self.id}*"

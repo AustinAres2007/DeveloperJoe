@@ -41,6 +41,9 @@ class DevJoe(commands.Bot):
                 return self.chats[id_][chat_name] # type: ignore
         return 0
     
+    def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
+        del self.chats[user.id][conversation_name]
+
     def add_conversation(self, user: Union[discord.Member, discord.User], name: str, conversation: GPTChat.GPTChat) -> None:
         self.chats[user.id][name] = conversation # type: ignore
 
