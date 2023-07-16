@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from joe import DevJoe
+from objects import GPTConfig
 
 class general(commands.Cog):
     def __init__(self, client):
@@ -14,6 +15,8 @@ class general(commands.Cog):
         embed.color = discord.Colour.purple()
         embed.set_footer(text="For arguments, type the command and they will appear.")
         get_name = lambda cmd: cmd.name
+        uptime = self.client.get_uptime()
+        default = self.client.get_default_conversation(interaction.user)
 
         for name, cog in self.client.cogs.items():
             if not cog.get_app_commands():
@@ -24,6 +27,7 @@ class general(commands.Cog):
                 params = ", ".join(list(map(get_name, command.parameters))) # type: ignore
                 embed.add_field(name=f"/{command.name}", value=f'{command.description} | /{command.name} {params}', inline=False)
 
+        embed.set_footer(text=f"Uptime — {uptime.days} Days ({uptime}) | Version — {GPTConfig.VERSION} | Debug = {GPTConfig.DEBUG} | Default = {default.display_name if default else 'Has None.'}")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(client):

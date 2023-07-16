@@ -14,12 +14,13 @@ errors = {
 }
 
 class GPTChat:
-    def __init__(self, user: Union[discord.User, discord.Member], name: str):
+    def __init__(self, user: Union[discord.User, discord.Member], name: str, display_name: str):
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.id = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
 
         self.name = name
+        self.display_name = display_name
         self.stream = False
         
         self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")

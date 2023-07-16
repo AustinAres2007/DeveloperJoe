@@ -32,18 +32,24 @@ class DevJoe(commands.Bot):
         return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
     
     def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None, all: bool=False) -> Union[Union[GPTChat.GPTChat, int], full_user_chat_return_type]:
-        if int(id_) in list(self.chats) and self.chats[id_]:
-            if all == True:
-                return self.chats[id_]
+        if int(id_) in list(self.chats) and self.chats[id_]: # type: ignore
+            if all == True: 
+                return self.chats[id_] # type: ignore
             if not chat_name:
-                return self.chats[id_]["0"]
-            elif chat_name:
-                return self.chats[id_][chat_name]
+                return self.chats[id_]["0"] # type: ignore
+            elif chat_name and chat_name in self.chats[id_]: # type: ignore
+                return self.chats[id_][chat_name] # type: ignore
         return 0
     
-    def add_conversation(self, uid: int, name: str, conversation: GPTChat.GPTChat) -> None:
-        self.chats[uid][name] = conversation
-        
+    def add_conversation(self, user: Union[discord.Member, discord.User], name: str, conversation: GPTChat.GPTChat) -> None:
+        self.chats[user.id][name] = conversation # type: ignore
+
+    def set_default_conversation(self, user: Union[discord.Member, discord.User], name: Union[None, str]) -> None:
+        self.chats[f"{user.id}-latest"] = self.get_user_conversation(user.id, name) # type: ignore
+    
+    def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[None, GPTChat.GPTChat]:
+        return self.chats[f"{user.id}-latest"] # type: ignore
+    
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name
@@ -67,7 +73,7 @@ class DevJoe(commands.Bot):
         if self.application:
             print(f"{self.application.name} Online (V: {GPTConfig.VERSION})")
 
-            self.chats: dict[int, full_user_chat_return_type] = {}
+            self.chats: Union[dict[int, Union[dict[str, GPTChat.GPTChat], dict]], dict[str, Union[None, GPTChat.GPTChat]]] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
             
             await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
@@ -84,7 +90,9 @@ class DevJoe(commands.Bot):
                 return await self.close()
             
             await _check_integrity(0)
+
             self.chats = {user.id: {} for user in self.users}
+            self.chats = self.chats | {f"{user.id}-latest": None for user in self.users} # type: ignore
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):

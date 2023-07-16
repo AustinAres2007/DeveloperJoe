@@ -1,4 +1,4 @@
-import GPTConfig
+from . import GPTConfig
 
 NONE = None
 GENERIC_ERROR = "Unknown error, contact administrator."
@@ -11,7 +11,7 @@ class ConversationErrors:
     NO_CONVO_WITH_NAME = "No conversation with the specified name."
     COMVO_LIMIT = f"You cannot start anymore than {GPTConfig.CHATS_LIMIT} chats."
     CONVO_NEEDED_NAME = "If you have any more than 1 chat, you must chose a name."
-    
+    ALREADY_PROCESSING_CONVO = "DeveloperJoe is already processing a request for you."
 class HistoryErrors:
     INVALID_HISTORY_ID = "Input a valid ID."
     HISTORY_DOESNT_EXIST = "No history with the specified name."
