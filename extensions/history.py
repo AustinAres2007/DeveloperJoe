@@ -75,9 +75,11 @@ class history(commands.Cog):
         except ValueError:
             return await interaction.response.send_message(GPTErrors.HistoryErrors.INVALID_HISTORY_ID)
     
+    """
     @discord.app_commands.command(name="context", description="Remove a part of your current conversation with DeveloperJoe.")
     async def remove_context(self, interaction: discord.Interaction, name: Union[None, str], message_index: int):
         name = self.client.manage_defaults(interaction.user, name)
+        print(name)
         if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
             try:
                 message_index -= 1
@@ -85,10 +87,11 @@ class history(commands.Cog):
                 del convo.readable_history[convo._readable_history_map_[message_index]]
                 del convo._readable_history_map_[message_index]
 
-                await interaction.response.send_message(f"Deleted Message & Response at position: {message_index + 1}")
+                return await interaction.response.send_message(f"Deleted Message & Response at position: {message_index + 1}")
             except IndexError:
                 await interaction.response.send_message(f"No message at message index: {message_index + 1}")
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+    """
         
 async def setup(client):
     await client.add_cog(history(client))
