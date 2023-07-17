@@ -1,6 +1,6 @@
 import datetime as _datetime
 
-FINAL = False
+FINAL = True
 DEBUG = True
 QUERY_TIMEOUT = 10
 QUERY_CONFIRMATION = ">y"
