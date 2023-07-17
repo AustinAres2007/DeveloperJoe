@@ -42,17 +42,29 @@ class DevJoe(commands.Bot):
         return 0
     
     def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
-        del self.chats[user.id][conversation_name]
+        del self.chats[user.id][conversation_name] # type: ignore
 
     def add_conversation(self, user: Union[discord.Member, discord.User], name: str, conversation: GPTChat.GPTChat) -> None:
         self.chats[user.id][name] = conversation # type: ignore
 
-    def set_default_conversation(self, user: Union[discord.Member, discord.User], name: Union[None, str]) -> None:
-        self.chats[f"{user.id}-latest"] = self.get_user_conversation(user.id, name) # type: ignore
+    def set_default_conversation(self, user: Union[discord.Member, discord.User], name: Union[None, str], absolute: bool=False) -> None:
+        self.chats[f"{user.id}-latest"] = self.get_user_conversation(user.id, name) if not absolute else name# type: ignore
     
     def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[None, GPTChat.GPTChat]:
         return self.chats[f"{user.id}-latest"] # type: ignore
     
+    def manage_defaults(self, user: Union[discord.User, discord.Member], name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
+        current_default = self.get_default_conversation(user)
+        if current_default and name:
+            self.set_default_conversation(user, name)
+            return name
+        elif current_default:
+            return current_default.display_name
+        elif not name and set_to_none == True:
+            self.set_default_conversation(user, None)
+        elif not current_default and name:
+            self.set_default_conversation(user, name)
+
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name

@@ -15,18 +15,6 @@ class gpt(commands.Cog):
     def __init__(self, client):
         self.client: DevJoe = client
         print(f"{self.__cog_name__} Loaded") 
-    
-    def manage_defaults(self, user: Union[discord.User, discord.Member], name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
-        current_default = self.client.get_default_conversation(user)
-        if current_default and name:
-            self.client.set_default_conversation(user, name)
-            return name
-        elif current_default:
-            return current_default.display_name
-        elif not name and set_to_none == True:
-            self.client.set_default_conversation(user, None)
-        elif not current_default and name:
-            self.client.set_default_conversation(user, name)
 
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
     @discord.app_commands.describe(name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.")
@@ -45,7 +33,8 @@ class gpt(commands.Cog):
             elif isinstance(chats, dict) and name in list(chats):
                 return await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
             elif isinstance(chats, dict) and len(chats) > GPTConfig.CHATS_LIMIT:
-                return await interaction.response.send_message(GPTErrors.ConversationErrors.COMVO_LIMIT, ephemeral=False)
+                return await interaction.response.send_message(GPTErrors.ConversationErrors.CONVO_LIMIT, ephemeral=False)
+            
             # Actual Code
 
             convo = GPTChat.GPTChat(interaction.user, actual_name, name)
@@ -65,8 +54,7 @@ class gpt(commands.Cog):
     @discord.app_commands.choices(stream=stream_choices)
     async def ask(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: Union[str, None]=None):
         try:
-            print(name)
-            name = self.manage_defaults(interaction.user, name)
+            name = self.client.manage_defaults(interaction.user, name)
             if interaction.channel and interaction.channel.type in [discord.ChannelType.private_thread, discord.ChannelType.text, discord.ChannelType.private, discord.TextChannel]:
                 if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
                     if stream == "y" or (convo.stream == True and stream != "n"):
@@ -143,13 +131,14 @@ class gpt(commands.Cog):
                     
                     await interaction.followup.send(farewell, ephemeral=False)
                     self.client.delete_conversation(interaction.user, name)
+                    self.client.set_default_conversation(interaction.user, None, True)
                 else:
                     await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
 
         # checks because app_commands cannot use normal ones.
-        if isinstance(convo := self.client.get_user_conversation(interaction.user.id), GPTChat.GPTChat):
+        if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
             return await func(convo)
-        await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
+        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt="The keyword you want DeveloperJoe to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
@@ -159,7 +148,7 @@ class gpt(commands.Cog):
         discord.app_commands.Choice(name="1024x1024", value="1024x1024")
     ]) 
     async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str, save_to: Union[None, str]=None):
-        save_to = self.manage_defaults(interaction.user, save_to)
+        save_to = self.client.manage_defaults(interaction.user, save_to)
         r = GPTErrors.GENERIC_ERROR
         try:
             await interaction.response.defer(ephemeral=True, thinking=True)
@@ -181,7 +170,7 @@ class gpt(commands.Cog):
     @discord.app_commands.describe(name="Name of the chat you want information on.")
     async def get_info(self, interaction: discord.Interaction, name: Union[None, str]=None):
 
-        name = self.manage_defaults(interaction.user, name)
+        name = self.client.manage_defaults(interaction.user, name)
         if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat) and self.client.application:
 
             uptime_delta = self.client.get_uptime()
@@ -190,7 +179,8 @@ class gpt(commands.Cog):
             returned_embed.add_field(name="Started At", value=str(convo.time), inline=False)
             returned_embed.add_field(name="Used Tokens", value=f"{str(convo.tokens)}", inline=False)
             returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)), inline=False)
-            returned_embed.add_field(name="Chat ID", value=str(convo.id), inline=False)
+            returned_embed.add_field(name="Chat History ID", value=str(convo.hid), inline=False)
+            returned_embed.add_field(name="Chat ID", value=str(convo.display_name), inline=False)
             returned_embed.add_field(name=f"{self.client.application.name} Uptime", value=f"{uptime_delta.days} Days ({uptime_delta})", inline=False)
             returned_embed.add_field(name=f"{self.client.application.name} Version", value=f"{GPTConfig.VERSION}", inline=False)
             

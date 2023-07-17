@@ -1,6 +1,6 @@
 import datetime, discord, openai, random, openai_async, json, tiktoken
 
-from typing import Union, Any, Generator, AsyncGenerator
+from typing import Union, Any, AsyncGenerator
 from objects import GPTHistory, GPTErrors, GPTConfig
 
 open_ai_api_key = GPTConfig.OPENAI_API_KEY
@@ -17,13 +17,13 @@ class GPTChat:
     def __init__(self, user: Union[discord.User, discord.Member], name: str, display_name: str):
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
-        self.id = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
+        self.hid = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
 
         self.name = name
         self.display_name = display_name
         self.stream = False
         
-        self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        self.encoding = tiktoken.encoding_for_model(GPTConfig.GPT_MODAL)
         self.tokens = 0
         self.model = GPTConfig.GPT_MODAL
         self.is_processing = False
@@ -48,13 +48,13 @@ class GPTChat:
             self.readable_history.pop()
 
         if is_gpt_reply and save_message and query_type == "query":
-            self.tokens += tokens # type: ignore
+            self.tokens += tokens
 
         return 
     
     async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> AsyncGenerator:
         payload = {"model": self.model, "messages": messages, "stream": True} | kwargs
-        reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=20, payload=payload)
+        reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=GPTConfig.GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
         responses: list[str] = [""]
@@ -81,7 +81,7 @@ class GPTChat:
     async def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
             
         replied_content = GPTErrors.GENERIC_ERROR
-        error = GPTErrors.NONE
+        error = None
         r_history = []
         replied_content = ""
 
@@ -97,7 +97,7 @@ class GPTChat:
 
                 # TODO: Test async module
                 # Reply format: ({"content": "Reply content", "role": "assistent"})
-                _reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=20,
+                _reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
                                                          payload={
                                                              "model": self.model,
                                                              "messages": self.chat_history    
@@ -130,18 +130,18 @@ class GPTChat:
             else:
                 error = f"Generic ({query_type})"
 
-        except Exception as e:      
+        except Exception as e: 
             error = e
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:    
             self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
-            return replied_content if not error else f"Error: {str(error)}"
+            return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.encoding.encode(kwargs["content"]))
         replied_content = GPTErrors.GENERIC_ERROR
-        error = GPTErrors.NONE
+        s_error = GPTErrors.NONE
         r_history = []
         generator_reply = None
         replied_content = ""
@@ -169,13 +169,13 @@ class GPTChat:
             self._readable_history_map_.append(len(self.readable_history) - 1)
 
         except Exception as e:
-            error = e
+            s_error = e
             replied_content = errors[type(e)] if type(e) in errors else str(e)
 
         finally:
             self.__manage_history__(generator_reply, "query", save_message, total_tokens)
-            if error:
-                yield f"Error: {error}"
+            if s_error:
+                yield f"Error: {s_error}"
 
     async def ask(self, query: str) -> str: # type: ignore
         return str(await self.__send_query__(query_type="query", role="user", content=query))
@@ -195,7 +195,7 @@ class GPTChat:
             farewell = f"Ended chat: {self.display_name} with DeveloperJoe!"
             if save_history == "y":
                 history.upload_chat_history(self)
-                farewell += f"\n\n\n*Saved chat history with ID: {self.id}*"
+                farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"
             else:
                 farewell += "\n\n\n*Not saved chat history*"
 

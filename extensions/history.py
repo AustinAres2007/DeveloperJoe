@@ -1,8 +1,9 @@
 import discord, json, datetime, io, asyncio
 
+from typing import Union
 from discord.ext import commands
 from joe import DevJoe
-from objects import GPTHistory, GPTErrors, GPTConfig
+from objects import GPTHistory, GPTErrors, GPTConfig, GPTChat
 
 class history(commands.Cog):
     def __init__(self, client):
@@ -39,15 +40,16 @@ class history(commands.Cog):
                 await interaction.followup.send(f"(Debug) Error > {e}")
 
     @discord.app_commands.command(name="export", description="Export current chat history.")
-    async def export_chat_history(self, interaction: discord.Interaction):
+    async def export_chat_history(self, interaction: discord.Interaction, name: Union[None, str]):
         try:
-            if (convo := self.client.get_user_conversation(interaction.user.id)):
+            name = self.client.manage_defaults(interaction.user, name)
+            if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
 
-                formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else "No chat history."
+                formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else GPTErrors.HistoryErrors.HISTORY_EMPTY
                 file_like = io.BytesIO(formatted_history_string.encode())
-                file_like.name = f"{datetime.datetime.now()}-transcript.txt"
+                file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
-                await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript", file=discord.File(file_like))
+                await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript ({convo.display_name})", file=discord.File(file_like))
                 return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
         
             await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
@@ -62,7 +64,7 @@ class history(commands.Cog):
                     
                     list_history = json.loads(h_file[0][3])
                     history_user = self.client.get_user(h_file[0][1])
-                    formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User")
+                    formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User") if list_history else GPTErrors.HistoryErrors.HISTORY_EMPTY
 
                     history_file = io.BytesIO(formatted.encode())
                     history_file.name = f"{h_file[0][0]}-transcript.txt"
@@ -74,8 +76,9 @@ class history(commands.Cog):
             return await interaction.response.send_message(GPTErrors.HistoryErrors.INVALID_HISTORY_ID)
     
     @discord.app_commands.command(name="context", description="Remove a part of your current conversation with DeveloperJoe.")
-    async def remove_context(self, interaction: discord.Interaction, message_index: int):
-        if convo := self.client.get_user_conversation(interaction.user.id):
+    async def remove_context(self, interaction: discord.Interaction, name: Union[None, str], message_index: int):
+        name = self.client.manage_defaults(interaction.user, name)
+        if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
             try:
                 message_index -= 1
                 del convo.chat_history[message_index:message_index + 2]
@@ -84,7 +87,7 @@ class history(commands.Cog):
 
                 await interaction.response.send_message(f"Deleted Message & Response at position: {message_index + 1}")
             except IndexError:
-                await interaction.response.send_message(f"No message at message index: {message_index}")
+                await interaction.response.send_message(f"No message at message index: {message_index + 1}")
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
         
 async def setup(client):

@@ -49,7 +49,7 @@ class GPTHistory:
     
     def upload_chat_history(self, chat) -> list:
         json_dump = json.dumps(chat.readable_history)
-        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.id, chat.user.id, chat.name, json_dump,)).fetchall()
+        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.hid, chat.user.id, chat.name, json_dump,)).fetchall()
 
     def init_history(self):
         return self._exec_db_command("CREATE TABLE history(uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL)")
