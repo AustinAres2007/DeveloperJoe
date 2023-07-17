@@ -36,7 +36,7 @@ class DevJoe(commands.Bot):
             if all == True: 
                 return self.chats[id_] # type: ignore
             if not chat_name:
-                return self.chats[id_]["0"] # type: ignore
+                return None # type: ignore
             elif chat_name and chat_name in self.chats[id_]: # type: ignore
                 return self.chats[id_][chat_name] # type: ignore
         return 0
@@ -55,15 +55,18 @@ class DevJoe(commands.Bot):
     
     def manage_defaults(self, user: Union[discord.User, discord.Member], name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
         current_default = self.get_default_conversation(user)
-        if current_default and name:
+        names_convo = self.get_user_conversation(user.id, name)
+        name_is_chat = isinstance(names_convo, GPTChat.GPTChat)
+
+        print(name_is_chat, name, current_default)
+
+        if name_is_chat:
             self.set_default_conversation(user, name)
             return name
-        elif current_default:
-            return current_default.display_name
         elif not name and set_to_none == True:
             self.set_default_conversation(user, None)
-        elif not current_default and name:
-            self.set_default_conversation(user, name)
+        elif current_default:
+            return current_default.display_name
 
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
