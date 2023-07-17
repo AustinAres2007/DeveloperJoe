@@ -169,7 +169,7 @@ class gpt(commands.Cog):
     @discord.app_commands.command(name="info", description="Displays information about your current DeveloperJoe Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
     async def get_info(self, interaction: discord.Interaction, name: Union[None, str]=None):
-
+        
         name = self.client.manage_defaults(interaction.user, name)
         if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat) and self.client.application:
 

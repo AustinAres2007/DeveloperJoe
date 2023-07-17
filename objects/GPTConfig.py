@@ -1,6 +1,6 @@
 import datetime as _datetime
 
-FINAL = False
+FINAL = True
 DEBUG = True
 QUERY_TIMEOUT = 10
 QUERY_CONFIRMATION = ">y"
@@ -12,6 +12,6 @@ OPENAI_API_KEY = "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"
 STREAM_UPDATE_MESSAGE_FREQUENCY = 10
 CHATS_LIMIT = 20
 CHARACTER_LIMIT = 2000
-VERSION = "1.2.1-B"
+VERSION = "1.2.1"
 
 TIMEZONE = _datetime.timezone.utc
