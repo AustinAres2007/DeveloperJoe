@@ -190,5 +190,11 @@ class gpt(commands.Cog):
         
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)  
 
+    @discord.app_commands.command(name="switch", description="Changes your default chat.")
+    @discord.app_commands.describe(name="Name of the chat you want to switch to.")
+    async def switch_default(self, interaction: discord.Interaction, name: Union[None, str]=None):
+        name = self.client.manage_defaults(interaction.user, name)
+        await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else "You do not have any DeveloperJoe conversations.")
+
 async def setup(client):
     await client.add_cog(gpt(client))
