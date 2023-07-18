@@ -24,11 +24,13 @@ class listeners(commands.Cog):
                 thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) # type: ignore
                 content: str = message.content
                 if (thread and thread.is_private() and (thread.member_count == 2 or content.startswith(">"))) and convo.is_processing != True and not content.startswith(">"):
+                    
+                    header_text = f'{convo.display_name} | {convo.model}'
 
                     if convo.stream == True:
                         msg: list[discord.Message] = [await message.channel.send("Asking...")]
                         streamed_reply: AsyncGenerator = convo.ask_stream(content)
-                        full_message = f"## {convo.display_name if convo.display_name != '0' else 'Conversation'}\n\n"
+                        full_message = f"## {header_text}\n\n"
                         sendable_portion = "<>"
                         ind, start_message_at = 0, 0
                         
@@ -49,7 +51,7 @@ class listeners(commands.Cog):
                         else:
                             return await msg[-1].edit(content=sendable_portion)
 
-                    final_reply = f"## {convo.display_name if convo.display_name != '0' else 'Conversation'}\n\n{await convo.ask(content)}"
+                    final_reply = f"## {header_text}\n\n{await convo.ask(content)}"
                     await message.channel.send(final_reply)
                 elif not (thread and thread.is_private() and thread.member_count == 2) or content.startswith(">"):
                     return

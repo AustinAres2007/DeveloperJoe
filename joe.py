@@ -94,7 +94,7 @@ class DevJoe(commands.Bot):
             self.chats: Union[dict[int, Union[dict[str, GPTChat.GPTChat], dict]], dict[str, Union[None, GPTChat.GPTChat]]] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
             
-            await self.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="AND answering lifes biggest questions. (/help)"))
+            await self.change_presence(activity=discord.Activity(type=GPTConfig.STATUS_TYPE, name=GPTConfig.STATUS_TEXT))
 
             _history = GPTHistory.GPTHistory()
             async def _check_integrity(i: int):

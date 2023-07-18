@@ -14,7 +14,7 @@ errors = {
 }
 
 class GPTChat:
-    def __init__(self, user: Union[discord.User, discord.Member], name: str, display_name: str):
+    def __init__(self, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL):
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.hid = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
@@ -22,10 +22,12 @@ class GPTChat:
         self.name = name
         self.display_name = display_name
         self.stream = False
-        
-        self.encoding = tiktoken.encoding_for_model(GPTConfig.GPT_MODAL)
+
+
+        self.model = str(model)
+        print(self.model)
+        self.encoding = tiktoken.encoding_for_model(self.model)
         self.tokens = 0
-        self.model = GPTConfig.GPT_MODAL
         self.is_processing = False
 
         self.readable_history = []

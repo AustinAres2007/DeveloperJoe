@@ -17,15 +17,20 @@ class gpt(commands.Cog):
         print(f"{self.__cog_name__} Loaded") 
 
     @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
-    @discord.app_commands.describe(name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.")
-    @discord.app_commands.choices(stream_conversation=stream_choices)
-    async def start(self, interaction: discord.Interaction, name: Union[str, None]=None, stream_conversation: Union[str, None]=None):
+    @discord.app_commands.describe(name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
+                                   stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
+                                   gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
+    )
+    @discord.app_commands.choices(stream_conversation=stream_choices, gpt_model=[discord.app_commands.Choice(name="GPT 3 Turbo", value="gpt-3.5-turbo"), discord.app_commands.Choice(name="GPT 4", value="gpt-4")])
+    async def start(self, interaction: discord.Interaction, name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None):
         try:
+            actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL) # type: ignore
             actual_choice = True if stream_conversation == "y" else False
-            chats = self.client.get_user_conversation(interaction.user.id, None, True)
             actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
+            chats = self.client.get_user_conversation(interaction.user.id, None, True)
             name = name if name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
             
+            print(gpt_model, actual_model)
             # Error Checking
 
             if len(actual_name) > 39:
@@ -37,11 +42,11 @@ class gpt(commands.Cog):
             
             # Actual Code
 
-            convo = GPTChat.GPTChat(interaction.user, actual_name, name)
+            convo = GPTChat.GPTChat(interaction.user, actual_name, name, actual_model)
             convo.stream = actual_choice
 
             await interaction.response.defer(ephemeral=False, thinking=True)
-            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name}*", ephemeral=False)
+            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model}*", ephemeral=False)
 
             self.client.add_conversation(interaction.user, name, convo)
             self.client.set_default_conversation(interaction.user, name)
@@ -57,12 +62,15 @@ class gpt(commands.Cog):
             name = self.client.manage_defaults(interaction.user, name)
             if interaction.channel and interaction.channel.type in [discord.ChannelType.private_thread, discord.ChannelType.text, discord.ChannelType.private, discord.TextChannel]:
                 if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
+
+                    header_text = f'{name} | {convo.model}'
+
                     if stream == "y" or (convo.stream == True and stream != "n"):
                         await interaction.response.send_message("Asking...", ephemeral=False)
                         
                         msg: list[discord.Message] = []
                         reply = convo.ask_stream(message)
-                        full_message = f"## {name if name != '0' else 'Conversation'}\n\n"
+                        full_message = f"## {header_text}\n\n"
                         i, start_message_at = 0, 0
                         sendable_portion = "<>"
 
@@ -93,7 +101,7 @@ class gpt(commands.Cog):
                         
                     await interaction.response.defer(ephemeral=False, thinking=True)
                     reply = await convo.ask(message)
-                    final_user_reply = f"## {name if name != '0' else 'Conversation'}\n\n{reply}"
+                    final_user_reply = f"## {header_text}\n\n{reply}"
 
                     if len(final_user_reply) > GPTConfig.CHARACTER_LIMIT:
                         file_reply: discord.File = self.client.to_file(final_user_reply, "reply.txt")
