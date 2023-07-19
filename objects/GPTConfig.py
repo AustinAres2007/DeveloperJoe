@@ -13,7 +13,7 @@ OPENAI_API_KEY = "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"
 STREAM_UPDATE_MESSAGE_FREQUENCY = 10
 CHATS_LIMIT = 20
 CHARACTER_LIMIT = 2000
-VERSION = "1.2.2-C"
+VERSION = "1.2.2-encoding"
 
 STATUS_TYPE = ActivityType.listening
 STATUS_TEXT = "/help AND answering lifes biggest questions."

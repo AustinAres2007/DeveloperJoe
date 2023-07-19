@@ -25,7 +25,6 @@ class GPTChat:
 
 
         self.model = str(model)
-        print(self.model)
         self.encoding = tiktoken.encoding_for_model(self.model)
         self.tokens = 0
         self.is_processing = False
@@ -65,7 +64,7 @@ class GPTChat:
         # For every character byte in byte stream
         for char in reply.read():
             # Check if current character and last char are line feed characters (Represents new chunk)
-            print("A: ",char, chr(char))
+            #print("A: ",char, chr(char))
             if char == 10 and last_char == 10:
                 
                 # Check if chunk is the right format, or doesn't equal anything
@@ -157,7 +156,7 @@ class GPTChat:
 
             async for chunk in generator_reply:
                 if chunk["choices"][0]["finish_reason"] != "stop":
-                    c_token = chunk["choices"][0]["delta"]["content"]
+                    c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
                     replied_content += c_token
                     total_tokens += len(self.encoding.encode(c_token))
 
