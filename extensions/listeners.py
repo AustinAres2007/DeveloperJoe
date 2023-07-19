@@ -36,7 +36,6 @@ class listeners(commands.Cog):
                         
                         # enumerate is not compatible with async syntax. There are some external modules that can do just that. But I do not want to rely on those.
                         async for token in streamed_reply:
-                            print("B: ",[(ord(t), t) for t in token])
                             ind += 1
                             full_message += token
                             sendable_portion = full_message[start_message_at * GPTConfig.CHARACTER_LIMIT:((start_message_at + 1) * GPTConfig.CHARACTER_LIMIT)]

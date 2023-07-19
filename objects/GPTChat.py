@@ -64,7 +64,6 @@ class GPTChat:
         # For every character byte in byte stream
         for char in reply.read():
             # Check if current character and last char are line feed characters (Represents new chunk)
-            #print("A: ",char, chr(char))
             if char == 10 and last_char == 10:
                 
                 # Check if chunk is the right format, or doesn't equal anything
