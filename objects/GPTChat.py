@@ -65,6 +65,7 @@ class GPTChat:
         # For every character byte in byte stream
         for char in reply.read():
             # Check if current character and last char are line feed characters (Represents new chunk)
+            print("A: ",char, chr(char))
             if char == 10 and last_char == 10:
                 
                 # Check if chunk is the right format, or doesn't equal anything
@@ -78,6 +79,7 @@ class GPTChat:
             else:
                 # Append part of new chunk to string
                 responses[-1] += chr(char)
+
             last_char = char
 
     async def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):

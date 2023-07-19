@@ -30,7 +30,6 @@ class gpt(commands.Cog):
             chats = self.client.get_user_conversation(interaction.user.id, None, True)
             name = name if name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
             
-            print(gpt_model, actual_model)
             # Error Checking
 
             if len(actual_name) > 39:
