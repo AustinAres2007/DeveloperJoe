@@ -1,5 +1,4 @@
 import sqlite3, json
-from typing import Union
 from objects import GPTErrors
 
 database_file = "dependencies/histories.db"

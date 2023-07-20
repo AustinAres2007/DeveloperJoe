@@ -1,0 +1,1 @@
+This is where all general, non-critical information will be stored. Usually just a file called bot_log.log for now.

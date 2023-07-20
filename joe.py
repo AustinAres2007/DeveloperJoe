@@ -1,9 +1,26 @@
-import discord, logging, asyncio, os, io, datetime
+import sys
+v_info = sys.version_info
 
-from discord import abc
-from discord.ext import commands
-from typing import Coroutine, Any, Union
-from objects import GPTChat, GPTHistory, GPTConfig
+if not (v_info.major >= 3 and v_info.minor > 8):
+    print(f'You must run this bot with Python 3.9 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
+    exit(1)
+
+try:
+    # Not required here, just importing for integrity check.
+    import json, openai, openai_async, tiktoken, sqlite3
+
+    import discord, logging, asyncio, os, io, datetime
+    from discord.ext import commands
+    from typing import Coroutine, Any, Union
+except ImportError as e:
+    print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
+    exit(1)
+
+try:
+    from objects import GPTChat, GPTHistory, GPTConfig
+except (ImportError, ImportWarning) as e:
+    print(f"Missing internal dependencies, please collect a new install of DeveloperJoe. (Actual Error: {e})")
+    exit(1)
 
 # Configuration
 
@@ -129,6 +146,9 @@ class DevJoe(commands.Bot):
 async def run_bot():
     client = None
     try:
+        with open("misc/bot_log.log", "w+"):
+            ...
+            
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
@@ -138,7 +158,10 @@ async def run_bot():
         if client:
             await client.close()
             exit(0)
-        
+    except discord.errors.LoginFailure:
+        print(f"Improper Discord API Token given in {GPTConfig.TOKEN_FILE}, please make sure the API token is still valid.")
+        exit(1)
+
 if __name__ == "__main__":
     try:
         asyncio.run(run_bot())
