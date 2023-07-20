@@ -47,7 +47,7 @@ class history(commands.Cog):
                 file_like = io.BytesIO(formatted_history_string.encode())
                 file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
-                await interaction.user.send(f"{convo.user.name}'s DeveloperJoe Transcript ({convo.display_name})", file=discord.File(file_like))
+                await interaction.user.send(f"{convo.user.name}'s {GPTConfig.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
                 return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
         
             await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
@@ -73,7 +73,7 @@ class history(commands.Cog):
         except ValueError:
             return await interaction.response.send_message(GPTErrors.HistoryErrors.INVALID_HISTORY_ID)
     
-    @discord.app_commands.command(name="context", description="Remove a part of your current conversation with DeveloperJoe.")
+    @discord.app_commands.command(name="context", description=f"Remove a part of your current conversation with {GPTConfig.BOT_NAME}")
     async def remove_context(self, interaction: discord.Interaction, name: Union[None, str], message_index: int):
         name = self.client.manage_defaults(interaction.user, name)
         if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):

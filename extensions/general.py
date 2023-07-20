@@ -11,7 +11,7 @@ class general(commands.Cog):
     @discord.app_commands.command(name="help", description="Lists avalible commands")
     async def help_command(self, interaction: discord.Interaction):
         
-        embed = discord.Embed(title=f"DeveloperJoe Commands")
+        embed = discord.Embed(title=f"{GPTConfig.BOT_NAME} Commands")
         embed.color = discord.Colour.purple()
         embed.set_footer(text="For arguments, type the command and they will appear.")
         get_name = lambda cmd: cmd.name

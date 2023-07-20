@@ -16,7 +16,7 @@ class gpt(commands.Cog):
         self.client: DevJoe = client
         print(f"{self.__cog_name__} Loaded") 
 
-    @discord.app_commands.command(name="start", description="Start a DeveloperJoe Session")
+    @discord.app_commands.command(name="start", description=f"Start a {GPTConfig.BOT_NAME} Session")
     @discord.app_commands.describe(name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
@@ -41,7 +41,7 @@ class gpt(commands.Cog):
             
             # Actual Code
 
-            convo = GPTChat.GPTChat(interaction.user, actual_name, name, actual_model)
+            convo = GPTChat.GPTChat(self.client, interaction.user, actual_name, name, actual_model)
             convo.stream = actual_choice
 
             await interaction.response.defer(ephemeral=False, thinking=True)
@@ -53,8 +53,8 @@ class gpt(commands.Cog):
         except Exception as e:
             await self.client.send_debug_message(interaction, e, self.__cog_name__)
 
-    @discord.app_commands.command(name="ask", description="Ask DeveloperJoe a question.")
-    @discord.app_commands.describe(message="The query you want to send DeveloperJoe", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
+    @discord.app_commands.command(name="ask", description=f"Ask {GPTConfig.BOT_NAME} a question.")
+    @discord.app_commands.describe(message=f"The query you want to send {GPTConfig.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
     @discord.app_commands.choices(stream=stream_choices)
     async def ask(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: Union[str, None]=None):
         try:
@@ -114,7 +114,7 @@ class gpt(commands.Cog):
         except Exception as e:
             await self.client.send_debug_message(interaction, e, self.__cog_name__)   
 
-    @discord.app_commands.command(name="stop", description="Stop a DeveloperJoe session.")
+    @discord.app_commands.command(name="stop", description=f"Stop a {GPTConfig.BOT_NAME} session.")
     @discord.app_commands.describe(save="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     @discord.app_commands.choices(save=[
         discord.app_commands.Choice(name="No, do not save my transcript save.", value="n"),
@@ -148,7 +148,7 @@ class gpt(commands.Cog):
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
-    @discord.app_commands.describe(prompt="The keyword you want DeveloperJoe to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
+    @discord.app_commands.describe(prompt=f"The keyword you want {GPTConfig.BOT_NAME} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
     @discord.app_commands.choices(resolution=[
         discord.app_commands.Choice(name="256x256", value="256x256"),
         discord.app_commands.Choice(name="512x512", value="512x512"),
@@ -173,7 +173,7 @@ class gpt(commands.Cog):
         finally:
             return await interaction.followup.send(r, ephemeral=False)
 
-    @discord.app_commands.command(name="info", description="Displays information about your current DeveloperJoe Chat.")
+    @discord.app_commands.command(name="info", description=f"Displays information about your current {GPTConfig.BOT_NAME} Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
     async def get_info(self, interaction: discord.Interaction, name: Union[None, str]=None):
         
@@ -197,11 +197,11 @@ class gpt(commands.Cog):
         
         await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)  
 
-    @discord.app_commands.command(name="switch", description="Changes your default chat.")
+    @discord.app_commands.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
     async def switch_default(self, interaction: discord.Interaction, name: Union[None, str]=None):
         name = self.client.manage_defaults(interaction.user, name)
-        await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else "You do not have any DeveloperJoe conversations.")
+        await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else f"You do not have any {GPTConfig.BOT_NAME} conversations.")
 
 async def setup(client):
     await client.add_cog(gpt(client))

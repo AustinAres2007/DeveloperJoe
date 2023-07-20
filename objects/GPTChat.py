@@ -3,8 +3,6 @@ import datetime, discord, openai, random, openai_async, json, tiktoken
 from typing import Union, Any, AsyncGenerator
 from objects import GPTHistory, GPTErrors, GPTConfig
 
-open_ai_api_key = GPTConfig.OPENAI_API_KEY
-openai.api_key = open_ai_api_key
 errors = {
     openai.InvalidRequestError: lambda err: str(err),
     openai.APIError: lambda err: "Generic GPT 3.5 Error, please try again later.",
@@ -14,7 +12,9 @@ errors = {
 }
 
 class GPTChat:
-    def __init__(self, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL):
+    def __init__(self, _client, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL):
+    
+        self.oapi = _client._OPENAI_TOKEN
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.hid = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
@@ -32,6 +32,8 @@ class GPTChat:
         self.readable_history = []
         self.chat_history = []
         self._readable_history_map_ = []
+
+        openai.api_key = self.oapi
 
     def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
@@ -55,7 +57,7 @@ class GPTChat:
     
     async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> AsyncGenerator:
         payload = {"model": self.model, "messages": messages, "stream": True} | kwargs
-        reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=GPTConfig.GPT_REQUEST_TIMEOUT, payload=payload)
+        reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPTConfig.GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
         responses: list[str] = [""]
@@ -99,7 +101,7 @@ class GPTChat:
 
                 # TODO: Test async module
                 # Reply format: ({"content": "Reply content", "role": "assistent"})
-                _reply = await openai_async.chat_complete(api_key=open_ai_api_key, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
+                _reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
                                                          payload={
                                                              "model": self.model,
                                                              "messages": self.chat_history    
@@ -194,7 +196,7 @@ class GPTChat:
     
     def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> str:
         try:
-            farewell = f"Ended chat: {self.display_name} with DeveloperJoe!"
+            farewell = f"Ended chat: {self.display_name} with {GPTConfig.BOT_NAME}!"
             if save_history == "y":
                 history.upload_chat_history(self)
                 farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"

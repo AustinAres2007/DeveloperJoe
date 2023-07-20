@@ -8,10 +8,14 @@ from objects import GPTChat, GPTHistory, GPTConfig
 # Configuration
 
 try:
-    with open('dependencies/token', 'r') as tk_file:
-        TOKEN: str = tk_file.read()
-except FileNotFoundError:
-    print("Missing token file."); exit(1)
+    with open(GPTConfig.TOKEN_FILE, 'r') as tk_file:
+        DISCORD_TOKEN, OPENAI_TOKEN = tk_file.readlines()[0:2]
+        DISCORD_TOKEN = DISCORD_TOKEN.strip()
+        OPENAI_TOKEN = OPENAI_TOKEN.strip()
+except (FileNotFoundError, ValueError, IndexError):
+    print("Missing token file / Missing tokens within token file"); exit(1)
+else:
+    print(f"Tokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
 
 INTENTS = discord.Intents.all()
 full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
@@ -26,6 +30,8 @@ full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
 class DevJoe(commands.Bot):
 
     def __init__(self, *args, **kwargs):
+        self._DISCORD_TOKEN = DISCORD_TOKEN
+        self._OPENAI_TOKEN = OPENAI_TOKEN
         super().__init__(*args, **kwargs)
 
     def get_uptime(self) -> datetime.timedelta:
@@ -127,7 +133,7 @@ async def run_bot():
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
         async with DevJoe(command_prefix="?", intents=INTENTS) as client:
-            await client.start(TOKEN)
+            await client.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
         if client:
             await client.close()
