@@ -58,8 +58,6 @@ class DevJoe(commands.Bot):
         names_convo = self.get_user_conversation(user.id, name)
         name_is_chat = isinstance(names_convo, GPTChat.GPTChat)
 
-        print(name_is_chat, name, current_default)
-
         if name_is_chat:
             self.set_default_conversation(user, name)
             return name
