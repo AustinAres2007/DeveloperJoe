@@ -10,3 +10,4 @@ dependencies/tokens
 *.db
 @eaDir
 .DS_Store
+dependencies/tokens.key
