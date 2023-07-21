@@ -26,8 +26,9 @@ then
         
         if [ ! -e "dependencies/api-keys.key" ]
         then
-            echo "WARNING: I do not detect a "dependencies/api-keys.key" file. Are you sure you want to continue? (Press anything if so, CTRL + C to exit)"
+            echo WARNING: I do not detect a "dependencies/api-keys.key" file.\nI will create one, but no API tokens will be inserted.\nAre you sure you want to continue? (Press anything if so, CTRL + C to exit)
             read -p ""
+            touch dependencies/api-keys.key
         fi
 
         if [ -e "misc/bot_log.log" ] && [ -e "dependencies/histories.db" ]
