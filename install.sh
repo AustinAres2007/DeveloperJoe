@@ -2,6 +2,7 @@
 
 PYTHON_COMMAND=python3
 DIR=$(cd "$(dirname "$0")"; pwd)
+cd $DIR
 
 if command -v $PYTHON_COMMAND &> /dev/null
 then
