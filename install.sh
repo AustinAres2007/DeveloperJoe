@@ -21,17 +21,17 @@ then
         PYTHON_PATH=$(which $PYTHON_COMMAND)
 
         echo "Installing virtual enviroment at "$DIR".."
-        $PYTHON_PATH -m venv $DIR && . bin/activate
-        $PYTHON_COMMAND -m pip install -r dependencies/requirements.txt
+        $PYTHON_PATH -m venv $DIR && . "$DIR/bin/activate"
+        $PYTHON_COMMAND -m pip install -r "$DIR/dependencies/requirements.txt"
         
-        if [ ! -e "dependencies/api-keys.key" ]
+        if [ ! -e "$DIR/dependencies/api-keys.key" ]
         then
-            echo WARNING: I do not detect a "dependencies/api-keys.key" file.\nI will create one, but no API tokens will be inserted.\nAre you sure you want to continue? (Press anything if so, CTRL + C to exit)
+            echo "WARNING: I do not detect a "dependencies/api-keys.key" file. I will create one, but no API tokens will be inserted. Are you sure you want to continue? (Press anything if so, CTRL + C to exit)"
             read -p ""
-            touch dependencies/api-keys.key
+            touch "$DIR/dependencies/api-keys.key"
         fi
 
-        if [ -e "misc/bot_log.log" ] && [ -e "dependencies/histories.db" ]
+        if [ -e "$DIR/misc/bot_log.log" ] && [ -e "$DIR/dependencies/histories.db" ]
         then
             echo Finished.
         else
