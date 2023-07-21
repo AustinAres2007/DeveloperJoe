@@ -10,11 +10,11 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 ## Setup
 
-* To start, ==make a file in the `dependencies` folder in the root of the source files called `api-keys.key`==
+* To start, ==run the `install.sh` file== located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
 
     >api-keys.key file format:
-    ><discord-api-key>
-    ><openai-api-key>
+    >:discord-api-key:
+    >:openai-api-key:
 
 * ==Obtain a Discord API Key== from [Discord's Developer Website.](https://discord.com/developers/applications) Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
 
@@ -24,6 +24,8 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
     ==Paste the OpenAI API Key in `dependencies/api-keys.key` on line 2==, under the Discord API Key.
     Congratulations, the hard part is over. The following steps are not essential, but recommended for customisation purposes.
+
+* Congratulations, you have finished the instillation. Click the footnote at the end of this sentence for instructions to run the bot. [^nm] Click the footnote at the end of this sentence for insturctions of how to run the bot for advanced users. [^op]
 
 ## Optional
 
@@ -39,4 +41,8 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 ## Future
 
-* Make shell script that can install everything for the user manually.
+* ~~Make shell script that can install everything for the user manually.~~
+
+[^nm]: For a normal user, running `run.sh` within the root folder will suffice.
+[^op]: If you want details, use any Python version 3.9 and above, and execute `joe.py` within the root folder of DeveloperJoe.
+        If you do not do this, you will most likely run into errors regarding importing modules and other dependencies that require reletive paths.

@@ -1,3 +1,4 @@
+
 import sys
 v_info = sys.version_info
 
@@ -31,11 +32,6 @@ try:
         OPENAI_TOKEN = OPENAI_TOKEN.strip()
 except (FileNotFoundError, ValueError, IndexError):
     print("Missing token file / Missing tokens within token file"); exit(1)
-else:
-    print(f"Tokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
-
-INTENTS = discord.Intents.all()
-full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
 
 """Changelog:
     Fixed streaming message size error
@@ -45,6 +41,9 @@ full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
 # Main Bot Class
 
 class DevJoe(commands.Bot):
+
+    INTENTS = discord.Intents.all()
+    full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
 
     def __init__(self, *args, **kwargs):
         self._DISCORD_TOKEN = DISCORD_TOKEN
@@ -146,13 +145,15 @@ class DevJoe(commands.Bot):
 async def run_bot():
     client = None
     try:
+        print(f"Tokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
+        
         with open("misc/bot_log.log", "w+"):
             ...
             
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
-        async with DevJoe(command_prefix="?", intents=INTENTS) as client:
+        async with DevJoe(command_prefix="?", intents=DevJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
         if client:
