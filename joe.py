@@ -1,5 +1,6 @@
 
 import sys
+from typing import Any
 v_info = sys.version_info
 
 if not (v_info.major >= 3 and v_info.minor > 8):
@@ -13,6 +14,8 @@ try:
     import discord, logging, asyncio, os, io, datetime
     from discord.ext import commands
     from typing import Coroutine, Any, Union
+    from extensions import admin
+
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
@@ -88,6 +91,12 @@ class DevJoe(commands.Bot):
         elif current_default:
             return current_default.display_name
 
+    async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        if interaction.response.is_done():
+            await interaction.followup.send(str(error))
+        else:
+            await interaction.response.send_message(str(error))
+
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name
@@ -109,7 +118,7 @@ class DevJoe(commands.Bot):
             
     async def on_ready(self):
         if self.application:
-            print(f"{self.application.name} Online (V: {GPTConfig.VERSION})")
+            print(f"\n{self.application.name} Online (V: {GPTConfig.VERSION})")
 
             self.chats: Union[dict[int, Union[dict[str, GPTChat.GPTChat], dict]], dict[str, Union[None, GPTChat.GPTChat]]] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
@@ -131,6 +140,7 @@ class DevJoe(commands.Bot):
 
             self.chats = {user.id: {} for user in self.users}
             self.chats = self.chats | {f"{user.id}-latest": None for user in self.users} # type: ignore
+            self.tree.on_error = self.handle_error
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
@@ -139,6 +149,7 @@ class DevJoe(commands.Bot):
 
         await self.tree.sync()
         return await super().setup_hook() # type: ignore
+    
     
 # Driver Code
 
