@@ -21,10 +21,10 @@ class gpt(commands.Cog):
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
     )
-    @discord.app_commands.choices(stream_conversation=stream_choices, gpt_model=[discord.app_commands.Choice(name="GPT 3 Turbo", value="gpt-3.5-turbo"), discord.app_commands.Choice(name="GPT 4", value="gpt-4")])
+    @discord.app_commands.choices(stream_conversation=stream_choices, gpt_model=GPTConfig.MODEL_CHOICES)
     async def start(self, interaction: discord.Interaction, name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None):
         try:
-            actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL) # type: ignore
+            actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL) 
             actual_choice = True if stream_conversation == "y" else False
             actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
             chats = self.client.get_user_conversation(interaction.user.id, None, True)

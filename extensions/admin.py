@@ -2,6 +2,7 @@ import discord
 from typing import Union
 from discord.ext import commands
 from joe import DevJoe
+from objects import GPTConfig, GPTModelRules
 
 class admin(commands.Cog):
     def __init__(self, client):
@@ -18,8 +19,14 @@ class admin(commands.Cog):
 
     @discord.app_commands.command(name="lock", description="Locks a select GPT Model behind a role or permission.")
     @discord.app_commands.checks.has_permissions(manage_channels=True)
-    async def lock_user(self, interaction: discord.Interaction, user: Union[discord.Member, discord.User]):
-        ...
+    @discord.app_commands.choices(gpt_model=GPTConfig.MODEL_CHOICES)
+    async def lock_role(self, interaction: discord.Interaction, gpt_model: str, role: discord.Role):
+        with GPTModelRules.GPTModelRules() as rules:
+            if rules.retrieve_guild_models(role.guild.id) == None:
+                rules.add_guild(role.guild.id)
+                print("Added guild")
+            rules.upload_guild_model(gpt_model, role.id, role.guild.id)
+            await interaction.response.send_message(f"Added {gpt_model} behind role {role.mention}.")
 
 async def setup(client):
     await client.add_cog(admin(client))

@@ -14,15 +14,14 @@ try:
     import discord, logging, asyncio, os, io, datetime
     from discord.ext import commands
     from typing import Coroutine, Any, Union
-    from extensions import admin
 
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
 
 try:
-    from objects import GPTChat, GPTHistory, GPTConfig
-except (ImportError, ImportWarning) as e:
+    from objects import GPTChat, GPTHistory, GPTErrors, GPTModelRules, GPTDatabase, GPTConfig
+except (IndexError) as e:
     print(f"Missing internal dependencies, please collect a new install of DeveloperJoe. (Actual Error: {e})")
     exit(1)
 
