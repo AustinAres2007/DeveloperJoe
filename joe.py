@@ -21,7 +21,7 @@ except ImportError as e:
 
 try:
     from objects import GPTChat, GPTHistory, GPTErrors, GPTModelRules, GPTDatabase, GPTConfig
-except (IndexError) as e:
+except (ImportError, ImportWarning) as e:
     print(f"Missing internal dependencies, please collect a new install of DeveloperJoe. (Actual Error: {e})")
     exit(1)
 

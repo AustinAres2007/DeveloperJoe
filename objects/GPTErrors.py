@@ -17,3 +17,6 @@ class HistoryErrors:
     INVALID_HISTORY_ID = "Input a valid ID."
     HISTORY_DOESNT_EXIST = "No history with the specified name."
     HISTORY_EMPTY = "No chat history."
+
+class ModelErrors:
+    MODEL_LOCKED = "You do not have the sufficient permissions to use the selected model."

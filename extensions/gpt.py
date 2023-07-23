@@ -3,12 +3,23 @@ import discord, datetime
 from discord.ext import commands
 from typing import Union
 from joe import DevJoe
-from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig
+from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig, GPTModelRules
 
 stream_choices = [
         discord.app_commands.Choice(name="Yes", value="y"),
         discord.app_commands.Choice(name="No", value="n")
 ]
+
+def has_model_permission(user: discord.Member, model) -> bool:
+    # TODO: make sure user is a Member
+    with GPTModelRules.GPTModelRules() as check_rules:
+        return bool(check_rules.user_has_model_permissions(user.roles[-1], model))
+
+def in_correct_channel(interaction: discord.Interaction) -> bool:
+    return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
+
+def is_member(interaction: discord.Interaction) -> bool:
+    return isinstance(interaction.user, discord.Member)
 
 class gpt(commands.Cog):
 
@@ -17,102 +28,118 @@ class gpt(commands.Cog):
         print(f"{self.__cog_name__} Loaded") 
 
     @discord.app_commands.command(name="start", description=f"Start a {GPTConfig.BOT_NAME} Session")
-    @discord.app_commands.describe(name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
+    @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
     )
     @discord.app_commands.choices(stream_conversation=stream_choices, gpt_model=GPTConfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None):
-        try:
-            actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL) 
-            actual_choice = True if stream_conversation == "y" else False
-            actual_name = name if name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
-            chats = self.client.get_user_conversation(interaction.user.id, None, True)
-            name = name if name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
-            
-            # Error Checking
+    @discord.app_commands.check(in_correct_channel)
+    @discord.app_commands.check(is_member)
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None):
+        actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL) 
 
-            if len(actual_name) > 39:
-                return await interaction.response.send_message("The name of your chat must be less than 40 characters.", ephemeral=False)
-            elif isinstance(chats, dict) and name in list(chats):
-                return await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
-            elif isinstance(chats, dict) and len(chats) > GPTConfig.CHATS_LIMIT:
-                return await interaction.response.send_message(GPTErrors.ConversationErrors.CONVO_LIMIT, ephemeral=False)
-            
-            # Actual Code
+        async def command():
+            try:
+                
+                actual_choice = True if stream_conversation == "y" else False
+                actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
+                chats = self.client.get_user_conversation(interaction.user.id, None, True)
+                name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
+                
+                # Error Checking
 
-            convo = GPTChat.GPTChat(self.client, interaction.user, actual_name, name, actual_model)
-            convo.stream = actual_choice
+                if len(actual_name) > 39:
+                    return await interaction.response.send_message("The name of your chat must be less than 40 characters.", ephemeral=False)
+                elif isinstance(chats, dict) and name in list(chats):
+                    return await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
+                elif isinstance(chats, dict) and len(chats) > GPTConfig.CHATS_LIMIT:
+                    return await interaction.response.send_message(GPTErrors.ConversationErrors.CONVO_LIMIT, ephemeral=False)
+                
+                # Actual Code
 
-            await interaction.response.defer(ephemeral=False, thinking=True)
-            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model}*", ephemeral=False)
+                convo = GPTChat.GPTChat(self.client, interaction.user, actual_name, name, actual_model)
+                convo.stream = actual_choice
 
-            self.client.add_conversation(interaction.user, name, convo)
-            self.client.set_default_conversation(interaction.user, name)
+                await interaction.response.defer(ephemeral=False, thinking=True)
+                await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model}*", ephemeral=False)
 
-        except Exception as e:
-            await self.client.send_debug_message(interaction, e, self.__cog_name__)
+                self.client.add_conversation(interaction.user, name, convo)
+                self.client.set_default_conversation(interaction.user, name)
 
+            except Exception as e:
+                await self.client.send_debug_message(interaction, e, self.__cog_name__)
+        
+        if has_model_permission(interaction.user, actual_model): # type: ignore
+            return await command()
+        await interaction.response.send_message(GPTErrors.ModelErrors.MODEL_LOCKED)
+        
     @discord.app_commands.command(name="ask", description=f"Ask {GPTConfig.BOT_NAME} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {GPTConfig.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
     @discord.app_commands.choices(stream=stream_choices)
+    @discord.app_commands.check(in_correct_channel)
+    @discord.app_commands.check(is_member)
     async def ask(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: Union[str, None]=None):
-        try:
-            name = self.client.manage_defaults(interaction.user, name)
-            if interaction.channel and interaction.channel.type in [discord.ChannelType.private_thread, discord.ChannelType.text, discord.ChannelType.private, discord.TextChannel]:
-                if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
+            try:
+                name = self.client.manage_defaults(interaction.user, name)
+                if interaction.channel and interaction.channel.type in GPTConfig.ALLOWED_INTERACTIONS:
+                    if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
+                        if has_model_permission(interaction.user, convo.model): # type: ignore
 
-                    header_text = f'{name} | {convo.model}'
+                            header_text = f'{name} | {convo.model}'
 
-                    if stream == "y" or (convo.stream == True and stream != "n"):
-                        await interaction.response.send_message("Asking...", ephemeral=False)
+                            if stream == "y" or (convo.stream == True and stream != "n"):
+                                await interaction.response.send_message("Asking...", ephemeral=False)
+                                
+                                msg: list[discord.Message] = []
+                                reply = convo.ask_stream(message)
+                                full_message = f"## {header_text}\n\n"
+                                i, start_message_at = 0, 0
+                                sendable_portion = "<>"
+
+                                async for t in reply:
+                                    i += 1
+                                    full_message += t
+                                    sendable_portion = full_message[start_message_at * GPTConfig.CHARACTER_LIMIT:((start_message_at + 1) * GPTConfig.CHARACTER_LIMIT)]
+
+                                    if len(full_message) and len(full_message) >= (start_message_at + 1) * GPTConfig.CHARACTER_LIMIT:
+                                        if not msg:
+                                            await interaction.edit_original_response(content=sendable_portion)
+                                            msg.append(await interaction.channel.send(":)")) # type: ignore
+                                        else:
+                                            await msg[-1].edit(content=sendable_portion)
+                                            msg.append(await msg[-1].channel.send(":)"))
+
+                                    start_message_at = len(full_message) // GPTConfig.CHARACTER_LIMIT
+                                    if i and i % GPTConfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
+                                        if not msg:
+                                            await interaction.edit_original_response(content=sendable_portion)
+                                        else:
+                                            await msg[-1].edit(content=sendable_portion)
+
+                                else:
+                                    if not msg:
+                                        return await interaction.edit_original_response(content=sendable_portion)
+                                    return await msg[-1].edit(content=sendable_portion)
+                                
+                            await interaction.response.defer(ephemeral=False, thinking=True)
+                            reply = await convo.ask(message)
+                            final_user_reply = f"## {header_text}\n\n{reply}"
+
+                            if len(final_user_reply) > GPTConfig.CHARACTER_LIMIT:
+                                file_reply: discord.File = self.client.to_file(final_user_reply, "reply.txt")
+                                return await interaction.followup.send(file=file_reply, ephemeral=False)
+                            return await interaction.followup.send(final_user_reply, ephemeral=False)
                         
-                        msg: list[discord.Message] = []
-                        reply = convo.ask_stream(message)
-                        full_message = f"## {header_text}\n\n"
-                        i, start_message_at = 0, 0
-                        sendable_portion = "<>"
-
-                        async for t in reply:
-                            i += 1
-                            full_message += t
-                            sendable_portion = full_message[start_message_at * GPTConfig.CHARACTER_LIMIT:((start_message_at + 1) * GPTConfig.CHARACTER_LIMIT)]
-
-                            if len(full_message) and len(full_message) >= (start_message_at + 1) * GPTConfig.CHARACTER_LIMIT:
-                                if not msg:
-                                    await interaction.edit_original_response(content=sendable_portion)
-                                    msg.append(await interaction.channel.send(":)")) # type: ignore
-                                else:
-                                    await msg[-1].edit(content=sendable_portion)
-                                    msg.append(await msg[-1].channel.send(":)"))
-
-                            start_message_at = len(full_message) // GPTConfig.CHARACTER_LIMIT
-                            if i and i % GPTConfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
-                                if not msg:
-                                    await interaction.edit_original_response(content=sendable_portion)
-                                else:
-                                    await msg[-1].edit(content=sendable_portion)
-
                         else:
-                            if not msg:
-                                return await interaction.edit_original_response(content=sendable_portion)
-                            return await msg[-1].edit(content=sendable_portion)
-                        
-                    await interaction.response.defer(ephemeral=False, thinking=True)
-                    reply = await convo.ask(message)
-                    final_user_reply = f"## {header_text}\n\n{reply}"
-
-                    if len(final_user_reply) > GPTConfig.CHARACTER_LIMIT:
-                        file_reply: discord.File = self.client.to_file(final_user_reply, "reply.txt")
-                        return await interaction.followup.send(file=file_reply, ephemeral=False)
-                    return await interaction.followup.send(final_user_reply, ephemeral=False)
-                
-                await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
-            else:
-                await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO, ephemeral=False)
-        
-        except Exception as e:
-            await self.client.send_debug_message(interaction, e, self.__cog_name__)   
+                            await interaction.response.send_message(GPTErrors.ModelErrors.MODEL_LOCKED) 
+                    else:
+                        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
+                else:
+                    await interaction.response.send_message(GPTErrors.ConversationErrors.CANNOT_CONVO, ephemeral=False)
+            
+            except Exception as e:
+                await self.client.send_debug_message(interaction, e, self.__cog_name__) 
+                  
 
     @discord.app_commands.command(name="stop", description=f"Stop a {GPTConfig.BOT_NAME} session.")
     @discord.app_commands.describe(save="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
