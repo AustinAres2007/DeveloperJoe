@@ -8,7 +8,8 @@ class GPTHistory(GPTDatabase):
         return self
 
     def __exit__(self, type_, value_, traceback_):
-        super().__exit__(type_, value_, traceback_)
+        self.database.commit()
+        self.database.close()
 
     def __init__(self):
         super().__init__()

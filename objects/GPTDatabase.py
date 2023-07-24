@@ -5,12 +5,6 @@ database_file = _GptConfig.DATABASE_FILE
 
 class GPTDatabase:
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type_, value_, traceback_):
-        self.database.close()
-
     def __init__(self):
         
         """
@@ -34,6 +28,7 @@ class GPTDatabase:
             return False
 
     def _exec_db_command(self, query: str, args: tuple=()) -> sqlite3.Cursor:
+        print(self)
         v = self.cursor.execute(query, args)
         self.database.commit()
         return v

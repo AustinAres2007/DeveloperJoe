@@ -6,6 +6,8 @@ from objects import GPTConfig, GPTModelRules, GPTExceptions
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
 
+# TODO: Add proper error handling for incorrect channel setting
+
 class admin(commands.Cog):
     def __init__(self, client):
         self.client: DevJoe = client
@@ -25,10 +27,9 @@ class admin(commands.Cog):
     @discord.app_commands.describe(gpt_model="The GPT model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @discord.app_commands.check(in_correct_channel)
     async def lock_role(self, interaction: discord.Interaction, gpt_model: str, role: discord.Role):
-        with GPTModelRules.GPTModelRules() as rules:
-            if rules.retrieve_guild_models(role.guild.id) == None:
-                rules.add_guild(role.guild.id)
-            rules.upload_guild_model(gpt_model, role, role.guild)
+
+        with GPTModelRules.GPTModelRules(role.guild) as rules:
+            rules.upload_guild_model(gpt_model, role)
             await interaction.response.send_message(f"Added {gpt_model} behind role {role.mention}.")
 
     @discord.app_commands.command(name="unlock", description="Unlocks a previously locked GPT Model.")
@@ -38,14 +39,29 @@ class admin(commands.Cog):
     @discord.app_commands.check(in_correct_channel)
     async def unlock_role(self, interaction: discord.Interaction, gpt_model: str, role: discord.Role):
         try:
-            with GPTModelRules.GPTModelRules() as rules:
-                if rules.retrieve_guild_models(role.guild.id) == None:
-                    rules.add_guild(role.guild.id)
+            with GPTModelRules.GPTModelRules(role.guild) as rules:
             
-                new_rules = rules.remove_guild_model(gpt_model, role, role.guild)
+                new_rules = rules.remove_guild_model(gpt_model, role)
                 await interaction.response.send_message(f"Removed requirement role {role.mention} from {gpt_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
         except GPTExceptions.ModelNotExist as mne:
             await interaction.response.send_message(mne.args[0])
+
+    @discord.app_commands.command(name="locks", description="View all models and which roles may utilise them.")
+    @discord.app_commands.checks.has_permissions(manage_channels=True)
+    @discord.app_commands.check(in_correct_channel)
+    async def view_locks(self, interaction: discord.Interaction):    
+        with GPTModelRules.GPTModelRules(interaction.guild) as rules:
+            text = ""
+            for model in rules.get_models_for_guild().items():
+                text += f"~ {model[0]} ~"
+                for r_id in model[1]:
+                    print("DEBUG",r_id, model)
+                    text += f"\n{interaction.guild.get_role(int(r_id)).mention}"
+            
+            await interaction.response.send_message(text)
+            #text = [  for r_id in [model for model in rules.get_models_for_guild()[0]]]
+        
+        
 
 async def setup(client):
     await client.add_cog(admin(client))

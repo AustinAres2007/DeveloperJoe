@@ -30,7 +30,7 @@ VERSION = "1.2.5-B"
 DATABASE_FILE = "dependencies/dg_database.db"
 TOKEN_FILE = "dependencies/api-keys.key"
 
-MODEL_CHOICES = [
+MODEL_CHOICES: list[Choice] = [
     Choice(name="GPT 3 Turbo", value="gpt-3.5-turbo"), 
     Choice(name="GPT 4", value="gpt-4")
 ]

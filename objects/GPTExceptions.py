@@ -1,9 +1,14 @@
+import discord
 
 # Models
 
 class ModelNotExist(Exception):
-    ...
+    def __init__(self, guild: discord.Guild, model: str):
+        super().__init__(f"{model} model lock list does not exist within {guild.name} database.", guild, model)
 
+class GuildNotExist(Exception):
+    def __init__(self, guild: discord.Guild):
+        super().__init__(f"{guild.name} does not exist within database.", guild)
+        
 class ModelGuildError(Exception):
     ...
-    

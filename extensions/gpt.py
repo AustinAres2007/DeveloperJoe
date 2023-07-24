@@ -12,7 +12,7 @@ stream_choices = [
 
 def has_model_permission(user: discord.Member, model) -> bool:
     # TODO: make sure user is a Member
-    with GPTModelRules.GPTModelRules() as check_rules:
+    with GPTModelRules.GPTModelRules(user.guild) as check_rules:
         return bool(check_rules.user_has_model_permissions(user.roles[-1], model))
 
 def in_correct_channel(interaction: discord.Interaction) -> bool:
