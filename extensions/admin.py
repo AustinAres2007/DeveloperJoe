@@ -42,8 +42,10 @@ class admin(commands.Cog):
             with GPTModelRules.GPTModelRules(role.guild) as rules:
             
                 new_rules = rules.remove_guild_model(gpt_model, role)
+                print(new_rules)
                 await interaction.response.send_message(f"Removed requirement role {role.mention} from {gpt_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
-        except GPTExceptions.ModelNotExist as mne:
+        except Exception as mne: # GPTExceptions.ModelNotExist
+            print(mne, type(mne))
             await interaction.response.send_message(mne.args[0])
 
     @discord.app_commands.command(name="locks", description="View all models and which roles may utilise them.")
@@ -52,14 +54,18 @@ class admin(commands.Cog):
     async def view_locks(self, interaction: discord.Interaction):    
         with GPTModelRules.GPTModelRules(interaction.guild) as rules:
             text = ""
-            for model in rules.get_models_for_guild().items():
-                text += f"~ {model[0]} ~"
+            models = rules.get_models_for_guild()
+            no_roles = "No added roles. \n\n"
+
+            for model in models.items():
+                text += f"~ {model[0]} ~\n{no_roles if not model[1] else ''}"
                 for r_id in model[1]:
-                    print("DEBUG",r_id, model)
-                    text += f"\n{interaction.guild.get_role(int(r_id)).mention}"
+                    text += f"\n{interaction.guild.get_role(int(r_id)).mention}\n"
             
+            if not models:        
+                text = no_roles
+
             await interaction.response.send_message(text)
-            #text = [  for r_id in [model for model in rules.get_models_for_guild()[0]]]
         
         
 

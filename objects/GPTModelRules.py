@@ -7,26 +7,30 @@ GuildModels = TypedDict('GuildModels', {"model": list[int]})
 
 class GPTModelRules(GPTDatabase.GPTDatabase):
     def __enter__(self):
-
-        print(self.in_database)
-
+        
+        self.in_database = self.get_guild_in_database()
         if self.in_database == False:
             self.add_guild()
-            self.in_database = bool(self.get_models_for_guild())
+            self.in_database = self.get_guild_in_database()
 
         return self
 
     def __exit__(self, type_, value_, traceback_):
+        print("Exiting...")
         self.database.commit()
         self.database.close()
+        del self.database
 
     def __init__(self, guild: discord.Guild):
         """
         Handles user GPT Model permissions based on roles they possess.
         """
-        super().__init__()
+        
+        print("\n\nNEW\n\n")
         self.guild: discord.Guild = guild
-        self._in_database = bool(self.get_models_for_guild())
+        self.in_database = False
+
+        super().__init__()
     
 
     @property
@@ -51,8 +55,11 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
         
     def get_models_for_guild(self) -> dict[str, list[int]]:
         models = self._get_raw_models_database()
-        print(models)
+        print("MODELS: ", models)
         return json.loads(models[0][0])
+    
+    def get_guild_in_database(self) -> bool:
+        return bool(self._exec_db_command("SELECT jsontables FROM model_rules WHERE gid=?", (self.guild.id,)).fetchall())
     
     def _get_raw_models_database(self) -> list[tuple[str, ...]]:
         raw_models = self._exec_db_command("SELECT jsontables FROM model_rules WHERE gid=?", (self.guild.id,)).fetchall()
@@ -61,9 +68,11 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
         raise GPTExceptions.GuildNotExist(self.guild)
     
     def upload_guild_model(self, model: str, role: discord.Role) -> Union[list[GuildModels], GuildModels, None, dict]:
-        guild_rules = self.retrieve_guild_models(model) 
+        guild_rules = self.get_models_for_guild() 
 
-        if model in list(guild_rules) and isinstance(guild_rules, dict) and role.id not in guild_rules[model]: # type: ignore
+        print(f"DEBUG: {model}, RULES: {list(guild_rules)}, ROLE ID: {role.id}, ACTUAL_RULES: {guild_rules}")
+
+        if model in list(guild_rules) and isinstance(guild_rules, dict) and role.id not in guild_rules[model]:
             guild_rules[model].append(role.id)
     
         elif isinstance(guild_rules, dict) and model not in list(guild_rules):
@@ -73,24 +82,27 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
             return None
         
         json_string = json.dumps(guild_rules)
+        print("FINAL JSON: ", json_string)
         self._exec_db_command("UPDATE model_rules SET jsontables=? WHERE gid=?", (json_string, self.guild.id))
-
+        print("FINISHED")
         return guild_rules
 
     def remove_guild_model(self, model: str, role: discord.Role):
-        models_allowed_roles = self.retrieve_guild_models(model)
+        models_allowed_roles = self.get_models_for_guild()
 
-        if isinstance(models_allowed_roles, dict):
-            if model in list(models_allowed_roles) and role.id in list(models_allowed_roles[model]): # type: ignore
-                models_allowed_roles[model].remove(role.id)
-            elif model not in list(models_allowed_roles):
-                raise GPTExceptions.ModelNotExist(self.guild, model)
-            else:
-                return None
+        print(f"DEBUG: {model}, RULES: {list(models_allowed_roles)}, ROLE ID: {role.id}, ACTUAL_RULES: {models_allowed_roles}")
+
+        if model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model]): # type: ignore
+            models_allowed_roles[model].remove(role.id)
+        elif model not in list(models_allowed_roles):
+            raise GPTExceptions.ModelNotExist(self.guild, model)
+        else:
+            return None
         
         json_string = json.dumps(models_allowed_roles)
+        print("FINAL JSON: ", json_string)
         self._exec_db_command("UPDATE model_rules SET jsontables=? WHERE gid=?", (json_string, self.guild.id))
-
+        print("FINISHEDw")
         return models_allowed_roles
 
     def add_guild(self) -> Union[None, Any]:

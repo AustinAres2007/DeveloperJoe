@@ -9,12 +9,9 @@ class GPTDatabase:
         
         """
             Handles connection between the server and discord client.
-
-            -> db_name | Name of the database file.
-            -> table | Name of the table where your data is.
         """
 
-        # Add error handlers on every command
+        print(self)
         self.database_file = database_file
         self.database: sqlite3.Connection = sqlite3.connect(database_file)
         self.cursor: sqlite3.Cursor = self.database.cursor()
