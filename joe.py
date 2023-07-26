@@ -1,5 +1,4 @@
-
-import sys
+import sys, traceback
 from typing import Any
 v_info = sys.version_info
 
@@ -91,10 +90,15 @@ class DevJoe(commands.Bot):
             return current_default.display_name
 
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        error_text = f"From error handler: {str(error)}"
+        error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
+
         if interaction.response.is_done():
-            await interaction.followup.send(str(error))
+            await interaction.followup.send(error_text, file=error_traceback)
         else:
-            await interaction.response.send_message(str(error))
+            await interaction.response.send_message(error_text, file=error_traceback)
+         
+        
 
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
