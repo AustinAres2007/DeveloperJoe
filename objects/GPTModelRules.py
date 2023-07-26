@@ -6,20 +6,17 @@ from typing import Union, TypedDict, Any, Iterable
 GuildModels = TypedDict('GuildModels', {"model": list[int]})
 
 class GPTModelRules(GPTDatabase.GPTDatabase):
+
     def __enter__(self):
         
         self.in_database = self.get_guild_in_database()
         if self.in_database == False:
-            self.add_guild()
-            self.in_database = self.get_guild_in_database()
-
-        return self
+            self.in_database = bool(self.add_guild())
+            
+        return super().__enter__()
 
     def __exit__(self, type_, value_, traceback_):
-        print("Exiting...")
-        self.database.commit()
-        self.database.close()
-        del self.database
+        super().__exit__(type_, value_, traceback_)
 
     def __init__(self, guild: discord.Guild):
         """
@@ -108,7 +105,8 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
     def add_guild(self) -> Union[None, Any]:
         if self.in_database == False:
             self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (self.guild.id, json.dumps({})))
-            return bool(self.get_models_for_guild())
+            return bool(self.get_guild_in_database())
+        
         raise GPTExceptions.ModelGuildError("Guild with specified ID has already been registered.")
     
     def del_guild(self) -> Union[None, Any]:

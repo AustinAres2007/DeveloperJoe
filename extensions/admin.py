@@ -1,7 +1,8 @@
-import discord
+import discord, json
+from typing import Union
 from discord.ext import commands
 from joe import DevJoe
-from objects import GPTConfig, GPTModelRules, GPTExceptions
+from objects import GPTConfig, GPTModelRules, GPTExceptions, GPTChat, GPTErrors
 
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
@@ -52,6 +53,9 @@ class admin(commands.Cog):
     @discord.app_commands.checks.has_permissions(manage_channels=True)
     @discord.app_commands.check(in_correct_channel)
     async def view_locks(self, interaction: discord.Interaction):    
+
+        # NOTE: Cause for DB locking: Incorrectly determined guild existence within database?
+        
         with GPTModelRules.GPTModelRules(interaction.guild) as rules:
             text = ""
             models = rules.get_models_for_guild()
@@ -67,7 +71,21 @@ class admin(commands.Cog):
 
             await interaction.response.send_message(text)
         
-        
-
+    @discord.app_commands.command(name="exportjson", description="Exports specified DeveloperJoe chat data in the JSON format.")
+    @discord.app_commands.check(in_correct_channel)
+    async def export_raw_json(self, interaction: discord.Interaction, chat: Union[str, None]):
+        chat = self.client.manage_defaults(interaction.user, chat)
+        if isinstance(convo := self.client.get_user_conversation(interaction.user.id, chat), GPTChat.GPTChat):
+            return await interaction.response.send_message(file=self.client.to_file(json.dumps(convo.chat_history), "json-export.json"))
+        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
+    
+    @discord.app_commands.command(name="loadjson", description="Load raw json data as chat history.")
+    @discord.app_commands.check(in_correct_channel)
+    async def replace_raw_json(self, interaction: discord.Interaction, chat: Union[str, None], json_data: str):
+        chat = self.client.manage_defaults(interaction.user, chat)
+        if isinstance(convo := self.client.get_user_conversation(interaction.user.id, chat), GPTChat.GPTChat):
+            convo.readable_history = json.loads(json_data)
+            return await interaction.response.send_message("Switched context.")
+        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
 async def setup(client):
     await client.add_cog(admin(client))

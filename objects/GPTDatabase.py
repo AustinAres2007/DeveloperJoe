@@ -5,6 +5,14 @@ database_file = _GptConfig.DATABASE_FILE
 
 class GPTDatabase:
 
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, type_, value_, traceback_):
+        self.database.commit()
+        self.cursor.close()
+        self.database.close()
+    
     def __init__(self):
         
         """
@@ -28,4 +36,5 @@ class GPTDatabase:
         print(self)
         v = self.cursor.execute(query, args)
         self.database.commit()
+
         return v

@@ -31,7 +31,6 @@ class GPTChat:
 
         self.readable_history = []
         self.chat_history = []
-        self._readable_history_map_ = []
 
         openai.api_key = self.oapi
 
@@ -43,7 +42,6 @@ class GPTChat:
             try:
                 self.chat_history = self.chat_history[:len(self.chat_history)-2]
                 self.readable_history.pop()
-                self._readable_history_map_.pop()
             except IndexError:
                 pass
 
@@ -117,7 +115,6 @@ class GPTChat:
                 r_history.append(kwargs)
                 r_history.append(dict(actual_reply))
                 self.readable_history.append(r_history)
-                self._readable_history_map_.append(len(self.readable_history) - 1)
             
             elif query_type == "image":
                 # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
@@ -170,7 +167,6 @@ class GPTChat:
             r_history.append(replicate_reply)
 
             self.readable_history.append(r_history)
-            self._readable_history_map_.append(len(self.readable_history) - 1)
 
         except Exception as e:
             s_error = e
