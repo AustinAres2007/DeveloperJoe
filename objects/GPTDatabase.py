@@ -21,7 +21,7 @@ class GPTDatabase:
 
         print(self)
         self.database_file = database_file
-        self.database: sqlite3.Connection = sqlite3.connect(database_file)
+        self.database: sqlite3.Connection = sqlite3.connect(database_file, timeout=60)
         self.cursor: sqlite3.Cursor = self.database.cursor()
 
     def __check__(self) -> bool:

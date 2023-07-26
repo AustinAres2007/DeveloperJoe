@@ -1,8 +1,8 @@
 #!/bin/sh
-
+# TODO: Support linux
 PYTHON_COMMAND=python3
 DIR=$(cd "$(dirname "$0")"; pwd)
-cd $DIR && source bin/activate
+cd $DIR && source $DIR/bin/activate
 IN_VE=$(python3 -c 'import sys; print(sys.prefix != sys.base_prefix)')
 
 if [ "$IN_VE" = "True" ]
