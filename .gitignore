@@ -10,5 +10,5 @@ lib64
 *.db-journal
 @eaDir
 .DS_Store
-bot_log.log
+misc/bot_log.log
 api-keys.key
