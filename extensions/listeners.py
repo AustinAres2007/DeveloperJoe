@@ -3,7 +3,8 @@ import discord
 from discord.ext import commands
 from joe import DevJoe
 from typing import Union, AsyncGenerator
-from objects import GPTConfig, GPTChat, GPTErrors
+from math import ceil
+from objects import GPTConfig, GPTChat, GPTErrors, GPTModelRules
 
 class listeners(commands.Cog):
     def __init__(self, client: DevJoe):
@@ -12,10 +13,9 @@ class listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
-
         try:
-            if isinstance(convo := self.client.get_default_conversation(message.author), GPTChat.GPTChat):
-                if self.client.get_user_has_permission(message.author, convo.model):
+            if isinstance(convo := self.client.get_default_conversation(message.author), GPTChat.GPTChat) and message.guild:
+                if self.client.get_user_has_permission(message.guild.get_member(message.author.id), convo.model):
                     thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) # type: ignore
                     content: str = message.content
                     if (thread and thread.is_private() and (thread.member_count == 2 or content.startswith(">"))) and convo.is_processing != True and not content.startswith(">"):
@@ -56,6 +56,19 @@ class listeners(commands.Cog):
                     await message.channel.send(GPTErrors.ModelErrors.MODEL_LOCKED)
         except Exception as e:
             await message.channel.send(str(e))
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
+        if system := guild.system_channel:
+            #[await system.send(self.client.WELCOME_TEXT[GPTConfig.CHARACTER_LIMIT * (t - 1) : GPTConfig.CHARACTER_LIMIT * t]) for t in range(1, ceil(len(self.client.WELCOME_TEXT) / GPTConfig.CHARACTER_LIMIT) + 1)]
+            await system.send(file=self.client.to_file(self.client.WELCOME_TEXT, "welcome.md"))
+        if owner := guild.owner:
+            #[await owner.send(self.client.ADMIN_TEXT[GPTConfig.CHARACTER_LIMIT * t:]) for t in range(ceil(len(self.client.ADMIN_TEXT) / GPTConfig.CHARACTER_LIMIT))]
+            await owner.send(file=self.client.to_file(self.client.ADMIN_TEXT, "admin-introduction.md"))
+
+        with GPTModelRules.GPTModelRules(guild) as _:
+            ...
+
 
         
 
