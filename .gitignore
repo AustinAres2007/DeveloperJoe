@@ -9,4 +9,5 @@ lib64
 *.db
 @eaDir
 .DS_Store
+misc/bot_log.log
 dependencies/api-keys.key
