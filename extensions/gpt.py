@@ -10,11 +10,6 @@ stream_choices = [
         discord.app_commands.Choice(name="No", value="n")
 ]
 
-def has_model_permission(user: discord.Member, model) -> bool:
-    # TODO: make sure user is a Member
-    with GPTModelRules.GPTModelRules(user.guild) as check_rules:
-        return bool(check_rules.user_has_model_permissions(user.roles[-1], model))
-
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
 
@@ -69,7 +64,7 @@ class gpt(commands.Cog):
             except Exception as e:
                 await self.client.send_debug_message(interaction, e, self.__cog_name__)
         
-        if has_model_permission(interaction.user, actual_model): # type: ignore
+        if self.client.get_user_has_permission(interaction.user, actual_model): # type: ignore
             return await command()
         await interaction.response.send_message(GPTErrors.ModelErrors.MODEL_LOCKED)
         
@@ -83,7 +78,7 @@ class gpt(commands.Cog):
                 name = self.client.manage_defaults(interaction.user, name)
                 if interaction.channel and interaction.channel.type in GPTConfig.ALLOWED_INTERACTIONS:
                     if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
-                        if has_model_permission(interaction.user, convo.model): # type: ignore
+                        if self.client.get_user_has_permission(interaction.user, convo.model): # type: ignore
 
                             header_text = f'{name} | {convo.model}'
 

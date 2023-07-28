@@ -1,7 +1,7 @@
 import datetime, discord, openai, random, openai_async, json, tiktoken
 
 from typing import Union, Any, AsyncGenerator
-from objects import GPTHistory, GPTErrors, GPTConfig
+from objects import GPTHistory, GPTErrors, GPTConfig, GPTModelRules, GPTExceptions
 
 errors = {
     openai.InvalidRequestError: lambda err: str(err),

@@ -12,3 +12,7 @@ class GuildNotExist(Exception):
         
 class ModelGuildError(Exception):
     ...
+
+class NotAMember(Exception):
+    def __init__(self, user: discord.User, guild: discord.Guild):
+        super().__init__(f"{user} is not a member of {guild.name}.", user, guild)

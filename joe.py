@@ -64,6 +64,10 @@ class DevJoe(commands.Bot):
                 return self.chats[id_][chat_name] # type: ignore
         return 0
     
+    def get_user_has_permission(self, member: discord.Member, model: str) -> bool:
+        with GPTModelRules.GPTModelRules(member.guild) as check_rules:
+            return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
+    
     def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
         del self.chats[user.id][conversation_name] # type: ignore
 
