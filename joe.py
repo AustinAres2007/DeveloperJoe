@@ -1,5 +1,5 @@
-
-import sys
+import sys, traceback
+from typing import Any
 v_info = sys.version_info
 
 if not (v_info.major >= 3 and v_info.minor > 8):
@@ -13,12 +13,13 @@ try:
     import discord, logging, asyncio, os, io, datetime
     from discord.ext import commands
     from typing import Coroutine, Any, Union
+
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
 
 try:
-    from objects import GPTChat, GPTHistory, GPTConfig
+    from objects import GPTChat, GPTHistory, GPTErrors, GPTModelRules, GPTDatabase, GPTConfig
 except (ImportError, ImportWarning) as e:
     print(f"Missing internal dependencies, please collect a new install of DeveloperJoe. (Actual Error: {e})")
     exit(1)
@@ -63,6 +64,10 @@ class DevJoe(commands.Bot):
                 return self.chats[id_][chat_name] # type: ignore
         return 0
     
+    def get_user_has_permission(self, member: discord.Member, model: str) -> bool:
+        with GPTModelRules.GPTModelRules(member.guild) as check_rules:
+            return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
+    
     def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
         del self.chats[user.id][conversation_name] # type: ignore
 
@@ -88,6 +93,17 @@ class DevJoe(commands.Bot):
         elif current_default:
             return current_default.display_name
 
+    async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        error_text = f"From error handler: {str(error)}"
+        error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
+
+        if interaction.response.is_done():
+            await interaction.followup.send(error_text, file=error_traceback)
+        else:
+            await interaction.response.send_message(error_text, file=error_traceback)
+         
+        
+
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name
@@ -109,7 +125,7 @@ class DevJoe(commands.Bot):
             
     async def on_ready(self):
         if self.application:
-            print(f"{self.application.name} Online (V: {GPTConfig.VERSION})")
+            print(f"\n{self.application.name} Online (V: {GPTConfig.VERSION})")
 
             self.chats: Union[dict[int, Union[dict[str, GPTChat.GPTChat], dict]], dict[str, Union[None, GPTChat.GPTChat]]] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
@@ -131,6 +147,7 @@ class DevJoe(commands.Bot):
 
             self.chats = {user.id: {} for user in self.users}
             self.chats = self.chats | {f"{user.id}-latest": None for user in self.users} # type: ignore
+            self.tree.on_error = self.handle_error
 
     async def setup_hook(self) -> Coroutine[Any, Any, None]:
         for file in os.listdir(f"extensions"):
@@ -139,6 +156,7 @@ class DevJoe(commands.Bot):
 
         await self.tree.sync()
         return await super().setup_hook() # type: ignore
+    
     
 # Driver Code
 

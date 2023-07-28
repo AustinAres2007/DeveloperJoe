@@ -1,5 +1,8 @@
 import datetime as _datetime
+from discord import ChannelType
 from discord import ActivityType
+from discord.app_commands import Choice
+from discord import TextChannel
 
 # User Configuration
 
@@ -12,15 +15,23 @@ TIMEZONE = _datetime.timezone.utc # What timezone to use (UTC by default)
 
 # ADVANCED
 
-FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
+GPT_REQUEST_TIMEOUT = 180
 QUERY_TIMEOUT = 10
 QUERY_CONFIRMATION = ">y"
-
-GPT_REQUEST_TIMEOUT = 180
 
 STREAM_UPDATE_MESSAGE_FREQUENCY = 10
 CHATS_LIMIT = 20
 CHARACTER_LIMIT = 2000 # DO NOT CHANGE THIS. YOU MAY SUBTRACT FROM IT, DO NOT ADD.
-VERSION = "1.2.4"
+
+FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
+DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
+VERSION = "1.2.5"
+
+DATABASE_FILE = "dependencies/dg_database.db"
 TOKEN_FILE = "dependencies/api-keys.key"
+
+MODEL_CHOICES: list[Choice] = [
+    Choice(name="GPT 3 Turbo", value="gpt-3.5-turbo"), 
+    Choice(name="GPT 4", value="gpt-4")
+]
+ALLOWED_INTERACTIONS = [ChannelType.private_thread, ChannelType.text, TextChannel]
