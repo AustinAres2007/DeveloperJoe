@@ -10,4 +10,5 @@ lib64
 *.db-journal
 @eaDir
 .DS_Store
+misc/bot_log.log
 dependencies/api-keys.key
