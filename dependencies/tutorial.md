@@ -30,7 +30,7 @@ If you have started a chat in a private thread, just post your query in the priv
 
 #### Generating Images
 
-You can use `/generate` to generate an image with the [DALL-E](https://openai.com/dall-e-2) Image generation engine also created by [OpenAI]([https://openai.com](https://openai.com/)).
+You can use `/generate` to generate an image with the [DALL-E](https://openai.com/dall-e-2) Image generation engine also created by OpenAI
 
 ## Stopping a chat
   

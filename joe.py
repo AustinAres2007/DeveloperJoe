@@ -8,7 +8,7 @@ if not (v_info.major >= 3 and v_info.minor > 8):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3
+    import json, openai, openai_async, tiktoken, sqlite3, math
 
     import discord, logging, asyncio, os, io, datetime
     from discord.ext import commands
@@ -31,13 +31,17 @@ try:
         DISCORD_TOKEN, OPENAI_TOKEN = tk_file.readlines()[0:2]
         DISCORD_TOKEN = DISCORD_TOKEN.strip()
         OPENAI_TOKEN = OPENAI_TOKEN.strip()
+    
 except (FileNotFoundError, ValueError, IndexError):
     print("Missing token file / Missing tokens within token file"); exit(1)
 
-"""Changelog:
-    Fixed streaming message size error
-    Secured DeveloperJoe chat requirements (What channels it may speak in)
-"""
+try:
+    with open(GPTConfig.WELCOME_FILE) as welcome_file, open(GPTConfig.ADMIN_FILE) as admin_file:
+        WELCOME_TEXT = welcome_file.read()
+        ADMIN_TEXT = admin_file.read()
+
+except FileNotFoundError:
+    print(f"Missing server join files. ({GPTConfig.WELCOME_FILE} and {GPTConfig.ADMIN_FILE})")
 
 # Main Bot Class
 
@@ -49,6 +53,10 @@ class DevJoe(commands.Bot):
     def __init__(self, *args, **kwargs):
         self._DISCORD_TOKEN = DISCORD_TOKEN
         self._OPENAI_TOKEN = OPENAI_TOKEN
+
+        self.WELCOME_TEXT = WELCOME_TEXT.format(GPTConfig.BOT_NAME)
+        self.ADMIN_TEXT = ADMIN_TEXT.format(GPTConfig.BOT_NAME)
+
         super().__init__(*args, **kwargs)
 
     def get_uptime(self) -> datetime.timedelta:
@@ -64,9 +72,11 @@ class DevJoe(commands.Bot):
                 return self.chats[id_][chat_name] # type: ignore
         return 0
     
-    def get_user_has_permission(self, member: discord.Member, model: str) -> bool:
-        with GPTModelRules.GPTModelRules(member.guild) as check_rules:
-            return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
+    def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
+        if isinstance(member, discord.Member):
+            with GPTModelRules.GPTModelRules(member.guild) as check_rules:
+                return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
+        return False
     
     def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
         del self.chats[user.id][conversation_name] # type: ignore
