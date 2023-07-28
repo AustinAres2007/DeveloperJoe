@@ -11,10 +11,6 @@ h11==0.14.0
 httpcore==0.17.2
 httpx==0.24.1
 idna==3.4
-<<<<<<< .merge_file_x9WPV6
-iniconfig==2.0.0
-=======
->>>>>>> .merge_file_3P1txV
 multidict==6.0.4
 openai==0.27.4
 openai-async==0.0.3
