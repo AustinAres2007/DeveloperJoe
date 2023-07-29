@@ -25,7 +25,11 @@ CHARACTER_LIMIT = 2000 # DO NOT CHANGE THIS. YOU MAY SUBTRACT FROM IT, DO NOT A
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
+<<<<<<< HEAD
 VERSION = "1.3.0-Z"
+=======
+VERSION = "1.2.6"
+>>>>>>> c155436149c8436be32ee8307133e6a1bf49c018
 
 DATABASE_FILE = "dependencies/dg_database.db"
 TOKEN_FILE = "dependencies/api-keys.key"

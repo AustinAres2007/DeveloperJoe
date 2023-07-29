@@ -1,6 +1,13 @@
 #!/bin/sh
 
-PYTHON_COMMAND=python3
+if [[ "$1" =~ python.* ]]
+then
+    PYTHON_COMMAND=$1
+else
+    PYTHON_COMMAND=python3
+fi
+
+echo Using \"$PYTHON_COMMAND\"
 DIR=$(cd "$(dirname "$0")"; pwd)
 cd $DIR
 
@@ -32,7 +39,7 @@ then
             touch "$DIR/dependencies/api-keys.key"
         fi
 
-        if [ -e "$DIR/misc/bot_log.log" ] && [ -e "$DIR/dependencies/histories.db" ]
+        if [ -e "$DIR/misc/bot_log.log" ] && [ -e "$DIR/dependencies/dg_database.db" ]
         then
             echo Finished.
         else
@@ -42,5 +49,5 @@ then
 
     fi
 else
-    echo "Python3 is not installed on this system."
+    echo "Python is not installed on this system, or is configured improperly. (Given Python Version: $PYTHON_COMMAND)"
 fi
