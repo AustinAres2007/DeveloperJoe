@@ -11,3 +11,4 @@ lib64
 @eaDir
 .DS_Store
 bot_log.log
+api-keys.key
