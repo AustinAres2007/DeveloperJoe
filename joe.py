@@ -1,5 +1,4 @@
-import sys, traceback
-from typing import Any
+import sys
 v_info = sys.version_info
 
 if not (v_info.major >= 3 and v_info.minor > 8):
@@ -8,7 +7,7 @@ if not (v_info.major >= 3 and v_info.minor > 8):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math
+    import json, openai, openai_async, tiktoken, sqlite3, math, traceback
 
     import discord, logging, asyncio, os, io, datetime
     from discord.ext import commands
