@@ -86,7 +86,7 @@ class DevJoe(commands.Bot):
     def set_default_conversation(self, user: Union[discord.Member, discord.User], name: Union[None, str], absolute: bool=False) -> None:
         self.chats[f"{user.id}-latest"] = self.get_user_conversation(user.id, name) if not absolute else name# type: ignore
     
-    def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[None, GPTChat.GPTChat]:
+    def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[GPTChat.GPTChat, None]:
         return self.chats[f"{user.id}-latest"] # type: ignore
     
     def manage_defaults(self, user: Union[discord.User, discord.Member], name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:

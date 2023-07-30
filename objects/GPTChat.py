@@ -12,18 +12,29 @@ errors = {
 }
 
 class GPTChat:
-    def __init__(self, _client, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL, associated_thread: Union[discord.Thread, None]=None):
-    
-        self.oapi = _client._OPENAI_TOKEN
+    def __init__(self, 
+                openai_token: str, 
+                user: Union[discord.User, discord.Member], 
+                name: str,
+                stream: bool,
+                display_name: str, 
+                model: str=GPTConfig.DEFAULT_GPT_MODEL, 
+                associated_thread: Union[discord.Thread, None]=None, 
+                *args,
+                **kwargs
+        ):
+
+        
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.hid = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
+
+        self.oapi = openai_token
         self.chat_thread = associated_thread
 
         self.name = name
         self.display_name = display_name
-        self.stream = False
-
+        self.stream = stream
 
         self.model = str(model)
         self.encoding = tiktoken.encoding_for_model(self.model)
@@ -34,7 +45,7 @@ class GPTChat:
         self.chat_history = []
 
         openai.api_key = self.oapi
-
+    
     def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
 
@@ -209,3 +220,22 @@ class GPTChat:
             return f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s)."
         except Exception as e:
             return f"Critical Error: {e}"
+
+class GPTVoiceChat(GPTChat):
+    def __init__(
+            self,
+            voice: Union[discord.VoiceChannel, discord.StageChannel, None],
+            *args,
+            **kwargs
+        ):
+        super().__init__(*args, **kwargs)
+        self._voice = voice
+    
+    @property
+    def voice(self):
+        return self._voice
+    
+    @voice.setter
+    def voice(self, _voice: Union[discord.VoiceChannel, discord.StageChannel, None]):
+        self._voice = _voice
+        

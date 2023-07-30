@@ -69,6 +69,10 @@ class listeners(commands.Cog):
         with GPTModelRules.GPTModelRules(guild) as _:
             ...
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
+        if convo := self.client.get_default_conversation(member):
+            ...
 
         
 
