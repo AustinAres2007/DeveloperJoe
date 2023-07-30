@@ -54,7 +54,7 @@ class gpt(commands.Cog):
                 # Actual Code
 
 
-                if interaction.channel and interaction.channel.type == discord.ChannelType.text:
+                if interaction.channel and interaction.channel.type == discord.ChannelType.text and in_thread == "y":
                     chat_thread = await interaction.channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{interaction.user.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None) # type: ignore
                     await chat_thread.add_user(interaction.user)
                     await chat_thread.send(f"{interaction.user.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
