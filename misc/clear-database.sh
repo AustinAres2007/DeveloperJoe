@@ -10,12 +10,13 @@ if [ -e $DB_PATH ]
 then
     rm $DB_PATH
     echo "Removed Database file."
-    if [ -e $DB_JOURNAL_PATH ]
-    then
-        rm $DB_JOURNAL_PATH
-        echo "Removed Database Journal file."
-    fi
 else
     echo "No Database file."
+fi
+
+if [ -e $DB_JOURNAL_PATH ]
+then
+    rm $DB_JOURNAL_PATH
+    echo "Removed Database Journal file."
 fi
         
