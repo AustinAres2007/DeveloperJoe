@@ -11,6 +11,10 @@ errors = {
     openai.error.APIConnectionError: lambda err: "Could not connect to OpenAI API Endpoint, contact administrator." # type: ignore
 }
 
+class GPTTypes:
+    text = 1
+    voice = 2
+
 class GPTChat:
     def __init__(self, 
                 openai_token: str, 
@@ -44,7 +48,12 @@ class GPTChat:
         self.readable_history = []
         self.chat_history = []
 
+        self._type = GPTTypes.text
         openai.api_key = self.oapi
+    
+    @property
+    def type(self):
+        return self._type
     
     def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
@@ -221,15 +230,23 @@ class GPTChat:
         except Exception as e:
             return f"Critical Error: {e}"
 
+    def __str__(self) -> str:
+        return f"<GPTChat type={self.type}, user={self.user}"
 class GPTVoiceChat(GPTChat):
     def __init__(
             self,
-            voice: Union[discord.VoiceChannel, discord.StageChannel, None],
-            *args,
-            **kwargs
+            openai_token: str, 
+            user: Union[discord.User, discord.Member], 
+            name: str,
+            stream: bool,
+            display_name: str, 
+            model: str=GPTConfig.DEFAULT_GPT_MODEL, 
+            associated_thread: Union[discord.Thread, None]=None, 
+            voice: Union[discord.VoiceChannel, discord.StageChannel, None]=None
         ):
-        super().__init__(*args, **kwargs)
+        super().__init__(openai_token, user, name, stream, display_name, model, associated_thread)
         self._voice = voice
+        self._type = GPTTypes.voice
     
     @property
     def voice(self):
@@ -238,4 +255,11 @@ class GPTVoiceChat(GPTChat):
     @voice.setter
     def voice(self, _voice: Union[discord.VoiceChannel, discord.StageChannel, None]):
         self._voice = _voice
+    
+    @property
+    def type(self):
+        return self._type
+
+    def __str__(self) -> str:
+        return f"<GPTVoiceChat type={self.type}, user={self.user}, voice={self.voice}>"
         

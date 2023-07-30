@@ -47,7 +47,7 @@ except FileNotFoundError:
 class DevJoe(commands.Bot):
 
     INTENTS = discord.Intents.all()
-    full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
+    full_user_chat_return_type = Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], dict]
 
     def __init__(self, *args, **kwargs):
         self._DISCORD_TOKEN = DISCORD_TOKEN
@@ -61,7 +61,7 @@ class DevJoe(commands.Bot):
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
     
-    def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None, all: bool=False) -> Union[Union[GPTChat.GPTChat, int], full_user_chat_return_type]:
+    def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None, all: bool=False) -> Union[Union[Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat], int], full_user_chat_return_type]:
         if int(id_) in list(self.chats) and self.chats[id_]: # type: ignore
             if all == True: 
                 return self.chats[id_] # type: ignore
@@ -71,11 +71,23 @@ class DevJoe(commands.Bot):
                 return self.chats[id_][chat_name] # type: ignore
         return 0
     
+    def get_all_user_conversations(self, user: Union[discord.User, discord.Member]) -> Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], None]:
+        if user.id in list(self.chats) and self.chats[user.id]: # type: ignore
+            return self.chats[user.id] # type: ignore
+            
     def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
         if isinstance(member, discord.Member):
             with GPTModelRules.GPTModelRules(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
         return False
+    
+    def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[GPTChat.GPTChat, None]:
+        return self.chats[f"{user.id}-latest"] # type: ignore
+    
+    def get_user_voice_conversation(self, id_: int, chat_name) -> Union[GPTChat.GPTVoiceChat, None]:
+        # TODO: Add funcion that aquires all voice chats only
+        chat = self.get_user_conversation(id_, chat_name=chat_name)
+        return chat if isinstance(chat, GPTChat.GPTVoiceChat) else None
     
     def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
         del self.chats[user.id][conversation_name] # type: ignore
@@ -85,9 +97,6 @@ class DevJoe(commands.Bot):
 
     def set_default_conversation(self, user: Union[discord.Member, discord.User], name: Union[None, str], absolute: bool=False) -> None:
         self.chats[f"{user.id}-latest"] = self.get_user_conversation(user.id, name) if not absolute else name# type: ignore
-    
-    def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[GPTChat.GPTChat, None]:
-        return self.chats[f"{user.id}-latest"] # type: ignore
     
     def manage_defaults(self, user: Union[discord.User, discord.Member], name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
         current_default = self.get_default_conversation(user)
@@ -111,7 +120,7 @@ class DevJoe(commands.Bot):
         else:
             await interaction.response.send_message(error_text, file=error_traceback)
          
-        
+    
 
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
@@ -136,7 +145,7 @@ class DevJoe(commands.Bot):
         if self.application:
             print(f"\n{self.application.name} Online (V: {GPTConfig.VERSION})")
 
-            self.chats: Union[dict[int, Union[dict[str, GPTChat.GPTChat], dict]], dict[str, Union[None, GPTChat.GPTChat]]] = {}
+            self.chats: Union[dict[int, Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], dict]], dict[str, Union[None, GPTChat.GPTChat, GPTChat.GPTVoiceChat]]] = {}
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
             
             await self.change_presence(activity=discord.Activity(type=GPTConfig.STATUS_TYPE, name=GPTConfig.STATUS_TEXT))

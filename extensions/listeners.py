@@ -71,8 +71,10 @@ class listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
-        if convo := self.client.get_default_conversation(member):
-            ...
+        if convos := self.client.get_all_user_conversations(member):
+            [setattr(convo, "voice", after.channel) for convo in convos.values() if convo.type == GPTChat.GPTTypes.voice]
+        
+        print(self.client.get_user_voice_conversation(member.id, "navidrohim-0"))
 
         
 

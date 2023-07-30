@@ -27,12 +27,15 @@ class gpt(commands.Cog):
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
     )
-    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=GPTConfig.MODEL_CHOICES, in_thread=yes_no_choice)
+    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=GPTConfig.MODEL_CHOICES, in_thread=yes_no_choice, speak_reply=yes_no_choice)
     @discord.app_commands.check(in_correct_channel)
     @discord.app_commands.check(is_member)
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None):
+        if isinstance(interaction.user, discord.User):
+            return await interaction.response.send_message("Please do this command inside a discord server.")
+        
+        member = interaction.user
         actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL)
-
         async def command():
             try:
                 
@@ -59,7 +62,8 @@ class gpt(commands.Cog):
                     await chat_thread.add_user(interaction.user)
                     await chat_thread.send(f"{interaction.user.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
-                convo = GPTChat.GPTChat(self.client._OPENAI_TOKEN, interaction.user, actual_name, actual_choice, name, actual_model, chat_thread)
+                chat_args = (self.client._OPENAI_TOKEN, interaction.user, actual_name, actual_choice, name, actual_model, chat_thread)
+                convo = GPTChat.GPTChat(*chat_args) if speak_reply != "y" else GPTChat.GPTVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
                 
                 await interaction.response.defer(ephemeral=False, thinking=True)
                 await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model} | Thread — {chat_thread.name if chat_thread else 'No thread made.'}*", ephemeral=False)
