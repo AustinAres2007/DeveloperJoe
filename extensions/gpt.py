@@ -3,15 +3,15 @@ import discord, datetime
 from discord.ext import commands
 from typing import Union
 from joe import DevJoe
-from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig, GPTModelRules
+from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig, GPTExceptions
 
-stream_choices = [
+yes_no_choice: list[discord.app_commands.Choice] = [
         discord.app_commands.Choice(name="Yes", value="y"),
         discord.app_commands.Choice(name="No", value="n")
 ]
 
 def in_correct_channel(interaction: discord.Interaction) -> bool:
-    return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
+    return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False) and interaction.channel.type in GPTConfig.ALLOWED_INTERACTIONS # type: ignore
 
 def is_member(interaction: discord.Interaction) -> bool:
     return isinstance(interaction.user, discord.Member)
@@ -27,11 +27,11 @@ class gpt(commands.Cog):
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
     )
-    @discord.app_commands.choices(stream_conversation=stream_choices, gpt_model=GPTConfig.MODEL_CHOICES)
+    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=GPTConfig.MODEL_CHOICES, in_thread=yes_no_choice)
     @discord.app_commands.check(in_correct_channel)
     @discord.app_commands.check(is_member)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None):
-        actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL) 
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None):
+        actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL)
 
         async def command():
             try:
@@ -40,7 +40,8 @@ class gpt(commands.Cog):
                 actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
                 chats = self.client.get_user_conversation(interaction.user.id, None, True)
                 name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
-                
+                chat_thread: Union[discord.Thread, None] = None
+
                 # Error Checking
 
                 if len(actual_name) > 39:
@@ -52,11 +53,17 @@ class gpt(commands.Cog):
                 
                 # Actual Code
 
-                convo = GPTChat.GPTChat(self.client, interaction.user, actual_name, name, actual_model)
+
+                if interaction.channel and interaction.channel.type == discord.ChannelType.text:
+                    chat_thread = await interaction.channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{interaction.user.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None) # type: ignore
+                    await chat_thread.add_user(interaction.user)
+                    await chat_thread.send(f"{interaction.user.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
+
+                convo = GPTChat.GPTChat(self.client, interaction.user, actual_name, name, actual_model, chat_thread)
                 convo.stream = actual_choice
 
                 await interaction.response.defer(ephemeral=False, thinking=True)
-                await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model}*", ephemeral=False)
+                await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model} | Thread — {chat_thread.name if chat_thread else 'No thread made.'}*", ephemeral=False)
 
                 self.client.add_conversation(interaction.user, name, convo)
                 self.client.set_default_conversation(interaction.user, name)
@@ -64,13 +71,13 @@ class gpt(commands.Cog):
             except Exception as e:
                 await self.client.send_debug_message(interaction, e, self.__cog_name__)
         
-        if self.client.get_user_has_permission(interaction.user, actual_model): # type: ignore
+        if self.client.get_user_has_permission(interaction.user, actual_model) and interaction.channel: # type: ignore
             return await command()
         await interaction.response.send_message(GPTErrors.ModelErrors.MODEL_LOCKED)
         
     @discord.app_commands.command(name="ask", description=f"Ask {GPTConfig.BOT_NAME} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {GPTConfig.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    @discord.app_commands.choices(stream=stream_choices)
+    @discord.app_commands.choices(stream=yes_no_choice)
     @discord.app_commands.check(in_correct_channel)
     @discord.app_commands.check(is_member)
     async def ask(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: Union[str, None]=None):
@@ -150,20 +157,24 @@ class gpt(commands.Cog):
             return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.", ephemeral=False)
         
         async def func(gpt: GPTChat.GPTChat):
-            with GPTHistory.GPTHistory() as history:
-                farewell = gpt.stop(history, save.value)
-    
-                if self.client.get_user_conversation(interaction.user.id, name, True):
-                    reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end {name}? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
-                    if reply.content != GPTConfig.QUERY_CONFIRMATION:
-                        return await interaction.followup.send("Cancelled action.", ephemeral=False)
-                    
-                    await interaction.followup.send(farewell, ephemeral=False)
-                    self.client.delete_conversation(interaction.user, name)
-                    self.client.set_default_conversation(interaction.user, None, True)
-                else:
-                    await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
-
+            try:
+                with GPTHistory.GPTHistory() as history:
+        
+                    if self.client.get_user_conversation(interaction.user.id, name, True):
+                        reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end {name}? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+                        if reply.content != GPTConfig.QUERY_CONFIRMATION:
+                            return await interaction.followup.send("Cancelled action.", ephemeral=False)
+                        
+                        farewell = await gpt.stop(interaction, history, save.value)
+                        
+                        await interaction.followup.send(farewell, ephemeral=False)
+                        self.client.delete_conversation(interaction.user, name)
+                        self.client.set_default_conversation(interaction.user, None, True)
+                    else:
+                        await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
+            except GPTExceptions.CannotDeleteThread as e:
+                return await interaction.response.send_message(e.args[0])
+            
         # checks because app_commands cannot use normal ones.
         if isinstance(convo := self.client.get_user_conversation(interaction.user.id, name), GPTChat.GPTChat):
             return await func(convo)

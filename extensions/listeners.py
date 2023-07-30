@@ -16,9 +16,10 @@ class listeners(commands.Cog):
         try:
             if isinstance(convo := self.client.get_default_conversation(message.author), GPTChat.GPTChat) and message.guild:
                 if self.client.get_user_has_permission(message.guild.get_member(message.author.id), convo.model):
-                    thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) # type: ignore
+                    thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
                     content: str = message.content
-                    if (thread and thread.is_private() and (thread.member_count == 2 or content.startswith(">"))) and convo.is_processing != True and not content.startswith(">"):
+                    has_private_thread = thread and thread.is_private()
+                    if has_private_thread and convo.is_processing != True:
                         
                         header_text = f'{convo.display_name} | {convo.model}'
 
@@ -48,9 +49,8 @@ class listeners(commands.Cog):
 
                         final_reply = f"## {header_text}\n\n{await convo.ask(content)}"
                         await message.channel.send(final_reply)
-                    elif not (thread and thread.is_private() and thread.member_count == 2) or content.startswith(">"):
-                        return
-                    else:
+                    
+                    elif has_private_thread and convo.is_processing == True:
                         await message.channel.send(f"{self.client.application.name} is still processing your last request.") # type: ignore
                 else:
                     await message.channel.send(GPTErrors.ModelErrors.MODEL_LOCKED)

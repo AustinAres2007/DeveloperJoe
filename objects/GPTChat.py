@@ -12,12 +12,13 @@ errors = {
 }
 
 class GPTChat:
-    def __init__(self, _client, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL):
+    def __init__(self, _client, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL, associated_thread: Union[discord.Thread, None]=None):
     
         self.oapi = _client._OPENAI_TOKEN
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.hid = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
+        self.chat_thread = associated_thread
 
         self.name = name
         self.display_name = display_name
@@ -190,7 +191,9 @@ class GPTChat:
         self.readable_history.clear()
         self.chat_history.clear()
     
-    def stop(self, history: GPTHistory.GPTHistory, save_history: str) -> str:
+    async def stop(self, interaction: discord.Interaction, history: GPTHistory.GPTHistory, save_history: str) -> str:
+        if isinstance(self.chat_thread, discord.Thread) and self.chat_thread.id == interaction.channel_id:
+            raise GPTExceptions.CannotDeleteThread(self.chat_thread)
         try:
             farewell = f"Ended chat: {self.display_name} with {GPTConfig.BOT_NAME}!"
             if save_history == "y":
@@ -199,6 +202,10 @@ class GPTChat:
             else:
                 farewell += "\n\n\n*Not saved chat history*"
 
+            if isinstance(self.chat_thread, discord.Thread):
+                await self.chat_thread.delete()
             return farewell
+        except discord.Forbidden as e:
+            return f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s)."
         except Exception as e:
             return f"Critical Error: {e}"
