@@ -24,51 +24,44 @@ class gpt(commands.Cog):
     @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=GPTConfig.MODEL_CHOICES, in_thread=yes_no_choice, speak_reply=yes_no_choice)
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None):
         
-        print("Start")
         member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
-        print("getting channel")
         channel = discord.TextChannel = self.client.assure_class_is_value(interaction.channel, discord.TextChannel)
         actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL)
 
-        print("Starting command ")
         async def command():
-            try:
-                
-                actual_choice = True if stream_conversation == "y" else False
-                actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
-                chats = self.client.get_all_user_conversations(member)
-                name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
-                chat_thread: Union[discord.Thread, None] = None
+            
+            actual_choice = True if stream_conversation == "y" else False
+            actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
+            chats = self.client.get_all_user_conversations(member)
+            name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
+            chat_thread: Union[discord.Thread, None] = None
 
-                # Error Checking
+            # Error Checking
 
-                if len(actual_name) > 39:
-                    return await interaction.response.send_message("The name of your chat must be less than 40 characters.", ephemeral=False)
-                elif isinstance(chats, dict) and name in list(chats):
-                    return await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
-                elif isinstance(chats, dict) and len(chats) > GPTConfig.CHATS_LIMIT:
-                    return await interaction.response.send_message(GPTErrors.ConversationErrors.CONVO_LIMIT, ephemeral=False)
-                
-                # Actual Code
+            if len(actual_name) > 39:
+                return await interaction.response.send_message("The name of your chat must be less than 40 characters.", ephemeral=False)
+            elif isinstance(chats, dict) and name in list(chats):
+                return await interaction.response.send_message(GPTErrors.ConversationErrors.HAS_CONVO, ephemeral=False)
+            elif isinstance(chats, dict) and len(chats) > GPTConfig.CHATS_LIMIT:
+                return await interaction.response.send_message(GPTErrors.ConversationErrors.CONVO_LIMIT, ephemeral=False)
+            
+            # Actual Code
 
 
-                if interaction.channel and interaction.channel.type == discord.ChannelType.text and in_thread == "y":
-                    chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
-                    await chat_thread.add_user(member)
-                    await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
+            if interaction.channel and interaction.channel.type == discord.ChannelType.text and in_thread == "y":
+                chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
+                await chat_thread.add_user(member)
+                await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
-                chat_args = (self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
-                convo = GPTChat.GPTChat(*chat_args) if speak_reply != "y" else GPTChat.GPTVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
-                
-                await interaction.response.defer(ephemeral=False, thinking=True)
-                await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
+            chat_args = (self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
+            convo = GPTChat.GPTChat(*chat_args) if speak_reply != "y" else GPTChat.GPTVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
+            
+            await interaction.response.defer(ephemeral=False, thinking=True)
+            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
 
-                self.client.add_conversation(member, name, convo)
-                self.client.set_default_conversation(member, name)
-
-            except Exception as e:
-                await self.client.send_debug_message(interaction, e, self.__cog_name__)
-        
+            self.client.add_conversation(member, name, convo)
+            self.client.set_default_conversation(member, name)
+    
         if self.client.get_user_has_permission(member, actual_model) and interaction.channel:
             return await command()
         await interaction.response.send_message(GPTErrors.ModelErrors.MODEL_LOCKED)

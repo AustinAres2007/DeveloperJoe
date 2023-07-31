@@ -103,59 +103,54 @@ class GPTChat:
         reply: Union[None, dict] = None
         usage: Union[None, dict] = None
 
-        try:
-            if query_type == "query":
-                
-                # Put necessary variables here (Doesn't matter weather streaming or not)
-                self.is_processing = True
-                self.chat_history.append(kwargs)
-
-                # TODO: Test async module
-                # Reply format: ({"content": "Reply content", "role": "assistent"})
-                _reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
-                                                         payload={
-                                                             "model": self.model,
-                                                             "messages": self.chat_history    
-                                                         })
-                
-                reply = _reply.json()["choices"][0]
-                usage = _reply.json()["usage"]
-                if isinstance(reply, dict):
-                    actual_reply = reply["message"]  
-                    replied_content = actual_reply["content"]
-
-                    self.chat_history.append(dict(actual_reply))
-
-                    r_history.append(kwargs)
-                    r_history.append(dict(actual_reply))
-                    self.readable_history.append(r_history)
-                raise GPTExceptions.GPTReplyError(_reply)
+        if query_type == "query":
             
-            elif query_type == "image":
-                # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
+            # Put necessary variables here (Doesn't matter weather streaming or not)
+            self.is_processing = True
+            self.chat_history.append(kwargs)
 
-                self.is_processing = True
-                image_request = openai.Image.create(**kwargs)
-                if isinstance(image_request, dict):
-                    image_url = image_request['data'][0]['url']
-                    replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
-
-                    r_history.append({'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'})
-                    r_history.append({'image_return': image_url})
-
-                    self.readable_history.append(r_history)
-                raise GPTExceptions.GPTReplyError(image_request)
+            # TODO: Test async module
+            # Reply format: ({"content": "Reply content", "role": "assistent"})
+            _reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
+                                                        payload={
+                                                            "model": self.model,
+                                                            "messages": self.chat_history    
+                                                        })
             
-            else:
-                error = f"Generic ({query_type})"
+            reply = _reply.json()["choices"][0]
+            usage = _reply.json()["usage"]
 
-        except Exception as e: 
-            error = e
-            replied_content = str(e)
+            print(type(reply))
+            actual_reply = reply["message"]  
+            replied_content = actual_reply["content"]
 
-        finally:    
-            self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
-            return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
+            self.chat_history.append(dict(actual_reply))
+
+            r_history.append(kwargs)
+            r_history.append(dict(actual_reply))
+            self.readable_history.append(r_history)
+        
+        elif query_type == "image":
+            # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
+
+            self.is_processing = True
+            image_request = openai.Image.create(**kwargs)
+            if isinstance(image_request, dict):
+                image_url = image_request['data'][0]['url']
+                replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
+
+                r_history.append({'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'})
+                r_history.append({'image_return': image_url})
+
+                self.readable_history.append(r_history)
+            raise GPTExceptions.GPTReplyError(image_request)
+        
+        else:
+            error = f"Generic ({query_type})"
+
+
+        self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
+        return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.encoding.encode(kwargs["content"]))

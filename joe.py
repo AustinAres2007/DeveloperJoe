@@ -76,7 +76,7 @@ class DevJoe(commands.Bot):
     def assure_class_is_value(self, object, type):
         if isinstance(object, type):
             return object
-        raise Exception("Wrong env")
+        raise GPTExceptions.IncorrectInteractionSetting(object, type)
         
     def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
         if isinstance(member, discord.Member):
@@ -116,13 +116,25 @@ class DevJoe(commands.Bot):
 
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
         
+        error = getattr(error, "original", error)
+        async def send(text: str):
+            if interaction.response.is_done():
+                return await interaction.followup.send(text)
+            return await interaction.response.send_message(text)
+        
+        async def send_with_file(text: str, file: discord.File):
+            if interaction.response.is_done():
+                return await interaction.followup.send(text, file=file)
+            return await interaction.response.send_message(text, file=file)
+        
+        # If it is a DGException
+        if message := getattr(error, "message", None):
+            return await send(message)
+        
         error_text = f"From error handler: {str(error)}"
         error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
 
-        if interaction.response.is_done():
-            await interaction.followup.send(error_text)
-        else:
-            await interaction.response.send_message(error_text)
+        return await send_with_file(error_text, error_traceback)
         
         
     def to_file(self, content: str, name: str) -> discord.File:
