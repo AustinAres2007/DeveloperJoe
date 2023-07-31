@@ -166,12 +166,14 @@ class GPTChat:
             generator_reply = self.__get_stream_parsed_data__(self.chat_history)
 
             async for chunk in generator_reply:
+                print(chunk)
                 if chunk["choices"][0]["finish_reason"] != "stop":
                     c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
                     replied_content += c_token
                     total_tokens += len(self.encoding.encode(c_token))
 
                     yield c_token
+                elif 
 
             replicate_reply = {"role": "assistant", "content": replied_content}
             self.chat_history.append(replicate_reply)
