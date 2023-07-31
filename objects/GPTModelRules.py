@@ -84,7 +84,7 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
     def remove_guild_model(self, model: str, role: discord.Role):
         models_allowed_roles = self.get_models_for_guild()
 
-        if model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model]): # type: ignore
+        if model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model]):
             models_allowed_roles[model].remove(role.id)
         elif model not in list(models_allowed_roles):
             raise GPTExceptions.ModelNotExist(self.guild, model)

@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 from joe import DevJoe
 from typing import Union, AsyncGenerator
-from math import ceil
 from objects import GPTConfig, GPTChat, GPTErrors, GPTModelRules
 
 class listeners(commands.Cog):
@@ -14,8 +13,9 @@ class listeners(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
         try:
-            if isinstance(convo := self.client.get_default_conversation(message.author), GPTChat.GPTChat) and message.guild:
-                if self.client.get_user_has_permission(message.guild.get_member(message.author.id), convo.model):
+            member: discord.Member = self.client.assure_class_is_value(message.author, discord.Member)
+            if isinstance(convo := self.client.get_default_conversation(member), GPTChat.GPTChat) and message.guild:
+                if self.client.get_user_has_permission(message.guild.get_member(member.id), convo.model):
                     thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
                     content: str = message.content
                     has_private_thread = thread and thread.is_private()
@@ -51,7 +51,7 @@ class listeners(commands.Cog):
                         await message.channel.send(final_reply)
                     
                     elif has_private_thread and convo.is_processing == True:
-                        await message.channel.send(f"{self.client.application.name} is still processing your last request.") # type: ignore
+                        await message.channel.send(f"{GPTConfig.BOT_NAME} is still processing your last request.")
                 else:
                     await message.channel.send(GPTErrors.ModelErrors.MODEL_LOCKED)
         except Exception as e:
@@ -74,7 +74,8 @@ class listeners(commands.Cog):
         if convos := self.client.get_all_user_conversations(member):
             [setattr(convo, "voice", after.channel) for convo in convos.values() if convo.type == GPTChat.GPTTypes.voice]
         
-        print(self.client.get_user_voice_conversation(member.id, "navidrohim-0"))
+        # DebugCode:
+        # print(self.client.get_user_voice_conversation(member, "navidrohim-0"))
 
         
 

@@ -3,14 +3,6 @@ import datetime, discord, openai, random, openai_async, json, tiktoken
 from typing import Union, Any, AsyncGenerator
 from objects import GPTHistory, GPTErrors, GPTConfig, GPTModelRules, GPTExceptions
 
-errors = {
-    openai.InvalidRequestError: lambda err: str(err),
-    openai.APIError: lambda err: "Generic GPT 3.5 Error, please try again later.",
-    openai.error.ServiceUnavailableError: lambda err: "Generic GPT 3.5 Error, please try again later.", # type: ignore
-    openai.error.RateLimitError: lambda err: "Hit set rate limit for this month. Please contact administrator.", # type: ignore
-    openai.error.APIConnectionError: lambda err: "Could not connect to OpenAI API Endpoint, contact administrator." # type: ignore
-}
-
 class GPTTypes:
     text = 1
     voice = 2
@@ -128,33 +120,38 @@ class GPTChat:
                 
                 reply = _reply.json()["choices"][0]
                 usage = _reply.json()["usage"]
-                actual_reply = reply["message"]  # type: ignore
-                replied_content = actual_reply["content"]
+                if isinstance(reply, dict):
+                    actual_reply = reply["message"]  
+                    replied_content = actual_reply["content"]
 
-                self.chat_history.append(dict(actual_reply))
+                    self.chat_history.append(dict(actual_reply))
 
-                r_history.append(kwargs)
-                r_history.append(dict(actual_reply))
-                self.readable_history.append(r_history)
+                    r_history.append(kwargs)
+                    r_history.append(dict(actual_reply))
+                    self.readable_history.append(r_history)
+                raise GPTExceptions.GPTReplyError(_reply)
             
             elif query_type == "image":
                 # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
 
                 self.is_processing = True
                 image_request = openai.Image.create(**kwargs)
-                image_url = image_request['data'][0]['url'] # type: ignore
-                replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}" # type: ignore
+                if isinstance(image_request, dict):
+                    image_url = image_request['data'][0]['url']
+                    replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
 
-                r_history.append({'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'})
-                r_history.append({'image_return': image_url})
+                    r_history.append({'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'})
+                    r_history.append({'image_return': image_url})
 
-                self.readable_history.append(r_history)
+                    self.readable_history.append(r_history)
+                raise GPTExceptions.GPTReplyError(image_request)
+            
             else:
                 error = f"Generic ({query_type})"
 
         except Exception as e: 
             error = e
-            replied_content = errors[type(e)] if type(e) in errors else str(e)
+            replied_content = str(e)
 
         finally:    
             self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
@@ -191,14 +188,14 @@ class GPTChat:
 
         except Exception as e:
             s_error = e
-            replied_content = errors[type(e)] if type(e) in errors else str(e)
+            replied_content = str(e)
 
         finally:
             self.__manage_history__(generator_reply, "query", save_message, total_tokens)
             if s_error:
                 yield f"Error: {s_error}"
 
-    async def ask(self, query: str) -> str: # type: ignore
+    async def ask(self, query: str) -> str:
         return str(await self.__send_query__(query_type="query", role="user", content=query))
     
     def ask_stream(self, query: str) -> AsyncGenerator:
