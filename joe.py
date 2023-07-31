@@ -115,15 +115,14 @@ class DevJoe(commands.Bot):
             return current_default.display_name
 
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-        print("Error")
         
         error_text = f"From error handler: {str(error)}"
         error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
-        
+
         if interaction.response.is_done():
-            await interaction.followup.send(error_text, file=error_traceback)
+            await interaction.followup.send(error_text)
         else:
-            await interaction.response.send_message(error_text, file=error_traceback)
+            await interaction.response.send_message(error_text)
         
         
     def to_file(self, content: str, name: str) -> discord.File:
