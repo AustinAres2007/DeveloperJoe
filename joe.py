@@ -18,7 +18,7 @@ except ImportError as e:
     exit(1)
 
 try:
-    from objects import GPTChat, GPTHistory, GPTErrors, GPTModelRules, GPTDatabase, GPTConfig
+    from objects import GPTChat, GPTHistory, GPTErrors, GPTModelRules, GPTDatabase, GPTConfig, GPTExceptions
 except (ImportError, ImportWarning) as e:
     print(f"Missing internal dependencies, please collect a new install of DeveloperJoe. (Actual Error: {e})")
     exit(1)
@@ -47,7 +47,6 @@ except FileNotFoundError:
 class DevJoe(commands.Bot):
 
     INTENTS = discord.Intents.all()
-    full_user_chat_return_type = Union[dict[str, GPTChat.GPTChat], dict]
 
     def __init__(self, *args, **kwargs):
         self._DISCORD_TOKEN = DISCORD_TOKEN
@@ -61,63 +60,88 @@ class DevJoe(commands.Bot):
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
     
-    def get_user_conversation(self, id_: int, chat_name: Union[str, None]=None, all: bool=False) -> Union[Union[GPTChat.GPTChat, int], full_user_chat_return_type]:
-        if int(id_) in list(self.chats) and self.chats[id_]: # type: ignore
-            if all == True: 
-                return self.chats[id_] # type: ignore
+    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat], None]:
+        if int(member.id) in list(self.chats) and self.chats[member.id]:
             if not chat_name:
-                return None # type: ignore
-            elif chat_name and chat_name in self.chats[id_]: # type: ignore
-                return self.chats[id_][chat_name] # type: ignore
-        return 0
+                return None
+            elif chat_name and chat_name in self.chats[member.id]:
+                return self.chats[member.id][chat_name]
+        return None
     
+    def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], None]:
+        if member.id in list(self.chats) and self.chats[member.id]:
+            return self.chats[member.id]
+    
+    
+    def assure_class_is_value(self, object, type):
+        if isinstance(object, type):
+            return object
+        raise GPTExceptions.IncorrectInteractionSetting(object, type)
+        
     def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
         if isinstance(member, discord.Member):
             with GPTModelRules.GPTModelRules(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
         return False
     
-    def delete_conversation(self, user: Union[discord.Member, discord.User], conversation_name: str) -> None:
-        del self.chats[user.id][conversation_name] # type: ignore
-
-    def add_conversation(self, user: Union[discord.Member, discord.User], name: str, conversation: GPTChat.GPTChat) -> None:
-        self.chats[user.id][name] = conversation # type: ignore
-
-    def set_default_conversation(self, user: Union[discord.Member, discord.User], name: Union[None, str], absolute: bool=False) -> None:
-        self.chats[f"{user.id}-latest"] = self.get_user_conversation(user.id, name) if not absolute else name# type: ignore
+    def get_default_conversation(self, member: discord.Member) -> Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat, None]:
+        return self.default_chats[f"{member.id}-latest"]
     
-    def get_default_conversation(self, user: Union[discord.User, discord.Member]) -> Union[None, GPTChat.GPTChat]:
-        return self.chats[f"{user.id}-latest"] # type: ignore
+    def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[GPTChat.GPTVoiceChat, None]:
+        # TODO: Add funcion that aquires all voice chats only
+        chat = self.get_user_conversation(member, chat_name=chat_name)
+        return chat if isinstance(chat, GPTChat.GPTVoiceChat) else None
     
-    def manage_defaults(self, user: Union[discord.User, discord.Member], name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
-        current_default = self.get_default_conversation(user)
-        names_convo = self.get_user_conversation(user.id, name)
+    def delete_conversation(self, member: discord.Member, conversation_name: str) -> None:
+        del self.chats[member.id][conversation_name]
+
+    def add_conversation(self, member: discord.Member, name: str, conversation: GPTChat.GPTChat) -> None:
+        self.chats[member.id][name] = conversation
+
+    def set_default_conversation(self, member: discord.Member, name: Union[None, str]) -> None:
+        self.default_chats[f"{member.id}-latest"] = self.get_user_conversation(member, name)
+    
+    def manage_defaults(self, member: discord.Member, name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
+        current_default = self.get_default_conversation(member)
+        names_convo = self.get_user_conversation(member, name)
         name_is_chat = isinstance(names_convo, GPTChat.GPTChat)
 
         if name_is_chat:
-            self.set_default_conversation(user, name)
+            self.set_default_conversation(member, name)
             return name
         elif not name and set_to_none == True:
-            self.set_default_conversation(user, None)
+            self.set_default_conversation(member, None)
         elif current_default:
             return current_default.display_name
 
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        
+        error = getattr(error, "original", error)
+        async def send(text: str):
+            if interaction.response.is_done():
+                return await interaction.followup.send(text)
+            return await interaction.response.send_message(text)
+        
+        async def send_with_file(text: str, file: discord.File):
+            if interaction.response.is_done():
+                return await interaction.followup.send(text, file=file)
+            return await interaction.response.send_message(text, file=file)
+        
+        # If it is a DGException
+        if message := getattr(error, "message", None):
+            return await send(message)
+        
         error_text = f"From error handler: {str(error)}"
         error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
 
-        if interaction.response.is_done():
-            await interaction.followup.send(error_text, file=error_traceback)
-        else:
-            await interaction.response.send_message(error_text, file=error_traceback)
-         
+        return await send_with_file(error_text, error_traceback)
         
-
+        
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name
         return discord.File(f)
-    
+
     async def get_confirmation(self, interaction: discord.Interaction, msg: str) -> discord.Message:
         def _check_if_user(message: discord.Message) -> bool:
             return message.author.id == interaction.user.id and message.channel == interaction.channel
@@ -136,7 +160,9 @@ class DevJoe(commands.Bot):
         if self.application:
             print(f"\n{self.application.name} Online (V: {GPTConfig.VERSION})")
 
-            self.chats: Union[dict[int, Union[dict[str, GPTChat.GPTChat], dict]], dict[str, Union[None, GPTChat.GPTChat]]] = {}
+            self.chats: dict[int, Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], dict]] = {}
+            self.default_chats: dict[str, Union[None, GPTChat.GPTChat, GPTChat.GPTVoiceChat]] = {}
+
             self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
             
             await self.change_presence(activity=discord.Activity(type=GPTConfig.STATUS_TYPE, name=GPTConfig.STATUS_TEXT))
@@ -155,16 +181,18 @@ class DevJoe(commands.Bot):
             await _check_integrity(0)
 
             self.chats = {user.id: {} for user in self.users}
-            self.chats = self.chats | {f"{user.id}-latest": None for user in self.users} # type: ignore
+            self.chats = self.chats
+            self.default_chats = {f"{user.id}-latest": None for user in self.users}
+
             self.tree.on_error = self.handle_error
 
-    async def setup_hook(self) -> Coroutine[Any, Any, None]:
+    async def setup_hook(self):
         for file in os.listdir(f"extensions"):
             if file.endswith(".py"):
                 await self.load_extension(f"extensions.{file[:-3]}")
 
         await self.tree.sync()
-        return await super().setup_hook() # type: ignore
+        return await super().setup_hook()
     
     
 # Driver Code

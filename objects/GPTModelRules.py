@@ -84,7 +84,7 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
     def remove_guild_model(self, model: str, role: discord.Role):
         models_allowed_roles = self.get_models_for_guild()
 
-        if model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model]): # type: ignore
+        if model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model]):
             models_allowed_roles[model].remove(role.id)
         elif model not in list(models_allowed_roles):
             raise GPTExceptions.ModelNotExist(self.guild, model)
@@ -102,7 +102,7 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
             self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (self.guild.id, json.dumps({})))
             return bool(self.get_guild_in_database())
         
-        raise GPTExceptions.ModelGuildError("Guild with specified ID has already been registered.")
+        raise GPTExceptions.GuildExistsError(self.guild)
     
     def del_guild(self) -> Union[None, Any]:
         if self.in_database == True:

@@ -3,27 +3,35 @@ import datetime, discord, openai, random, openai_async, json, tiktoken
 from typing import Union, Any, AsyncGenerator
 from objects import GPTHistory, GPTErrors, GPTConfig, GPTModelRules, GPTExceptions
 
-errors = {
-    openai.InvalidRequestError: lambda err: str(err),
-    openai.APIError: lambda err: "Generic GPT 3.5 Error, please try again later.",
-    openai.error.ServiceUnavailableError: lambda err: "Generic GPT 3.5 Error, please try again later.", # type: ignore
-    openai.error.RateLimitError: lambda err: "Hit set rate limit for this month. Please contact administrator.", # type: ignore
-    openai.error.APIConnectionError: lambda err: "Could not connect to OpenAI API Endpoint, contact administrator." # type: ignore
-}
+class GPTTypes:
+    text = 1
+    voice = 2
 
 class GPTChat:
-    def __init__(self, _client, user: Union[discord.User, discord.Member], name: str, display_name: str, model: str=GPTConfig.DEFAULT_GPT_MODEL, associated_thread: Union[discord.Thread, None]=None):
-    
-        self.oapi = _client._OPENAI_TOKEN
+    def __init__(self, 
+                openai_token: str, 
+                user: Union[discord.User, discord.Member], 
+                name: str,
+                stream: bool,
+                display_name: str, 
+                model: str=GPTConfig.DEFAULT_GPT_MODEL, 
+                associated_thread: Union[discord.Thread, None]=None, 
+                *args,
+                **kwargs
+        ):
+
+        
         self.user: Union[discord.User, discord.Member] = user
         self.time: datetime.datetime = datetime.datetime.now()
         self.hid = hex(int(datetime.datetime.timestamp(datetime.datetime.now()) + user.id) * random.randint(150, 1500))
         self.chat_thread = associated_thread
 
+        self.oapi = openai_token
+        self.chat_thread = associated_thread
+
         self.name = name
         self.display_name = display_name
-        self.stream = False
-
+        self.stream = stream
 
         self.model = str(model)
         self.encoding = tiktoken.encoding_for_model(self.model)
@@ -33,8 +41,13 @@ class GPTChat:
         self.readable_history = []
         self.chat_history = []
 
+        self._type = GPTTypes.text
         openai.api_key = self.oapi
-
+    
+    @property
+    def type(self):
+        return self._type
+    
     def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
 
@@ -91,54 +104,54 @@ class GPTChat:
         reply: Union[None, dict] = None
         usage: Union[None, dict] = None
 
-        try:
-            if query_type == "query":
-                
-                # Put necessary variables here (Doesn't matter weather streaming or not)
-                self.is_processing = True
-                self.chat_history.append(kwargs)
-
-                # TODO: Test async module
-                # Reply format: ({"content": "Reply content", "role": "assistent"})
-                _reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
-                                                         payload={
-                                                             "model": self.model,
-                                                             "messages": self.chat_history    
-                                                         })
-                
-                reply = _reply.json()["choices"][0]
-                usage = _reply.json()["usage"]
-                actual_reply = reply["message"]  # type: ignore
-                replied_content = actual_reply["content"]
-
-                self.chat_history.append(dict(actual_reply))
-
-                r_history.append(kwargs)
-                r_history.append(dict(actual_reply))
-                self.readable_history.append(r_history)
+        if query_type == "query":
             
-            elif query_type == "image":
-                # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
+            # Put necessary variables here (Doesn't matter weather streaming or not)
+            self.is_processing = True
+            self.chat_history.append(kwargs)
 
-                self.is_processing = True
-                image_request = openai.Image.create(**kwargs)
-                image_url = image_request['data'][0]['url'] # type: ignore
-                replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}" # type: ignore
+            # TODO: Test async module
+            # Reply format: ({"content": "Reply content", "role": "assistent"})
+            _reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPTConfig.GPT_REQUEST_TIMEOUT,
+                                                        payload={
+                                                            "model": self.model,
+                                                            "messages": self.chat_history    
+                                                        })
+            
+            reply = _reply.json()["choices"][0]
+            usage = _reply.json()["usage"]
+
+            print(type(reply))
+            actual_reply = reply["message"]  
+            replied_content = actual_reply["content"]
+
+            self.chat_history.append(dict(actual_reply))
+
+            r_history.append(kwargs)
+            r_history.append(dict(actual_reply))
+            self.readable_history.append(r_history)
+        
+        elif query_type == "image":
+            # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
+
+            self.is_processing = True
+            image_request = openai.Image.create(**kwargs)
+            if isinstance(image_request, dict):
+                image_url = image_request['data'][0]['url']
+                replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
 
                 r_history.append({'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'})
                 r_history.append({'image_return': image_url})
 
                 self.readable_history.append(r_history)
-            else:
-                error = f"Generic ({query_type})"
+            raise GPTExceptions.GPTReplyError(image_request)
+        
+        else:
+            error = f"Generic ({query_type})"
 
-        except Exception as e: 
-            error = e
-            replied_content = errors[type(e)] if type(e) in errors else str(e)
 
-        finally:    
-            self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
-            return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
+        self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
+        return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.encoding.encode(kwargs["content"]))
@@ -154,12 +167,14 @@ class GPTChat:
             generator_reply = self.__get_stream_parsed_data__(self.chat_history)
 
             async for chunk in generator_reply:
+                print(chunk)
                 if chunk["choices"][0]["finish_reason"] != "stop":
                     c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
                     replied_content += c_token
                     total_tokens += len(self.encoding.encode(c_token))
 
                     yield c_token
+                elif 
 
             replicate_reply = {"role": "assistant", "content": replied_content}
             self.chat_history.append(replicate_reply)
@@ -171,14 +186,14 @@ class GPTChat:
 
         except Exception as e:
             s_error = e
-            replied_content = errors[type(e)] if type(e) in errors else str(e)
+            replied_content = str(e)
 
         finally:
             self.__manage_history__(generator_reply, "query", save_message, total_tokens)
             if s_error:
                 yield f"Error: {s_error}"
 
-    async def ask(self, query: str) -> str: # type: ignore
+    async def ask(self, query: str) -> str:
         return str(await self.__send_query__(query_type="query", role="user", content=query))
     
     def ask_stream(self, query: str) -> AsyncGenerator:
@@ -209,3 +224,37 @@ class GPTChat:
             return f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s)."
         except Exception as e:
             return f"Critical Error: {e}"
+
+    def __str__(self) -> str:
+        return f"<GPTChat type={self.type}, user={self.user}"
+class GPTVoiceChat(GPTChat):
+    def __init__(
+            self,
+            openai_token: str, 
+            user: Union[discord.User, discord.Member], 
+            name: str,
+            stream: bool,
+            display_name: str, 
+            model: str=GPTConfig.DEFAULT_GPT_MODEL, 
+            associated_thread: Union[discord.Thread, None]=None, 
+            voice: Union[discord.VoiceChannel, discord.StageChannel, None]=None
+        ):
+        super().__init__(openai_token, user, name, stream, display_name, model, associated_thread)
+        self._voice = voice
+        self._type = GPTTypes.voice
+    
+    @property
+    def voice(self):
+        return self._voice
+    
+    @voice.setter
+    def voice(self, _voice: Union[discord.VoiceChannel, discord.StageChannel, None]):
+        self._voice = _voice
+    
+    @property
+    def type(self):
+        return self._type
+
+    def __str__(self) -> str:
+        return f"<GPTVoiceChat type={self.type}, user={self.user}, voice={self.voice}>"
+        

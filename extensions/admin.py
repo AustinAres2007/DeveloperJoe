@@ -51,15 +51,20 @@ class admin(commands.Cog):
     @discord.app_commands.checks.has_permissions(manage_channels=True)
     @discord.app_commands.check(in_correct_channel)
     async def view_locks(self, interaction: discord.Interaction):    
-
+        
         if isinstance(guild := interaction.guild, discord.Guild):
+
+            def _get_valid_role_mention(role_id: int) -> str:
+                role = guild.get_role(role_id)
+                return role.mention if role else "Deleted role."
+            
             with GPTModelRules.GPTModelRules(guild) as rules:
                 models = rules.get_models_for_guild()
                 no_roles = "No added roles. \n\n"
 
                 model_texts = []
                 for model_name, model_roles in models.items():
-                    roles_joint = '\n'.join([guild.get_role(int(r_id)).mention for r_id in model_roles if hasattr(guild.get_role(r_id), "mention")]) # type: ignore
+                    roles_joint = '\n'.join([_get_valid_role_mention(r_id) for r_id in model_roles])
                     model_text = f"\n{model_name.upper()}\n{no_roles if not roles_joint else roles_joint}"
                     model_texts.append(model_text)
                 text = '\n'.join(model_texts) if models else no_roles
