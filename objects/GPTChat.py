@@ -16,8 +16,6 @@ class GPTChat:
                 display_name: str, 
                 model: str=GPTConfig.DEFAULT_GPT_MODEL, 
                 associated_thread: Union[discord.Thread, None]=None, 
-                *args,
-                **kwargs
         ):
 
         
@@ -36,7 +34,9 @@ class GPTChat:
         self.model = str(model)
         self.encoding = tiktoken.encoding_for_model(self.model)
         self.tokens = 0
+
         self.is_processing = False
+        self._is_active = True
 
         self.readable_history = []
         self.chat_history = []
@@ -48,16 +48,20 @@ class GPTChat:
     def type(self):
         return self._type
     
+    @property
+    def is_active(self) -> bool:
+        return self._is_active
+    
+    @is_active.setter
+    def is_active(self, value: bool):
+        self._is_active = value
+
     def __manage_history__(self, is_gpt_reply: Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
 
         if not save_message and query_type == "query":
-            
-            try:
-                self.chat_history = self.chat_history[:len(self.chat_history)-2]
-                self.readable_history.pop()
-            except IndexError:
-                pass
+            self.chat_history = self.chat_history[:len(self.chat_history)-2]
+            self.readable_history.pop()
 
         elif not save_message and query_type == "image":
             self.readable_history.pop()
@@ -155,50 +159,48 @@ class GPTChat:
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.encoding.encode(kwargs["content"]))
-        replied_content = GPTErrors.GENERIC_ERROR
-        s_error = GPTErrors.NONE
         r_history = []
-        generator_reply = None
         replied_content = ""
 
-        try:
-            self.is_processing = True
-            self.chat_history.append(kwargs)
-            generator_reply = self.__get_stream_parsed_data__(self.chat_history)
+        self.is_processing = True
+        self.chat_history.append(kwargs)
+        generator_reply = self.__get_stream_parsed_data__(self.chat_history)
 
-            async for chunk in generator_reply:
-                print(chunk)
-                if chunk["choices"][0]["finish_reason"] != "stop":
-                    c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
-                    replied_content += c_token
-                    total_tokens += len(self.encoding.encode(c_token))
+        for chunk in [1, 2, 3, 4]:
+            stop_reason = "length"#chunk["choices"][0]["finish_reason"]
+            if stop_reason == None:
+                c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
+                replied_content += c_token
+                total_tokens += len(self.encoding.encode(c_token))
 
-                    yield c_token
-                elif 
+                yield c_token
+            elif stop_reason == "length":
+                self.is_active = False
+                yield "You have reached your maximum conversation length. I have disabled your chat. You may still export and save it."
+                break
 
-            replicate_reply = {"role": "assistant", "content": replied_content}
-            self.chat_history.append(replicate_reply)
+        replicate_reply = {"role": "assistant", "content": replied_content}
+        self.chat_history.append(replicate_reply)
 
-            r_history.append(kwargs)
-            r_history.append(replicate_reply)
+        r_history.append(kwargs)
+        r_history.append(replicate_reply)
 
-            self.readable_history.append(r_history)
+        self.readable_history.append(r_history)
 
-        except Exception as e:
-            s_error = e
-            replied_content = str(e)
-
-        finally:
-            self.__manage_history__(generator_reply, "query", save_message, total_tokens)
-            if s_error:
-                yield f"Error: {s_error}"
+        self.__manage_history__(generator_reply, "query", save_message, total_tokens)
 
     async def ask(self, query: str) -> str:
-        return str(await self.__send_query__(query_type="query", role="user", content=query))
+        if self.is_active:
+            return str(await self.__send_query__(query_type="query", role="user", content=query))
+        raise GPTExceptions.ChatIsLockedError(self)
     
     def ask_stream(self, query: str) -> AsyncGenerator:
-        return self.__stream_send_query__(role="user", content=query)
-
+        print(self.is_active)
+        if self.is_active:
+            return self.__stream_send_query__(role="user", content=query)
+        print("Did not pass check")
+        raise GPTExceptions.ChatIsLockedError(self)
+    
     async def start(self) -> str:
         return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
 
@@ -226,7 +228,8 @@ class GPTChat:
             return f"Critical Error: {e}"
 
     def __str__(self) -> str:
-        return f"<GPTChat type={self.type}, user={self.user}"
+        return f"<GPTChat type={self.type}, user={self.user} is_active={self.is_active}>"
+    
 class GPTVoiceChat(GPTChat):
     def __init__(
             self,
@@ -256,5 +259,5 @@ class GPTVoiceChat(GPTChat):
         return self._type
 
     def __str__(self) -> str:
-        return f"<GPTVoiceChat type={self.type}, user={self.user}, voice={self.voice}>"
+        return f"<GPTVoiceChat type={self.type}, user={self.user}, voice={self.voice}, is_active={self.is_active}>"
         

@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from joe import DevJoe
 from typing import Union, AsyncGenerator
-from objects import GPTConfig, GPTChat, GPTErrors, GPTModelRules
+from objects import GPTConfig, GPTChat, GPTErrors, GPTModelRules, GPTExceptions
 
 class listeners(commands.Cog):
     def __init__(self, client: DevJoe):
@@ -55,8 +55,9 @@ class listeners(commands.Cog):
                             await message.channel.send(f"{GPTConfig.BOT_NAME} is still processing your last request.")
                     else:
                         await message.channel.send(GPTErrors.ModelErrors.MODEL_LOCKED)
-        except Exception as e:
-            await message.channel.send(str(e))
+
+        except GPTExceptions.ChatIsLockedError as error:
+            await message.channel.send(error.reply)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):

@@ -1,7 +1,7 @@
 import discord, datetime
 
 from discord.ext import commands
-from typing import Union
+from typing import Union, Any
 from joe import DevJoe
 from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig, GPTExceptions
 
@@ -9,6 +9,11 @@ yes_no_choice: list[discord.app_commands.Choice] = [
         discord.app_commands.Choice(name="Yes", value="y"),
         discord.app_commands.Choice(name="No", value="n")
 ]
+
+def return_correct_type(object, type: type) -> object:
+    if type(object) == type:
+        return object
+    raise GPTExceptions.IncorrectInteractionSetting(object, type)
 
 class gpt(commands.Cog):
 
@@ -24,10 +29,10 @@ class gpt(commands.Cog):
     @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=GPTConfig.MODEL_CHOICES, in_thread=yes_no_choice, speak_reply=yes_no_choice)
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None):
         
-        member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
-        channel = discord.TextChannel = self.client.assure_class_is_value(interaction.channel, discord.TextChannel)
+        member: discord.Member = return_correct_type(interaction.user, discord.Member)
+        channel = discord.TextChannel = return_correct_type(interaction.channel, discord.TextChannel)
         actual_model: str = str(gpt_model if isinstance(gpt_model, str) else GPTConfig.DEFAULT_GPT_MODEL)
-
+        channel
         async def command():
             
             actual_choice = True if stream_conversation == "y" else False
@@ -212,6 +217,7 @@ class gpt(commands.Cog):
             returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)), inline=False)
             returned_embed.add_field(name="Chat History ID", value=str(convo.hid), inline=False)
             returned_embed.add_field(name="Chat ID", value=str(convo.display_name), inline=False)
+            returned_embed.add_field(name="Is Active", value=str(convo.is_active), inline=False)
             returned_embed.add_field(name=f"{self.client.application.name} Uptime", value=f"{uptime_delta.days} Days ({uptime_delta})", inline=False)
             returned_embed.add_field(name=f"{self.client.application.name} Version", value=f"{GPTConfig.VERSION}", inline=False)
             

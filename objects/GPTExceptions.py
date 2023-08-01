@@ -1,13 +1,18 @@
 import discord, httpx
 from typing import Any, Union
+from objects import GPTChat
 
 # Models
 
 class DGException(Exception):
     def __init__(self, message: str, *args, **kwargs):
-        self.message = message
+        self._message = message
         super().__init__(*args, **kwargs)
     
+    @property
+    def message(self):
+        return self._message
+
 class ModelNotExist(DGException):
     def __init__(self, guild: discord.Guild, model: str):
         """Will be raised if a model does not exist within a lock list."""
@@ -40,3 +45,9 @@ class IncorrectInteractionSetting(DGException):
 class GPTReplyError(DGException):
     def __init__(self, reply: Union[httpx.Response, Any]):
         super().__init__(f"Invalid command from OpenAI Gateway server.", reply)
+
+class ChatIsLockedError(DGException):
+    reply = "The chat selected has been closed. This is because you have reached the conversation limit. You can still export and save this chat. Please start another if you wish to keep talking."
+    def __init__(self, chat):
+        super().__init__(self.reply, chat)
+

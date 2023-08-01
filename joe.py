@@ -117,6 +117,7 @@ class DevJoe(commands.Bot):
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
         
         error = getattr(error, "original", error)
+        print(f"error: {error}")
         async def send(text: str):
             if interaction.response.is_done():
                 return await interaction.followup.send(text)
@@ -128,7 +129,9 @@ class DevJoe(commands.Bot):
             return await interaction.response.send_message(text, file=file)
         
         # If it is a DGException
+        print(hasattr(error, "message"))
         if message := getattr(error, "message", None):
+
             return await send(message)
         
         error_text = f"From error handler: {str(error)}"
@@ -208,7 +211,7 @@ async def run_bot():
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
-        async with DevJoe(command_prefix="?", intents=DevJoe.INTENTS) as client:
+        async with DevJoe(command_prefix=commands.when_mentioned_or("?"), intents=DevJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
         if client:

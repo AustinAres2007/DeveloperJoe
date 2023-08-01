@@ -25,7 +25,7 @@ CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
-VERSION = "1.2.7"
+VERSION = "1.2.8"
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
