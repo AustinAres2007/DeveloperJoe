@@ -66,15 +66,14 @@ class DevJoe(commands.Bot):
                 return None
             elif chat_name and chat_name in self.chats[member.id]:
                 return self.chats[member.id][chat_name]
-        return None
+        raise GPTExceptions.UserDoesNotHaveChat(chat_name, member)
     
     def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], None]:
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
-    
-    def assure_class_is_value(self, object, type):
-        if isinstance(object, type):
+    def assure_class_is_value(self, object, __type: type):
+        if type(object) == __type:
             return object
         raise GPTExceptions.IncorrectInteractionSetting(object, type)
         
@@ -117,7 +116,6 @@ class DevJoe(commands.Bot):
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
         
         error = getattr(error, "original", error)
-        print(f"error: {error}")
         async def send(text: str):
             if interaction.response.is_done():
                 return await interaction.followup.send(text)
@@ -128,12 +126,16 @@ class DevJoe(commands.Bot):
                 return await interaction.followup.send(text, file=file)
             return await interaction.response.send_message(text, file=file)
         
+        exception: str = traceback.format_exc()
         # If it is a DGException
-        print(hasattr(error, "message"))
         if message := getattr(error, "message", None):
-
-            return await send(message)
+            if (log := getattr(error, "log_error", None)) != None:
+                if log == True:
+                    logging.error(exception) 
+                return await send(message)
         
+        logging.error(exception)
+
         error_text = f"From error handler: {str(error)}"
         error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
 
@@ -209,6 +211,7 @@ async def run_bot():
             ...
             
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
+
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
         async with DevJoe(command_prefix=commands.when_mentioned_or("?"), intents=DevJoe.INTENTS) as client:

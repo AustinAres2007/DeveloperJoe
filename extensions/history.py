@@ -3,7 +3,7 @@ import discord, json, datetime, io, asyncio
 from typing import Union
 from discord.ext import commands
 from joe import DevJoe
-from objects import GPTHistory, GPTErrors, GPTConfig, GPTChat
+from objects import GPTHistory, GPTErrors, GPTConfig, GPTChat, GPTExceptions
 
 class history(commands.Cog):
     def __init__(self, client):
@@ -30,30 +30,25 @@ class history(commands.Cog):
                 return await interaction.followup.send("Cancelled action.")
 
         except ValueError:
-            return await interaction.response.send_message(GPTErrors.HistoryErrors.INVALID_HISTORY_ID)
+            raise GPTExceptions.InvalidHistoryID(history_id)
         except asyncio.TimeoutError:
             return
-        except Exception as e:
-            if GPTConfig.DEBUG:
-                await interaction.followup.send(f"(Debug) Error > {e}")
 
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction, name: Union[None, str]):
-        try:
-            member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
-            name = self.client.manage_defaults(member, name)
-            if isinstance(convo := self.client.get_user_conversation(member, name), GPTChat.GPTChat):
 
-                formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else GPTErrors.HistoryErrors.HISTORY_EMPTY
-                file_like = io.BytesIO(formatted_history_string.encode())
-                file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
+        member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
+        name = self.client.manage_defaults(member, name)
+        if isinstance(convo := self.client.get_user_conversation(member, name), GPTChat.GPTChat):
 
-                await interaction.user.send(f"{convo.user.name}'s {GPTConfig.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
-                return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
-        
-            await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
-        except Exception as e:
-            await self.client.send_debug_message(interaction, e, self.__cog_name__)
+            formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else GPTErrors.HistoryErrors.HISTORY_EMPTY
+            file_like = io.BytesIO(formatted_history_string.encode())
+            file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
+
+            await interaction.user.send(f"{convo.user.name}'s {GPTConfig.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
+            return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
+    
+        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO)
             
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
     async def get_chat_history(self, interaction: discord.Interaction, history_id: str):
@@ -70,9 +65,9 @@ class history(commands.Cog):
 
                     await interaction.user.send(file=discord.File(history_file))
                     return await interaction.response.send_message("I have sent your history transcript to our direct messages.")
-                return await interaction.response.send_message(GPTErrors.HistoryErrors.HISTORY_DOESNT_EXIST)
+                raise GPTExceptions.HistoryNotExist(history_id)
         except ValueError:
-            return await interaction.response.send_message(GPTErrors.HistoryErrors.INVALID_HISTORY_ID)
+            raise GPTExceptions.InvalidHistoryID(history_id)
         
 async def setup(client):
     await client.add_cog(history(client))

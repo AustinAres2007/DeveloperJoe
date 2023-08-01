@@ -28,7 +28,6 @@ class admin(commands.Cog):
     @discord.app_commands.describe(gpt_model="The GPT model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @discord.app_commands.check(in_correct_channel)
     async def lock_role(self, interaction: discord.Interaction, gpt_model: str, role: discord.Role):
-
         with GPTModelRules.GPTModelRules(role.guild) as rules:
             rules.upload_guild_model(gpt_model, role)
             await interaction.response.send_message(f"Added {gpt_model} behind role {role.mention}.")
@@ -39,21 +38,17 @@ class admin(commands.Cog):
     @discord.app_commands.describe(gpt_model="The GPT model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
     @discord.app_commands.check(in_correct_channel)
     async def unlock_role(self, interaction: discord.Interaction, gpt_model: str, role: discord.Role):
-        try:
-            with GPTModelRules.GPTModelRules(role.guild) as rules:
-            
-                new_rules = rules.remove_guild_model(gpt_model, role)
-                await interaction.response.send_message(f"Removed requirement role {role.mention} from {gpt_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
-        except GPTExceptions.ModelNotExist as mne:
-            await interaction.response.send_message(mne.args[0])
+        with GPTModelRules.GPTModelRules(role.guild) as rules:
+        
+            new_rules = rules.remove_guild_model(gpt_model, role)
+            await interaction.response.send_message(f"Removed requirement role {role.mention} from {gpt_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
 
     @discord.app_commands.command(name="locks", description="View all models and which roles may utilise them.")
     @discord.app_commands.checks.has_permissions(manage_channels=True)
     @discord.app_commands.check(in_correct_channel)
     async def view_locks(self, interaction: discord.Interaction):    
         
-        if isinstance(guild := interaction.guild, discord.Guild):
-
+        if guild := self.client.assure_class_is_value(interaction.guild, discord.Guild):
             def _get_valid_role_mention(role_id: int) -> str:
                 role = guild.get_role(role_id)
                 return role.mention if role else "Deleted role."

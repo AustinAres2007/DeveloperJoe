@@ -52,11 +52,11 @@ class listeners(commands.Cog):
                             await message.channel.send(final_reply)
                         
                         elif has_private_thread and convo.is_processing == True:
-                            await message.channel.send(f"{GPTConfig.BOT_NAME} is still processing your last request.")
+                            raise GPTExceptions.DGException(f"{GPTConfig.BOT_NAME} is still processing your last request.")
                     else:
-                        await message.channel.send(GPTErrors.ModelErrors.MODEL_LOCKED)
+                        raise GPTExceptions.ModelIsLockedError(convo.model)
 
-        except GPTExceptions.ChatIsLockedError as error:
+        except (GPTExceptions.ChatIsDisabledError, GPTExceptions.GPTContentFilter) as error:
             await message.channel.send(error.reply)
 
     @commands.Cog.listener()

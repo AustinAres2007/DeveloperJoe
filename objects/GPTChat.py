@@ -1,7 +1,8 @@
 import datetime, discord, openai, random, openai_async, json, tiktoken
 
 from typing import Union, Any, AsyncGenerator
-from objects import GPTHistory, GPTErrors, GPTConfig, GPTModelRules, GPTExceptions
+from objects import GPTHistory, GPTErrors, GPTConfig, GPTExceptions
+# TODO: Check for out of date error syntax
 
 class GPTTypes:
     text = 1
@@ -125,16 +126,18 @@ class GPTChat:
             reply = _reply.json()["choices"][0]
             usage = _reply.json()["usage"]
 
-            print(type(reply))
-            actual_reply = reply["message"]  
-            replied_content = actual_reply["content"]
+            if isinstance(reply, dict):
+                actual_reply = reply["message"]  
+                replied_content = actual_reply["content"]
 
-            self.chat_history.append(dict(actual_reply))
+                self.chat_history.append(dict(actual_reply))
 
-            r_history.append(kwargs)
-            r_history.append(dict(actual_reply))
-            self.readable_history.append(r_history)
-        
+                r_history.append(kwargs)
+                r_history.append(dict(actual_reply))
+                self.readable_history.append(r_history)
+            else:
+                raise GPTExceptions.GPTReplyError(reply, type(reply))
+            
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
 
@@ -162,12 +165,12 @@ class GPTChat:
         r_history = []
         replied_content = ""
 
-        self.is_processing = True
+        add_history, self.is_processing = True, True
         self.chat_history.append(kwargs)
         generator_reply = self.__get_stream_parsed_data__(self.chat_history)
 
-        for chunk in [1, 2, 3, 4]:
-            stop_reason = "length"#chunk["choices"][0]["finish_reason"]
+        async for chunk in generator_reply:
+            stop_reason = chunk["choices"][0]["finish_reason"]
             if stop_reason == None:
                 c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
                 replied_content += c_token
@@ -175,31 +178,33 @@ class GPTChat:
 
                 yield c_token
             elif stop_reason == "length":
-                self.is_active = False
-                yield "You have reached your maximum conversation length. I have disabled your chat. You may still export and save it."
-                break
+                add_history = self.is_active = False
+                raise GPTExceptions.GPTReachedLimit()
 
-        replicate_reply = {"role": "assistant", "content": replied_content}
-        self.chat_history.append(replicate_reply)
+            elif stop_reason == "content_filter":
+                add_history = False
+                raise GPTExceptions.GPTContentFilter(kwargs["content"])
 
-        r_history.append(kwargs)
-        r_history.append(replicate_reply)
+        if add_history == True:
+            replicate_reply = {"role": "assistant", "content": replied_content}
+            self.chat_history.append(replicate_reply)
 
-        self.readable_history.append(r_history)
+            r_history.append(kwargs)
+            r_history.append(replicate_reply)
 
-        self.__manage_history__(generator_reply, "query", save_message, total_tokens)
+            self.readable_history.append(r_history)
+
+            self.__manage_history__(generator_reply, "query", save_message, total_tokens)
 
     async def ask(self, query: str) -> str:
         if self.is_active:
             return str(await self.__send_query__(query_type="query", role="user", content=query))
-        raise GPTExceptions.ChatIsLockedError(self)
+        raise GPTExceptions.ChatIsDisabledError(self)
     
     def ask_stream(self, query: str) -> AsyncGenerator:
-        print(self.is_active)
         if self.is_active:
             return self.__stream_send_query__(role="user", content=query)
-        print("Did not pass check")
-        raise GPTExceptions.ChatIsLockedError(self)
+        raise GPTExceptions.ChatIsDisabledError(self)
     
     async def start(self) -> str:
         return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
@@ -223,9 +228,7 @@ class GPTChat:
                 await self.chat_thread.delete()
             return farewell
         except discord.Forbidden as e:
-            return f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s)."
-        except Exception as e:
-            return f"Critical Error: {e}"
+            raise GPTExceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
     def __str__(self) -> str:
         return f"<GPTChat type={self.type}, user={self.user} is_active={self.is_active}>"
