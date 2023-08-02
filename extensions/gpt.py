@@ -15,6 +15,7 @@ class gpt(commands.Cog):
     def __init__(self, client):
         self.client: DevJoe = client
         print(f"{self.__cog_name__} Loaded") 
+        print(type(self.start))
 
     @discord.app_commands.command(name="start", description=f"Start a {GPTConfig.BOT_NAME} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
@@ -140,8 +141,6 @@ class gpt(commands.Cog):
     ])
     async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str], name: str):
         member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
-        if save.value not in ["n", "y"]:
-            return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.", ephemeral=False)
         
         async def func(gpt: GPTChat.GPTChat):
             with GPTHistory.GPTHistory() as history:

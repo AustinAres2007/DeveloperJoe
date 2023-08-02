@@ -140,17 +140,14 @@ class GPTChat:
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
 
-
-            image_request: Any = openai.Image.create(**kwargs)
-            if hasattr(image_request, "__getitem__") == True:
+            image_request: dict = dict(openai.Image.create(**kwargs))
+            if isinstance(image_request, dict) == True:
                 image_url = image_request['data'][0]['url']
                 replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
-
-                r_history.append({'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'})
-                r_history.append({'image_return': image_url})
+                r_history.extend([{'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'}, {'image_return': image_url}])
 
                 self.readable_history.append(r_history)
-
+            
             raise GPTExceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
         
         else:

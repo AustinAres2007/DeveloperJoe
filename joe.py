@@ -54,6 +54,7 @@ class DevJoe(commands.Bot):
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(GPTConfig.BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(GPTConfig.BOT_NAME)
+        #self.get_context = self.get_context_handler
 
         super().__init__(*args, **kwargs)
 
@@ -73,11 +74,13 @@ class DevJoe(commands.Bot):
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
+    
     def assure_class_is_value(self, object, __type: type):
         if type(object) == __type:
             return object
         raise GPTExceptions.IncorrectInteractionSetting(object, type)
-        
+    
+
     def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
         if isinstance(member, discord.Member):
             with GPTModelRules.GPTModelRules(member.guild) as check_rules:
@@ -142,7 +145,6 @@ class DevJoe(commands.Bot):
 
         return await send_with_file(error_text, error_traceback)
         
-        
     def to_file(self, content: str, name: str) -> discord.File:
         f = io.BytesIO(content.encode())
         f.name = name
@@ -200,7 +202,25 @@ class DevJoe(commands.Bot):
         await self.tree.sync()
         return await super().setup_hook()
     
+    """async def get_context_handler(self, *args, **kwargs) -> commands.Context:
+        print("CNT",args, kwargs)
+    """
+
+    async def before_invoke(self, message: discord.Message):
+        self.invoke
+        ctx = await self.get_context(message)
+        cmd = self.get_command(message.content)
+        print(type(cmd))
+        if isinstance(cmd, (commands.Command, discord.app_commands.Command)):
+            await ctx.invoke(cmd)
+
+    async def invoke(self, ctx: commands.Context):
+        print(self, ctx.command)
     
+    async def get_context(self, *args, **kwargs):
+        print(args, kwargs)
+    
+
 # Driver Code
 
 async def run_bot():
