@@ -46,6 +46,7 @@ class UserNotAMember(DGException):
 class UserDoesNotHaveChat(DGException):
     reply = GPTErrors.ConversationErrors.NO_CONVO
     def __init__(self, name: Union[str, None], *args):
+        """Will be raised if the user specifies a chat that doesn't exist."""
         super().__init__(self.reply, name, *args)
 
 class CannotDeleteThread(DGException):

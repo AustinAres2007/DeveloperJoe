@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from joe import DevJoe
 from typing import Union, AsyncGenerator
-from objects import GPTConfig, GPTChat, GPTErrors, GPTModelRules, GPTExceptions
+from objects import GPTConfig, GPTChat, GPTModelRules, GPTExceptions
 
 class listeners(commands.Cog):
     def __init__(self, client: DevJoe):
@@ -13,13 +13,15 @@ class listeners(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
         try:
-            if self.client.application and message.author.id != self.client.application.id:
+            if self.client.application and message.author.id != self.client.application.id and message.content != GPTConfig.QUERY_CONFIRMATION:
                 member: discord.Member = self.client.assure_class_is_value(message.author, discord.Member)
                 if isinstance(convo := self.client.get_default_conversation(member), GPTChat.GPTChat) and message.guild:
                     if self.client.get_user_has_permission(message.guild.get_member(member.id), convo.model):
+
                         thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
                         content: str = message.content
                         has_private_thread = thread and thread.is_private()
+                        
                         if has_private_thread and convo.is_processing != True:
                             
                             header_text = f'{convo.display_name} | {convo.model}'

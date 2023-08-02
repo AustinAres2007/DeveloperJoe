@@ -11,7 +11,7 @@ try:
 
     import discord, logging, asyncio, os, io, datetime
     from discord.ext import commands
-    from typing import Coroutine, Any, Union
+    from typing import Union
 
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
@@ -61,11 +61,12 @@ class DevJoe(commands.Bot):
         return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
     
     def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat], None]:
-        if int(member.id) in list(self.chats) and self.chats[member.id]:
+        if int(member.id) in list(self.chats):
             if not chat_name:
-                return None
+                return
             elif chat_name and chat_name in self.chats[member.id]:
                 return self.chats[member.id][chat_name]
+        
         raise GPTExceptions.UserDoesNotHaveChat(chat_name, member)
     
     def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], None]:
@@ -187,7 +188,7 @@ class DevJoe(commands.Bot):
 
             self.chats = {user.id: {} for user in self.users}
             self.chats = self.chats
-            self.default_chats = {f"{user.id}-latest": None for user in self.users}
+            self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
 
             self.tree.on_error = self.handle_error
 

@@ -1,5 +1,5 @@
 import json
-from objects import GPTErrors
+from objects import GPTErrors, GPTExceptions
 from .GPTDatabase import GPTDatabase
 
 class GPTHistory(GPTDatabase):
@@ -21,7 +21,7 @@ class GPTHistory(GPTDatabase):
         if self.retrieve_chat_history(history_id):
             self._exec_db_command("DELETE FROM history WHERE uid=?", (history_id,))
             return f"Deleted chat history with ID: {history_id}"
-        return GPTErrors.HistoryErrors.HISTORY_DOESNT_EXIST
+        raise GPTExceptions.HistoryNotExist(history_id)
     
     def upload_chat_history(self, chat) -> list:
         json_dump = json.dumps(chat.readable_history)

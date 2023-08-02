@@ -1,8 +1,7 @@
 import datetime, discord, openai, random, openai_async, json, tiktoken
 
-from typing import Union, Any, AsyncGenerator
+from typing import Union, Any, AsyncGenerator, Callable
 from objects import GPTHistory, GPTErrors, GPTConfig, GPTExceptions
-# TODO: Check for out of date error syntax
 
 class GPTTypes:
     text = 1
@@ -99,7 +98,7 @@ class GPTChat:
 
             last_char = char
 
-    async def __send_query__(self, query_type: str, save_message: bool=True, give_err_code: bool=False, **kwargs):
+    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
             
         replied_content = GPTErrors.GENERIC_ERROR
         error = None
@@ -108,11 +107,11 @@ class GPTChat:
 
         reply: Union[None, dict] = None
         usage: Union[None, dict] = None
+        self.is_processing = True
 
         if query_type == "query":
             
             # Put necessary variables here (Doesn't matter weather streaming or not)
-            self.is_processing = True
             self.chat_history.append(kwargs)
 
             # TODO: Test async module
@@ -141,9 +140,9 @@ class GPTChat:
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
 
-            self.is_processing = True
-            image_request = openai.Image.create(**kwargs)
-            if isinstance(image_request, dict):
+
+            image_request: Any = openai.Image.create(**kwargs)
+            if hasattr(image_request, "__getitem__") == True:
                 image_url = image_request['data'][0]['url']
                 replied_content = f"Created Image at {datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
 
@@ -151,11 +150,11 @@ class GPTChat:
                 r_history.append({'image_return': image_url})
 
                 self.readable_history.append(r_history)
-            raise GPTExceptions.GPTReplyError(image_request)
+
+            raise GPTExceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
         
         else:
             error = f"Generic ({query_type})"
-
 
         self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
         return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"

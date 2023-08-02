@@ -144,28 +144,26 @@ class gpt(commands.Cog):
             return await interaction.response.send_message("You did not pick a save setting. Please pick one from the pre-selected options.", ephemeral=False)
         
         async def func(gpt: GPTChat.GPTChat):
-            try:
-                with GPTHistory.GPTHistory() as history:
-        
-                    if self.client.get_all_user_conversations(member):
-                        reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end {name}? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
-                        if reply.content != GPTConfig.QUERY_CONFIRMATION:
-                            return await interaction.followup.send("Cancelled action.", ephemeral=False)
-                        
-                        farewell = await gpt.stop(interaction, history, save.value)
-                        
-                        await interaction.followup.send(farewell, ephemeral=False)
-                        self.client.delete_conversation(member, name)
-                        self.client.set_default_conversation(member, None)
-                    else:
-                        await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
-            except GPTExceptions.CannotDeleteThread as e:
-                return await interaction.response.send_message(e.args[0])
+            with GPTHistory.GPTHistory() as history:
+    
+                if self.client.get_all_user_conversations(member):
+                    reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end {name}? (Send reply within {GPTConfig.QUERY_TIMEOUT} seconds, and "{GPTConfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+                    if reply.content != GPTConfig.QUERY_CONFIRMATION:
+                        return await interaction.followup.send("Cancelled action.", ephemeral=False)
+                    
+                    farewell = await gpt.stop(interaction, history, save.value)
+                    
+                    self.client.delete_conversation(member, name)
+                    self.client.set_default_conversation(member, None)
+                    await interaction.followup.send(farewell, ephemeral=False)
+                else:
+                    await interaction.followup.send(GPTErrors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
             
         # checks because app_commands cannot use normal ones.
         if convo := self.client.get_user_conversation(member, name):
             return await func(convo)
-        await interaction.response.send_message(GPTErrors.ConversationErrors.NO_CONVO, ephemeral=False)
+        else:
+            raise GPTExceptions.UserDoesNotHaveChat(name)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {GPTConfig.BOT_NAME} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
@@ -195,6 +193,7 @@ class gpt(commands.Cog):
     async def get_info(self, interaction: discord.Interaction, name: Union[None, str]=None):
         member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
         name = self.client.manage_defaults(member, name)
+
         if isinstance(convo := self.client.get_user_conversation(member, name), GPTChat.GPTChat) and self.client.application:
 
             uptime_delta = self.client.get_uptime()
@@ -212,7 +211,8 @@ class gpt(commands.Cog):
             returned_embed.color = discord.Colour.purple()
 
             return await interaction.response.send_message(embed=returned_embed, ephemeral=False)
-
+        
+        raise GPTExceptions.UserDoesNotHaveChat(name)
     @discord.app_commands.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
     async def switch_default(self, interaction: discord.Interaction, name: Union[None, str]=None):

@@ -51,7 +51,6 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
         
     def get_models_for_guild(self) -> dict[str, list[int]]:
         models = self._get_raw_models_database()
-        
         return json.loads(models[0][0])
     
     def get_guild_in_database(self) -> bool:
@@ -101,7 +100,6 @@ class GPTModelRules(GPTDatabase.GPTDatabase):
         if self.in_database == False:
             self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (self.guild.id, json.dumps({})))
             return bool(self.get_guild_in_database())
-        
         raise GPTExceptions.GuildExistsError(self.guild)
     
     def del_guild(self) -> Union[None, Any]:
