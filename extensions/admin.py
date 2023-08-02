@@ -8,6 +8,7 @@ def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
 
 # TODO: Add proper error handling for incorrect channel setting
+# TODO: Refactorise imports
 
 class admin(commands.Cog):
     def __init__(self, client):

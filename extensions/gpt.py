@@ -3,8 +3,15 @@ import discord, datetime
 from discord.ext import commands
 from typing import Union, Any
 from joe import DevJoe
-from objects import GPTChat, GPTHistory, GPTErrors, GPTConfig, GPTExceptions
 
+from objects.
+from objects import (
+    GPTChat, 
+    GPTHistory, 
+    GPTErrors, 
+    GPTConfig, 
+    GPTExceptions
+)
 yes_no_choice: list[discord.app_commands.Choice] = [
         discord.app_commands.Choice(name="Yes", value="y"),
         discord.app_commands.Choice(name="No", value="n")
@@ -15,7 +22,6 @@ class gpt(commands.Cog):
     def __init__(self, client):
         self.client: DevJoe = client
         print(f"{self.__cog_name__} Loaded") 
-        print(type(self.start))
 
     @discord.app_commands.command(name="start", description=f"Start a {GPTConfig.BOT_NAME} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
@@ -212,6 +218,7 @@ class gpt(commands.Cog):
             return await interaction.response.send_message(embed=returned_embed, ephemeral=False)
         
         raise GPTExceptions.UserDoesNotHaveChat(name)
+    
     @discord.app_commands.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
     async def switch_default(self, interaction: discord.Interaction, name: Union[None, str]=None):

@@ -17,16 +17,14 @@ except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
 
-try:
-    from objects import GPTChat, GPTHistory, GPTErrors, GPTModelRules, GPTDatabase, GPTConfig, GPTExceptions
-except (ImportError, ImportWarning) as e:
-    print(f"Missing internal dependencies, please collect a new install of DeveloperJoe. (Actual Error: {e})")
-    exit(1)
+from sources import *
 
 # Configuration
 
+DGChatType = Union[DGTextChat, DGVoiceChat]
+
 try:
-    with open(GPTConfig.TOKEN_FILE, 'r') as tk_file:
+    with open(config.TOKEN_FILE, 'r') as tk_file:
         DISCORD_TOKEN, OPENAI_TOKEN = tk_file.readlines()[0:2]
         DISCORD_TOKEN = DISCORD_TOKEN.strip()
         OPENAI_TOKEN = OPENAI_TOKEN.strip()
@@ -35,12 +33,12 @@ except (FileNotFoundError, ValueError, IndexError):
     print("Missing token file / Missing tokens within token file"); exit(1)
 
 try:
-    with open(GPTConfig.WELCOME_FILE) as welcome_file, open(GPTConfig.ADMIN_FILE) as admin_file:
+    with open(WELCOME_FILE) as welcome_file, open(ADMIN_FILE) as admin_file:
         WELCOME_TEXT = welcome_file.read()
         ADMIN_TEXT = admin_file.read()
 
 except FileNotFoundError:
-    print(f"Missing server join files. ({GPTConfig.WELCOME_FILE} and {GPTConfig.ADMIN_FILE})")
+    print(f"Missing server join files. ({WELCOME_FILE} and {ADMIN_FILE})")
 
 # Main Bot Class
 
@@ -52,25 +50,24 @@ class DevJoe(commands.Bot):
         self._DISCORD_TOKEN = DISCORD_TOKEN
         self._OPENAI_TOKEN = OPENAI_TOKEN
 
-        self.WELCOME_TEXT = WELCOME_TEXT.format(GPTConfig.BOT_NAME)
-        self.ADMIN_TEXT = ADMIN_TEXT.format(GPTConfig.BOT_NAME)
-        #self.get_context = self.get_context_handler
+        self.WELCOME_TEXT = WELCOME_TEXT.format(BOT_NAME)
+        self.ADMIN_TEXT = ADMIN_TEXT.format(BOT_NAME)
 
         super().__init__(*args, **kwargs)
 
     def get_uptime(self) -> datetime.timedelta:
-        return (datetime.datetime.now(tz=GPTConfig.TIMEZONE) - self.start_time)
+        return (datetime.datetime.now(tz=TIMEZONE) - self.start_time)
     
-    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat], None]:
+    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[DGTextChat, DGVoiceChat], None]:
         if int(member.id) in list(self.chats):
             if not chat_name:
                 return
             elif chat_name and chat_name in self.chats[member.id]:
                 return self.chats[member.id][chat_name]
         
-        raise GPTExceptions.UserDoesNotHaveChat(chat_name, member)
+        raise UserDoesNotHaveChat(chat_name, member)
     
-    def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], None]:
+    def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, DGChatType], None]:
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
@@ -78,27 +75,27 @@ class DevJoe(commands.Bot):
     def assure_class_is_value(self, object, __type: type):
         if type(object) == __type:
             return object
-        raise GPTExceptions.IncorrectInteractionSetting(object, type)
+        raise IncorrectInteractionSetting(object, type)
     
 
     def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
         if isinstance(member, discord.Member):
-            with GPTModelRules.GPTModelRules(member.guild) as check_rules:
+            with DGRules(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
         return False
     
-    def get_default_conversation(self, member: discord.Member) -> Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat, None]:
+    def get_default_conversation(self, member: discord.Member) -> Union[DGChatType, None]:
         return self.default_chats[f"{member.id}-latest"]
     
-    def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[GPTChat.GPTVoiceChat, None]:
+    def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[DGVoiceChat, None]:
         # TODO: Add funcion that aquires all voice chats only
         chat = self.get_user_conversation(member, chat_name=chat_name)
-        return chat if isinstance(chat, GPTChat.GPTVoiceChat) else None
+        return chat if isinstance(chat, DGVoiceChat) else None
     
     def delete_conversation(self, member: discord.Member, conversation_name: str) -> None:
         del self.chats[member.id][conversation_name]
 
-    def add_conversation(self, member: discord.Member, name: str, conversation: GPTChat.GPTChat) -> None:
+    def add_conversation(self, member: discord.Member, name: str, conversation: DGChatType) -> None:
         self.chats[member.id][name] = conversation
 
     def set_default_conversation(self, member: discord.Member, name: Union[None, str]) -> None:
@@ -107,7 +104,7 @@ class DevJoe(commands.Bot):
     def manage_defaults(self, member: discord.Member, name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
         current_default = self.get_default_conversation(member)
         names_convo = self.get_user_conversation(member, name)
-        name_is_chat = isinstance(names_convo, GPTChat.GPTChat)
+        name_is_chat = isinstance(names_convo, DGChatType)
 
         if name_is_chat:
             self.set_default_conversation(member, name)
@@ -155,27 +152,27 @@ class DevJoe(commands.Bot):
             return message.author.id == interaction.user.id and message.channel == interaction.channel
         
         await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
-        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=GPTConfig.QUERY_TIMEOUT)
+        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=QUERY_TIMEOUT)
         return message
     
     async def send_debug_message(self, interaction: discord.Interaction, error: BaseException, cog: str) -> None:
-        if GPTConfig.DEBUG == True:
+        if DEBUG == True:
             exception_text = f"From main class error handler \n\nError Class: {str(Exception)}\nError Arguments: {str(Exception.args)}\nFrom cog: {cog} "
             await interaction.followup.send(exception_text) if interaction.response.is_done() else await interaction.response.send_message(exception_text) 
             raise error
             
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (V: {GPTConfig.VERSION})")
+            print(f"\n{self.application.name} Online (V: {VERSION})")
 
-            self.chats: dict[int, Union[dict[str, Union[GPTChat.GPTChat, GPTChat.GPTVoiceChat]], dict]] = {}
-            self.default_chats: dict[str, Union[None, GPTChat.GPTChat, GPTChat.GPTVoiceChat]] = {}
+            self.chats: dict[int, Union[dict[str, DGChatType], dict]] = {}
+            self.default_chats: dict[str, Union[None, DGChatType]] = {}
 
-            self.start_time = datetime.datetime.now(tz=GPTConfig.TIMEZONE)
+            self.start_time = datetime.datetime.now(tz=TIMEZONE)
             
-            await self.change_presence(activity=discord.Activity(type=GPTConfig.STATUS_TYPE, name=GPTConfig.STATUS_TEXT))
+            await self.change_presence(activity=discord.Activity(type=STATUS_TYPE, name=STATUS_TEXT))
 
-            _history = GPTHistory.GPTHistory()
+            _history = DGHistorySession()
             async def _check_integrity(i: int):
                 if not i > 1:
                     if not _history.__check__():
@@ -202,24 +199,6 @@ class DevJoe(commands.Bot):
         await self.tree.sync()
         return await super().setup_hook()
     
-    """async def get_context_handler(self, *args, **kwargs) -> commands.Context:
-        print("CNT",args, kwargs)
-    """
-
-    async def before_invoke(self, message: discord.Message):
-        self.invoke
-        ctx = await self.get_context(message)
-        cmd = self.get_command(message.content)
-        print(type(cmd))
-        if isinstance(cmd, (commands.Command, discord.app_commands.Command)):
-            await ctx.invoke(cmd)
-
-    async def invoke(self, ctx: commands.Context):
-        print(self, ctx.command)
-    
-    async def get_context(self, *args, **kwargs):
-        print(args, kwargs)
-    
 
 # Driver Code
 
@@ -242,7 +221,7 @@ async def run_bot():
             await client.close()
             exit(0)
     except discord.errors.LoginFailure:
-        print(f"Improper Discord API Token given in {GPTConfig.TOKEN_FILE}, please make sure the API token is still valid.")
+        print(f"Improper Discord API Token given in {TOKEN_FILE}, please make sure the API token is still valid.")
         exit(1)
 
 if __name__ == "__main__":
