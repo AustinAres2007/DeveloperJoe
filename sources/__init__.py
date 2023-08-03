@@ -5,3 +5,5 @@ from .chat import *
 from .database import *
 from .history import *
 from .errors import *
+from .models import *
+from .utils import *

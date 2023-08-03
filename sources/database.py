@@ -1,14 +1,15 @@
-import sqlite3
-from typing import Union, Any
+import sqlite3 as _sqlite3, json as _json
+from typing import Union as _Union, Any as _Any
 
 from .config import *
+
 database_file = DATABASE_FILE
 
 class DGDatabaseSession:
     """
         Handles connection between the server and discord client.
     """
-    
+
     def __enter__(self):
         return self
     
@@ -25,23 +26,25 @@ class DGDatabaseSession:
 
         
         self.database_file = database_file
-        self.database: sqlite3.Connection = sqlite3.connect(database_file, timeout=60)
-        self.cursor: Union[sqlite3.Cursor, None] = self.database.cursor()
+        self.database: _sqlite3.Connection = _sqlite3.connect(database_file, timeout=60)
+        self.cursor: _Union[_sqlite3.Cursor, None] = self.database.cursor()
 
     def __check__(self) -> bool:
         try:
             self._exec_db_command("SELECT * FROM history")
             self._exec_db_command("SELECT * FROM model_rules")
             return True
-        except sqlite3.OperationalError:
+        except _sqlite3.OperationalError:
             return False
 
-    def _exec_db_command(self, query: str, args: tuple=()) -> list[Any]:
+    def _exec_db_command(self, query: str, args: tuple=()) -> list[_Any]:
         
         self.cursor = self.database.cursor()
 
         fetched = self.cursor.execute(query, args).fetchall()
+
         self.database.commit()
         self.cursor.close()
         self.cursor = None
+
         return fetched

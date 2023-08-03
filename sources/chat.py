@@ -12,6 +12,9 @@ from .config import *
 from .exceptions import *
 from .errors import *
 from .history import *
+from .models import *
+
+
 
 class DGTextChat:
     """Represents a text-only DG Chat."""
@@ -21,7 +24,7 @@ class DGTextChat:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: str=DEFAULT_GPT_MODEL, 
+                model: GPTModelType=DEFAULT_GPT_MODEL, 
                 associated_thread: _Union[_discord.Thread, None]=None, 
         ):
 
@@ -32,14 +35,12 @@ class DGTextChat:
         self.chat_thread = associated_thread
 
         self.oapi = _openai_token
-        self.chat_thread = associated_thread
 
         self.name = name
         self.display_name = display_name
         self.stream = stream
 
-        self.model = str(model)
-        self.encoding = _tiktoken.encoding_for_model(self.model)
+        self.model = model
         self.tokens = 0
 
         self.is_processing = False
@@ -79,7 +80,7 @@ class DGTextChat:
         return 
     
     async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> _AsyncGenerator:
-        payload = {"model": self.model, "messages": messages, "stream": True} | kwargs
+        payload = {"model": self.model.model, "messages": messages, "stream": True} | kwargs
         reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
@@ -125,7 +126,7 @@ class DGTextChat:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT,
                                                         payload={
-                                                            "model": self.model,
+                                                            "model": self.model.model,
                                                             "messages": self.chat_history    
                                                         })
             
@@ -164,7 +165,7 @@ class DGTextChat:
         return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
-        total_tokens = len(self.encoding.encode(kwargs["content"]))
+        total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
         r_history = []
         replied_content = ""
 
@@ -177,7 +178,7 @@ class DGTextChat:
             if stop_reason == None:
                 c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
                 replied_content += c_token
-                total_tokens += len(self.encoding.encode(c_token))
+                total_tokens += len(self.model.tokeniser.encode(c_token))
 
                 yield c_token
             elif stop_reason == "length":
@@ -245,7 +246,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: str=DEFAULT_GPT_MODEL, 
+            model: GPTModelType=DEFAULT_GPT_MODEL, 
             associated_thread: _Union[_discord.Thread, None]=None, 
             voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
         ):
@@ -272,5 +273,7 @@ class DGChatTypesEnum:
     """Enums for chat types (text or voice)"""
     text = 1
     voice = 2
+
+DGChatType = _Union[DGTextChat, DGVoiceChat]    
 
         

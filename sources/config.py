@@ -3,13 +3,14 @@ from discord import ChannelType as _ChannelType
 from discord import ActivityType as _ActivityType
 from discord.app_commands import Choice as _Choice
 from discord import TextChannel as _TextChannel
+import models
 
 # User Configuration
 
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
 STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
-DEFAULT_GPT_MODEL = "gpt-4" # gpt-4, or gpt-3.5-turbo
+DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT4 # gpt-4, or gpt-3.5-turbo
 
 TIMEZONE = _datetime.timezone.utc # What timezone to use (UTC by default)
 
@@ -36,4 +37,8 @@ MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3 Turbo", value="gpt-3.5-turbo"), 
     _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately.
+REGISTERED_MODELS = {
+    "gpt-4": models.GPT4,
+    "gpt-3.5-turbo": models.GPT3Turbo
+} # These keys should corrolate with the value parameter of MODEL_CHOICES, and the value should inherit from models.GPTModel
 ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.

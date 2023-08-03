@@ -1,4 +1,4 @@
-import json
+import json as _json
 
 from .database import *
 from .exceptions import *
@@ -32,7 +32,7 @@ class DGHistorySession(DGDatabaseSession):
         raise HistoryNotExist(history_id)
     
     def upload_chat_history(self, chat) -> list:
-        json_dump = json.dumps(chat.readable_history)
+        json_dump = _json.dumps(chat.readable_history)
         return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.hid, chat.user.id, chat.name, json_dump,))
 
     def init_history(self) -> None:

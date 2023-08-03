@@ -1,18 +1,18 @@
-import discord
-from discord.ext import commands
-from joe import DevJoe
-from objects import GPTConfig
+import discord as _discord
+from discord.ext.commands import Cog as _Cog
+from joe import *
+from sources import *
 
-class general(commands.Cog):
+class general(_Cog):
     def __init__(self, client):
-        self.client: DevJoe = client
+        self.client: DeveloperJoe = client
         print(f"{self.__cog_name__} Loaded")
 
-    @discord.app_commands.command(name="help", description="Lists avalible commands")
+    @_discord.app_commands.command(name="help", description="Lists avalible commands")
     async def help_command(self, interaction: discord.Interaction):
         
-        member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
-        embed = discord.Embed(title=f"{GPTConfig.BOT_NAME} Commands")
+        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+        embed = discord.Embed(title=f"{BOT_NAME} Commands")
         embed.color = discord.Colour.purple()
         embed.set_footer(text="For arguments, type the command and they will appear.")
         get_name = lambda cmd: cmd.name
@@ -29,7 +29,7 @@ class general(commands.Cog):
                     params = ", ".join(list(map(get_name, command.parameters)))
                     embed.add_field(name=f"/{command.name}", value=f'{command.description} | /{command.name} {params}', inline=False)
 
-        embed.set_footer(text=f"Uptime — {uptime.days} Days ({uptime}) | Version — {GPTConfig.VERSION} | Debug = {GPTConfig.DEBUG} | Default = {default.display_name if default else 'Has None.'}")
+        embed.set_footer(text=f"Uptime — {uptime.days} Days ({uptime}) | Version — {VERSION} | Debug = {DEBUG} | Default = {default.display_name if default else 'Has None.'}")
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(client):

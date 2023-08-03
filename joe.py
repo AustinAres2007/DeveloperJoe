@@ -9,7 +9,7 @@ try:
     # Not required here, just importing for integrity check.
     import json, openai, openai_async, tiktoken, sqlite3, math, traceback
 
-    import discord, logging, asyncio, os, io, datetime
+    import discord, logging, asyncio, os, datetime
     from discord.ext import commands
     from typing import Union
 
@@ -20,8 +20,6 @@ except ImportError as e:
 from sources import *
 
 # Configuration
-
-DGChatType = Union[DGTextChat, DGVoiceChat]
 
 try:
     with open(config.TOKEN_FILE, 'r') as tk_file:
@@ -42,7 +40,9 @@ except FileNotFoundError:
 
 # Main Bot Class
 
-class DevJoe(commands.Bot):
+class DeveloperJoe(commands.Bot):
+
+    """Main DeveloperJoe bot instance."""
 
     INTENTS = discord.Intents.all()
 
@@ -71,14 +71,7 @@ class DevJoe(commands.Bot):
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
-    
-    def assure_class_is_value(self, object, __type: type):
-        if type(object) == __type:
-            return object
-        raise IncorrectInteractionSetting(object, type)
-    
-
-    def get_user_has_permission(self, member: Union[discord.Member, None], model: str) -> bool:
+    def get_user_has_permission(self, member: Union[discord.Member, None], model: GPTModelType) -> bool:
         if isinstance(member, discord.Member):
             with DGRules(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
@@ -138,14 +131,9 @@ class DevJoe(commands.Bot):
         logging.error(exception)
 
         error_text = f"From error handler: {str(error)}"
-        error_traceback = self.to_file(traceback.format_exc(), "traceback.txt")
+        error_traceback = utils.to_file(traceback.format_exc(), "traceback.txt")
 
         return await send_with_file(error_text, error_traceback)
-        
-    def to_file(self, content: str, name: str) -> discord.File:
-        f = io.BytesIO(content.encode())
-        f.name = name
-        return discord.File(f)
 
     async def get_confirmation(self, interaction: discord.Interaction, msg: str) -> discord.Message:
         def _check_if_user(message: discord.Message) -> bool:
@@ -214,7 +202,7 @@ async def run_bot():
 
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
-        async with DevJoe(command_prefix=commands.when_mentioned_or("?"), intents=DevJoe.INTENTS) as client:
+        async with DeveloperJoe(command_prefix=commands.when_mentioned_or("?"), intents=DeveloperJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
         if client:
