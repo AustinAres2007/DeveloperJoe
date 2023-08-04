@@ -128,7 +128,6 @@ class DGTextChat:
                         "model": self.model.model,
                         "messages": self.chat_history    
             }
-            print(payload)
             _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
             
             reply = _reply.json()["choices"][0]
@@ -156,8 +155,8 @@ class DGTextChat:
                 r_history.extend([{'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'}, {'image_return': image_url}])
 
                 self.readable_history.append(r_history)
-            
-            raise GPTReplyError(image_request, type(image_request), dir(image_request))
+            else:
+                raise GPTReplyError(image_request, type(image_request), dir(image_request))
         
         else:
             error = f"Generic ({query_type})"

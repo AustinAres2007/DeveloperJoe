@@ -158,7 +158,6 @@ class gpt(commands.Cog):
                     await interaction.followup.send(ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
             
         # checks because app_commands cannot use normal ones.
-        print(member)
         if convo := self.client.get_user_conversation(member, name):
             return await func(convo)
         else:
@@ -196,18 +195,21 @@ class gpt(commands.Cog):
         if isinstance(convo := self.client.get_user_conversation(member, name), DGTextChat) and self.client.application:
 
             uptime_delta = self.client.get_uptime()
-            returned_embed = discord.Embed(title=f"{name if name != '0' else 'Conversation'} Information")
+            returned_embed = discord.Embed(title=f'"{name}" Information')
 
-            returned_embed.add_field(name="Started At", value=str(convo.time), inline=False)
-            returned_embed.add_field(name="Used Tokens", value=f"{str(convo.tokens)}", inline=False)
-            returned_embed.add_field(name="Chat Length", value=str(len(convo.chat_history)), inline=False)
-            returned_embed.add_field(name="Chat History ID", value=str(convo.hid), inline=False)
-            returned_embed.add_field(name="Chat ID", value=str(convo.display_name), inline=False)
-            returned_embed.add_field(name="Is Active", value=str(convo.is_active), inline=False)
-            returned_embed.add_field(name="GPT Model", value=str(len(convo.model.display_name)), inline=False)
-            returned_embed.add_field(name=f"{self.client.application.name} Uptime", value=f"{uptime_delta.days} Days ({uptime_delta})", inline=False)
-            returned_embed.add_field(name=f"{self.client.application.name} Version", value=f"{VERSION}", inline=False)
-            
+            embeds = (
+                {"name": "Started At", "value": str(convo.time), "inline": False},
+                {"name": "Used Tokens", "value": str(convo.tokens), "inline": False},
+                {"name": "Chat Length", "value": str(len(convo.chat_history)), "inline": False},
+                {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
+                {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
+                {"name": "Is Active", "value": str(convo.is_active), "inline": False},
+                {"name": "GPT Model", "value": str(convo.model.display_name), "inline": False},
+                {"name": f"{self.client.application.name} Version", "value": VERSION, "inline": False},
+                {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False}
+            )
+            for embed in embeds:
+                returned_embed.add_field(**embed)
             returned_embed.color = discord.Colour.purple()
 
             return await interaction.response.send_message(embed=returned_embed, ephemeral=False)

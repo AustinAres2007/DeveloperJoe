@@ -42,3 +42,4 @@ REGISTERED_MODELS = {
     "gpt-3.5-turbo": models.GPT3Turbo
 } # These keys should corrolate with the value parameter of MODEL_CHOICES, and the value should inherit from models.GPTModel
 ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
+ALLOW_TRACEBACK = True # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)

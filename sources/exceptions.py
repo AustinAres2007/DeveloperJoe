@@ -6,11 +6,11 @@ from .models import *
 # Models
 
 class DGException(Exception):
-    def __init__(self, message: str, *args, log_error: bool=False, **kwargs):
+    def __init__(self, message: str, *args, log_error: _Union[bool, None]=None, **kwargs):
         """Base exception for all DGE exceptions. (All DGE exceptions inherit from DGException, and must do if they want to be recognised by error handler)"""
 
         self._message = message
-        self._log_error = log_error
+        self._log_error = log_error if isinstance(log_error, bool) else ALLOW_TRACEBACK
         super().__init__(*args, **kwargs)
     
     @property

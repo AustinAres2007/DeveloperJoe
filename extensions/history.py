@@ -37,7 +37,7 @@ class history(commands.Cog):
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction, name: Union[None, str]):
 
-        member: discord.Member = self.client.assure_class_is_value(interaction.user, discord.Member)
+        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
         name = self.client.manage_defaults(member, name)
         if isinstance(convo := self.client.get_user_conversation(member, name), DGChatType):
 

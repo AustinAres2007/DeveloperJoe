@@ -44,4 +44,4 @@ class ModelErrors:
     GUILD_NOT_IN_DATABASE = "{} does not exist within database."
     GUILD_IN_MODEL_DATABASE = "Guild with specified ID has already been registered."
     MODEL_LOCKED = "You do not have the sufficient permissions to use the selected model."
-    MODEL_NOT_IN_DATABASE = "{} model lock list does not exist within {} database."
+    MODEL_NOT_IN_DATABASE = '"{}" model does not exist within the {} lock list. You can add models to the lock list with /lock.'

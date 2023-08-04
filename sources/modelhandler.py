@@ -7,9 +7,7 @@ from .utils import *
 from typing import (
     Union as _Union, 
     TypedDict as _TypedDict, 
-    Any as _Any, 
-    Iterable as _Iterable,
-    Optional as _Optional
+    Any as _Any
 )
 
 GuildModels = _TypedDict('GuildModels', {"model": list[int]})
@@ -125,7 +123,7 @@ class DGRules(DGDatabaseSession):
         if model.model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model.model]):
             models_allowed_roles[model.model].remove(role.id)
         elif model not in list(models_allowed_roles):
-            raise ModelNotExist(self.guild, model.model)
+            raise ModelNotExist(self.guild, model.display_name)
         else:
             return None
         
