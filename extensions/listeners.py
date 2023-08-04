@@ -24,7 +24,7 @@ class listeners(commands.Cog):
                         
                         if has_private_thread and convo.is_processing != True:
                             
-                            header_text = f'{convo.display_name} | {convo.model}'
+                            header_text = f'{convo.display_name} | {convo.model.display_name}'
 
                             if convo.stream == True:
                                 msg: list[discord.Message] = [await message.channel.send("Asking...")]

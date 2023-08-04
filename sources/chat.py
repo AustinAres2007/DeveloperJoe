@@ -124,11 +124,12 @@ class DGTextChat:
 
             # TODO: Test async module
             # Reply format: ({"content": "Reply content", "role": "assistent"})
-            _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT,
-                                                        payload={
-                                                            "model": self.model.model,
-                                                            "messages": self.chat_history    
-                                                        })
+            payload = {
+                        "model": self.model.model,
+                        "messages": self.chat_history    
+            }
+            print(payload)
+            _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
             
             reply = _reply.json()["choices"][0]
             usage = _reply.json()["usage"]

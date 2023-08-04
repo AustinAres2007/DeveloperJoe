@@ -3,7 +3,7 @@ from discord import ChannelType as _ChannelType
 from discord import ActivityType as _ActivityType
 from discord.app_commands import Choice as _Choice
 from discord import TextChannel as _TextChannel
-import models
+from . import models
 
 # User Configuration
 

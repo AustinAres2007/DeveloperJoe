@@ -26,7 +26,7 @@ class gpt(commands.Cog):
         
         member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
         channel: discord.TextChannel = utils.assure_class_is_value(interaction.channel, discord.TextChannel)
-        actual_model = utils.get_modeltype_from_name(str(gpt_model if isinstance(gpt_model, str) else DEFAULT_GPT_MODEL))
+        actual_model = utils.get_modeltype_from_name(str(gpt_model if isinstance(gpt_model, str) else DEFAULT_GPT_MODEL.model))
         
         async def command():
             
@@ -57,7 +57,7 @@ class gpt(commands.Cog):
             convo = DGTextChat(*chat_args) if speak_reply != "y" else DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
-            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
+            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
 
             self.client.add_conversation(member, name, convo)
             self.client.set_default_conversation(member, name)
@@ -120,7 +120,7 @@ class gpt(commands.Cog):
                         final_user_reply = f"## {header_text}\n\n{reply}"
 
                         if len(final_user_reply) > CHARACTER_LIMIT:
-                            file_reply: discord.File = self.client.to_file(final_user_reply, "reply.txt")
+                            file_reply: discord.File = utils.to_file(final_user_reply, "reply.txt")
                             return await interaction.followup.send(file=file_reply, ephemeral=False)
                         return await interaction.followup.send(final_user_reply, ephemeral=False)
                     
@@ -158,6 +158,7 @@ class gpt(commands.Cog):
                     await interaction.followup.send(ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
             
         # checks because app_commands cannot use normal ones.
+        print(member)
         if convo := self.client.get_user_conversation(member, name):
             return await func(convo)
         else:
