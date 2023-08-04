@@ -14,6 +14,25 @@ from typing import (
 
 GuildModels = _TypedDict('GuildModels', {"model": list[int]})
 
+class DGRulesManager(DGDatabaseSession):
+    """Performs static operations on the database."""
+
+    def __enter__(self):
+        return super().__enter__()
+    
+    def __exit__(self, t_, v_, tr_):
+        return super().__exit__(t_, v_, tr_)
+
+    def __init__(self):
+        super().__init__()
+    
+    def get_guilds(self) -> list[int]:
+        guilds_database_reply = self._exec_db_command("SELECT gid FROM model_rules")
+        return [id[0] for id in guilds_database_reply]
+
+    def _add_raw_guild(self, guild: _Union[_discord.Guild, int]) -> None:
+        self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild.id if isinstance(guild, _discord.Guild) else guild, _json.dumps({})))
+        
 class DGRules(DGDatabaseSession):
     """Database connection that manages model permissions (Model Lock List, or MLL, etc..) maybe more in the future."""
 
@@ -67,7 +86,7 @@ class DGRules(DGDatabaseSession):
             if model in models: 
                 return models[model]
             raise ModelNotExist(self.guild, model)
-        raise GuildNotExist(self.guild)
+        return []
     
     def get_guild_models(self) -> dict[GPTModelType, list[int]]:
         models = self._get_guild_models_raw()

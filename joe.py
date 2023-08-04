@@ -159,20 +159,34 @@ class DeveloperJoe(commands.Bot):
             self.start_time = datetime.datetime.now(tz=TIMEZONE)
             
             await self.change_presence(activity=discord.Activity(type=STATUS_TYPE, name=STATUS_TEXT))
+            with (DGHistorySession() as _history, DGRulesManager() as _guild_handler):
+                
+                
+                def check_servers():
+                    print("Checking guild rule status..")
+                    g_ids = _guild_handler.get_guilds()
+                    for guild in self.guilds:
+                        if guild.id not in g_ids:
+                            _guild_handler._add_raw_guild(guild.id)
+                            print(f"Added new guild: {guild.id}")
+                    print()
 
-            _history = DGHistorySession()
-            async def _check_integrity(i: int):
-                if not i > 1:
-                    if not _history.__check__():
-                        print("Database file has been modified / deleted, rebuilding..")
-                        _history.init_history()
-                        return await _check_integrity(i+1)
-                    return print("Database all set.")
-                print("Database could not be rebuilt. Aborting. Check database files.")
-                return await self.close()
+                async def _check_integrity(i: int):
+                    print("Performing database check..")
+                    if not i > 1:
+                        if not _history.__check__():
+                            print("Database file has been modified / deleted, rebuilding..")
+                            _history.init_history()
+                            return await _check_integrity(i+1)
+                            
+                        return print("Database all set.")
+                    print("Database could not be rebuilt. Aborting. Check database files.")
+                    return await self.close()
             
-            await _check_integrity(0)
+                await _check_integrity(0)
+                check_servers()
 
+                print("Done! Running.")
             self.chats = {user.id: {} for user in self.users}
             self.chats = self.chats
             self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}

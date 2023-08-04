@@ -31,7 +31,7 @@ class GuildNotExist(DGException):
     reply = ModelErrors.GUILD_NOT_IN_DATABASE
     def __init__(self, guild: _discord.Guild, *args):
         """Will be raised if a guild does not exist within the model lock list database"""
-        super().__init__(self.reply.format(guild.name), guild, *args)
+        super().__init__(self.reply.format(guild.name), guild, log_error=True, *args)
         
 class GuildExistsError(DGException):
     reply = ModelErrors.GUILD_IN_MODEL_DATABASE
