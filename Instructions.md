@@ -40,6 +40,7 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 1. Major bug fixes
 2. Refactoring
 3. Better development enviroment
+4. Better documentation (Not finished)
 
 ## Future
 

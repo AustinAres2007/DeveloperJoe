@@ -24,7 +24,7 @@ STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictate
 CHATS_LIMIT = 20 # How many chats a user can have at one time.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
-FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
+FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
 VERSION = "1.2.8"
 
@@ -42,4 +42,4 @@ REGISTERED_MODELS = {
     "gpt-3.5-turbo": models.GPT3Turbo
 } # These keys should corrolate with the value parameter of MODEL_CHOICES, and the value should inherit from models.GPTModel
 ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
-ALLOW_TRACEBACK = True # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
+ALLOW_TRACEBACK = False # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
