@@ -88,7 +88,7 @@ class listeners(commands.Cog):
         with DGRules(guild) as _:
             ...
     
-    """@commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
         voice: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
