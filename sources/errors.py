@@ -21,7 +21,8 @@ class ConversationErrors:
     CONVO_CLOSED = "The chat selected has been closed. This is because you have reached the conversation limit. You can still export and save this chat. Please start another if you wish to keep talking."
     CONVO_CANNOT_TALK = "We cannot interact here. You must be in a discord server channel to make commands. (No stages, private direct messages)"
     CANNOT_STOP_IN_CHANNEL = "You cannot do /stop in the thread created by your conversation ({})"
-
+    CHANNEL_DOESNT_EXIST = 'Channel: "{}" pertaining to "{}" from conversation "{}" belonging to user "{}" no longer exists.'
+    
 class UserErrors:
     """Errors pertaining to user status."""
 

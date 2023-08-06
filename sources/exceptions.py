@@ -2,15 +2,18 @@ import discord as _discord, httpx as _httpx
 from typing import Any as _Any, Union as _Union
 from .errors import *
 from .models import *
+from .chat import *
 
 # Models
 
 class DGException(Exception):
-    def __init__(self, message: str, *args, log_error: _Union[bool, None]=None, **kwargs):
+    def __init__(self, message: str, *args, log_error: _Union[bool, None]=None, send_exceptions: bool=True, **kwargs):
         """Base exception for all DGE exceptions. (All DGE exceptions inherit from DGException, and must do if they want to be recognised by error handler)"""
 
         self._message = message
         self._log_error = log_error if isinstance(log_error, bool) else ALLOW_TRACEBACK
+        self._send_exception = send_exceptions
+        
         super().__init__(*args, **kwargs)
     
     @property
@@ -21,6 +24,10 @@ class DGException(Exception):
     def log_error(self) -> bool:
         return self._log_error
 
+    @property
+    def send_exception(self) -> bool:
+        return self._send_exception
+    
 class ModelNotExist(DGException):
     reply = ModelErrors.MODEL_NOT_IN_DATABASE
     def __init__(self, guild: _Union[_discord.Guild, None], model: _Union[GPTModelType, str], *args):
@@ -103,3 +110,9 @@ class HistoryNotExist(DGException):
     def __init__(self, _id: str, *args):
         """Will be raised when a given history ID does not exist within the database."""
         super().__init__(self.reply, _id, *args)
+
+class ChatChannelDoesntExist(DGException):
+    reply = ConversationErrors.CHANNEL_DOESNT_EXIST
+    def __init__(self, message: _discord.Message, conversation: _Union[DGChatType, None]):
+        """Will be raised when a channel from a discord guild no longer exists (reletive to the bot, this could mean the bot was kicked / banned)"""
+        super().__init__(self.reply.format(message, message.guild, conversation, conversation), message, conversation, log_error=True, send_exceptions=False)

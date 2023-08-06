@@ -7,3 +7,4 @@ from .history import *
 from .errors import *
 from .models import *
 from .utils import *
+from .tts import *

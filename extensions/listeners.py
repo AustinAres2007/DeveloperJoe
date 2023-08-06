@@ -12,6 +12,7 @@ class listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
+        convo = None
         try:
             if self.client.application and message.author.id != self.client.application.id and message.content != QUERY_CONFIRMATION:
                 member: discord.Member = utils.assure_class_is_value(message.author, discord.Member)
@@ -60,6 +61,8 @@ class listeners(commands.Cog):
 
         except (ChatIsDisabledError, GPTContentFilter) as error:
             await message.channel.send(error.reply)
+        except discord.Forbidden:
+            raise ChatChannelDoesntExist(message, convo) 
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
@@ -75,13 +78,16 @@ class listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
+        voice: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        
         if convos := self.client.get_all_user_conversations(member):
-            [setattr(convo, "voice", after.channel) for convo in convos.values() if convo.type == DGChatTypesEnum.voice]
-        
-        # DebugCode:
-        # print(self.client.get_user_voice_conversation(member, "navidrohim-0"))
-
-        
+            for convo in convos.values(): 
+                if isinstance(convo, DGVoiceChat):
+                    if after.channel:
+                        convo.voice = after.channel
+                    else:
+                        await voice.disconnect()
+                        voice.cleanup()
 
 async def setup(client: DeveloperJoe):
     await client.add_cog(listeners(client))

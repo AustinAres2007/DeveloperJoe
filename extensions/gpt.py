@@ -1,7 +1,7 @@
 import discord, datetime
 
 from discord.ext import commands
-from typing import Union, Any
+from typing import Union
 
 from joe import *
 from sources import *
@@ -53,7 +53,7 @@ class gpt(commands.Cog):
                 await chat_thread.add_user(member)
                 await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
-            chat_args = (self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
+            chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
             convo = DGTextChat(*chat_args) if speak_reply != "y" else DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
@@ -87,14 +87,17 @@ class gpt(commands.Cog):
                             msg: list[discord.Message] = []
                             reply = convo.ask_stream(message)
                             full_message = f"## {header_text}\n\n"
+                            actual_content: str = ""
                             i, start_message_at = 0, 0
                             sendable_portion = "<>"
 
                             async for t in reply:
                                 i += 1
                                 full_message += t
+                                actual_content += t
+                                
                                 sendable_portion = full_message[start_message_at * CHARACTER_LIMIT:((start_message_at + 1) * CHARACTER_LIMIT)]
-
+                        
                                 if len(full_message) and len(full_message) >= (start_message_at + 1) * CHARACTER_LIMIT:
                                     if not msg:
                                         await interaction.edit_original_response(content=sendable_portion)
@@ -112,8 +115,13 @@ class gpt(commands.Cog):
 
                             else:
                                 if not msg:
-                                    return await interaction.edit_original_response(content=sendable_portion)
-                                return await msg[-1].edit(content=sendable_portion)
+                                    await interaction.edit_original_response(content=sendable_portion)
+                                else:
+                                    await msg[-1].edit(content=sendable_portion)
+                                
+                                if isinstance(convo, DGVoiceChat) and convo.voice:
+                                    await convo.speak(actual_content, convo.voice)
+                                return         
                             
                         await interaction.response.defer(ephemeral=False, thinking=True)
                         reply = await convo.ask(message)

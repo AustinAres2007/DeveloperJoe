@@ -56,7 +56,7 @@ class DeveloperJoe(commands.Bot):
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(BOT_NAME)
-
+        
         super().__init__(*args, **kwargs)
 
     def get_uptime(self) -> datetime.timedelta:
@@ -214,7 +214,7 @@ class DeveloperJoe(commands.Bot):
             if (log := getattr(error, "log_error", None)) != None:
                 if log == True:
                     logging.error(exception) 
-                return await send(message)
+                return await send(message) if getattr(error, "send_exception", False) == True else None
         
         logging.error(exception)
 

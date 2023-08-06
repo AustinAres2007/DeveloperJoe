@@ -21,3 +21,27 @@ def assure_class_is_value(object, __type: type):
     if type(object) == __type:
         return object
     raise _exceptions.IncorrectInteractionSetting(object, type)
+
+
+def check_enabled(func):
+    """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        if self.is_active:
+            return func(self, *args, **kwargs)
+        raise _exceptions.ChatIsDisabledError(self)
+    return _inner
+
+def has_voice(func):
+    """Decorator for checking if a user is connect to voice. Only to be used within `sources.chat.DGVoiceChat` instances.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        if self.voice and _config.ALLOW_VOICE:
+            return func(self, *args, **kwargs)
+    return _inner

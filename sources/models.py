@@ -1,5 +1,5 @@
 import tiktoken as _tiktoken
-from typing import Union as _Union, Type as _Type, Generic
+from typing import Union as _Union, Type as _Type
 
 class GPTModel:
 
@@ -40,8 +40,19 @@ class GPTModel:
     def __str__(cls) -> str:
         return cls._model
     
+class GPT3Davinci(GPTModel):
+    """OpenAI Davinci (Based on GPT 3)"""
+    
+    _model: str = "text-davinci-003"
+    _display_name: str = "Davinci"
+    _description: str = "Good at language tasks with good enough quality. GPT 3 Turbo is recommended instead."
+    
+    @classmethod
+    def __eq__(cls, __value: GPTModel) -> bool:
+        return cls.model == __value.model
+    
 class GPT3Turbo(GPTModel):
-    """Generative Pre-Trained Transformer 3 Turbo (gpt-3.5-turbo)"""
+    """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 
     _model: str = "gpt-3.5-turbo"
     _display_name: str = "GPT 3.5 Turbo"
@@ -62,4 +73,4 @@ class GPT4(GPTModel):
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
 
-GPTModelType = _Type[_Union[GPT3Turbo, GPT4]]
+GPTModelType = _Type[_Union[GPT3Davinci, GPT3Turbo, GPT4]]
