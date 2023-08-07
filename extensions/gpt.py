@@ -74,27 +74,27 @@ class gpt(commands.Cog):
             member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
             channel: discord.TextChannel = utils.assure_class_is_value(interaction.channel, discord.TextChannel)
             name = self.client.manage_defaults(member, name)
-
+            
             if channel and channel.type in ALLOWED_INTERACTIONS: # Check if in right channel
                 if convo := self.client.get_user_conversation(member, name): # Check if user has a conversation 
                     if self.client.get_user_has_permission(member, convo.model): # If user has model permission
 
                         header_text = f'{name} | {convo.model.display_name}'
-
+                        final_message_reply = ""
+                        
                         if stream == "y" or (convo.stream == True and stream != "n"):
                             await interaction.response.send_message("Asking...", ephemeral=False)
                             
                             msg: list[discord.Message] = []
                             reply = convo.ask_stream(message)
                             full_message = f"## {header_text}\n\n"
-                            actual_content: str = ""
                             i, start_message_at = 0, 0
                             sendable_portion = "<>"
 
                             async for t in reply:
                                 i += 1
                                 full_message += t
-                                actual_content += t
+                                final_message_reply += t
                                 
                                 sendable_portion = full_message[start_message_at * CHARACTER_LIMIT:((start_message_at + 1) * CHARACTER_LIMIT)]
                         
@@ -119,19 +119,21 @@ class gpt(commands.Cog):
                                 else:
                                     await msg[-1].edit(content=sendable_portion)
                                 
-                                if isinstance(convo, DGVoiceChat) and convo.voice:
-                                    await convo.speak(actual_content, convo.voice)
-                                return         
+                        else:         
                             
-                        await interaction.response.defer(ephemeral=False, thinking=True)
-                        reply = await convo.ask(message)
-                        final_user_reply = f"## {header_text}\n\n{reply}"
+                            await interaction.response.defer(ephemeral=False, thinking=True)
+                            final_message_reply = reply = await convo.ask(message)
+                            final_user_reply = f"## {header_text}\n\n{reply}"
+                            
+                            if len(final_user_reply) > CHARACTER_LIMIT:
+                                file_reply: discord.File = utils.to_file(final_user_reply, "reply.txt")
+                                await interaction.followup.send(file=file_reply, ephemeral=False)
+                            else:
+                                await interaction.followup.send(final_user_reply, ephemeral=False)
 
-                        if len(final_user_reply) > CHARACTER_LIMIT:
-                            file_reply: discord.File = utils.to_file(final_user_reply, "reply.txt")
-                            return await interaction.followup.send(file=file_reply, ephemeral=False)
-                        return await interaction.followup.send(final_user_reply, ephemeral=False)
-                    
+                        if isinstance(convo, DGVoiceChat):
+                            await convo.speak(final_message_reply)
+                        return
                     else:
                         await interaction.response.send_message(ModelErrors.MODEL_LOCKED) 
                 else:
@@ -213,6 +215,7 @@ class gpt(commands.Cog):
                 {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
                 {"name": "Is Active", "value": str(convo.is_active), "inline": False},
                 {"name": "GPT Model", "value": str(convo.model.display_name), "inline": False},
+                {"name": "Is Voice", "value": f"Yes" if isinstance(convo, DGVoiceChat) else "No", "inline": False},
                 {"name": f"{self.client.application.name} Version", "value": VERSION, "inline": False},
                 {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False}
             )
@@ -231,5 +234,43 @@ class gpt(commands.Cog):
         name = self.client.manage_defaults(member, name)
         await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else f"You do not have any {BOT_NAME} conversations.")
 
+    @discord.app_commands.command(name="shutup", description=f"If you have a {BOT_NAME} voice chat and you want it to stop talking a reply, execute this command.")
+    async def shutup_reply(self, interaction: discord.Interaction):
+        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+        default_chat = self.client.get_default_conversation(member)
+        if default_chat and isinstance(default_chat, DGVoiceChat):
+            default_chat.stop_speaking()
+            return await interaction.response.send_message(f"I have shut up.")
+        elif default_chat:
+            raise ChatIsTextOnly(default_chat)
+        else:
+            raise UserDoesNotHaveChat(str(default_chat))
+
+    @discord.app_commands.command(name="pause", description="Paused the bots voice reply.")
+    async def pause_reply(self, interaction: discord.Interaction):
+        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+        default_chat = self.client.get_default_conversation(member)
+        
+        if default_chat and isinstance(default_chat, DGVoiceChat):
+            default_chat.pause_speaking()
+            return await interaction.response.send_message(f"I have paused my reply.")
+        elif default_chat:
+            raise ChatIsTextOnly(default_chat)
+        else:
+            raise UserDoesNotHaveChat(str(default_chat))
+    
+    @discord.app_commands.command(name="resume", description="Resues the bots voice reply.")
+    async def resume_reply(self, interaction: discord.Interaction):
+        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+        default_chat = self.client.get_default_conversation(member)
+        
+        if default_chat and isinstance(default_chat, DGVoiceChat):
+            default_chat.resume_speaking()
+            return await interaction.response.send_message(f"Speaking...")
+        elif default_chat:
+            raise ChatIsTextOnly(default_chat)
+        else:
+            raise UserDoesNotHaveChat(str(default_chat))
+        
 async def setup(client):
     await client.add_cog(gpt(client))

@@ -1,6 +1,6 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
-import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, gtts as _gtts, io as _io, asyncio as _asyncio
+import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio
 from discord.ext import commands as _commands
 
 from typing import (
@@ -311,7 +311,9 @@ class DGVoiceChat(DGTextChat):
         """
         super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread)
         self._voice = voice
+        self._client_voice_instance: _Union[_discord.VoiceClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._type = DGChatTypesEnum.VOICE
+        self._is_speaking = False
     
     @property
     def voice(self):
@@ -325,26 +327,62 @@ class DGVoiceChat(DGTextChat):
     def type(self):
         return self._type
 
-    async def manage_voice(self, voice_channel: _Union[_discord.VoiceChannel, _discord.StageChannel]) -> _discord.VoiceClient:
-        voice: _discord.VoiceClient = _discord.utils.get(self.bot.voice_clients, guild=voice_channel.guild) # type: ignore because all single instances are `discord.VoiceClient`
+    @property
+    def is_speaking(self) -> bool:
+        return self.client_voice.is_playing() if self.client_voice else False
+    
+    @property
+    def client_voice(self) -> _discord.VoiceClient | None:
+        return self._client_voice_instance
+    
+    @client_voice.setter
+    def client_voice(self, _bot_vc: _discord.VoiceClient | None) -> None:
+        self._client_voice_instance = _bot_vc
+        
+    async def manage_voice(self) -> _discord.VoiceClient:
+        
+        voice: _discord.VoiceClient = _discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
+        print(voice, self.voice)
         
         # I know elif exists. I am doing this for effiency.
-        if voice and voice.is_connected() and (voice_channel == voice.channel):
+        if voice and voice.is_connected() and (self.voice == voice.channel):
             pass
         else:
-            if voice and voice.is_connected() and (voice_channel != voice.channel):
-                await voice.move_to(voice_channel)
-            else:
-                voice = await voice_channel.connect()
+            if voice and voice.is_connected() and (self.voice != voice.channel):
+                await voice.move_to(self.voice)
+            elif self.voice:
+                self.client_voice = voice = await self.voice.connect()
+                
             await _asyncio.sleep(5.0)
         
         return voice
     
     @check_enabled
     @has_voice
-    async def speak(self, text: str, voice_channel: _Union[_discord.VoiceChannel, _discord.StageChannel]):
-        new_voice = await self.manage_voice(voice_channel)
+    async def speak(self, text: str):
+        new_voice = await self.manage_voice()
         new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(text).process_text(), pipe=True))
+    
+    @check_enabled
+    @has_voice_with_error
+    @dg_in_voice_channel
+    @dg_is_speaking
+    def stop_speaking(self):
+        if self.client_voice: self.client_voice.stop()
+    
+    @check_enabled
+    @has_voice_with_error
+    @dg_in_voice_channel
+    @dg_is_speaking
+    def pause_speaking(self):
+        if self.client_voice: self.client_voice.pause()
+    
+    @check_enabled
+    @has_voice_with_error
+    @dg_in_voice_channel
+    @dg_isnt_speaking
+    def resume_speaking(self):
+        if self.client_voice: self.client_voice.resume()
         
     def __str__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.user}, voice={self.voice}, is_active={self.is_active}>"

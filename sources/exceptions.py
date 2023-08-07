@@ -2,7 +2,7 @@ import discord as _discord, httpx as _httpx
 from typing import Any as _Any, Union as _Union
 from .errors import *
 from .models import *
-from .chat import *
+from sources import chat
 
 # Models
 
@@ -113,6 +113,31 @@ class HistoryNotExist(DGException):
 
 class ChatChannelDoesntExist(DGException):
     reply = ConversationErrors.CHANNEL_DOESNT_EXIST
-    def __init__(self, message: _discord.Message, conversation: _Union[DGChatType, None]):
+    def __init__(self, message: _discord.Message, conversation: _Union[chat.DGChatType, None]):
         """Will be raised when a channel from a discord guild no longer exists (reletive to the bot, this could mean the bot was kicked / banned)"""
         super().__init__(self.reply.format(message, message.guild, conversation, conversation), message, conversation, log_error=True, send_exceptions=False)
+
+class DGNotTalking(DGException):
+    reply = VoiceConversationErrors.NOT_SPEAKING
+    def __init__(self, voice_channel: _discord.VoiceChannel):
+        super().__init__(self.reply, voice_channel)
+
+class DGNotInVoiceChat(DGException):
+    reply = VoiceConversationErrors.NOT_IN_CHANNEL
+    def __init__(self, voice_channel: _discord.VoiceChannel):
+        super().__init__(self.reply, voice_channel)
+
+class UserNotInVoiceChannel(DGException):
+    reply = VoiceConversationErrors.USER_NOT_IN_CHANNEL
+    def __init__(self, supposed_voice_channel: _discord.VoiceChannel | _Any):
+        super().__init__(self.reply, supposed_voice_channel)
+    
+class DGIsTalking(DGException):
+    reply = VoiceConversationErrors.IS_SPEAKING
+    def __init__(self, conversation: chat.DGChatType):
+        super().__init__(self.reply, conversation)
+
+class ChatIsTextOnly(DGException):
+    reply = VoiceConversationErrors.TEXT_ONLY_CHAT
+    def __init__(self, conversation: chat.DGChatType):
+        super().__init__(self.reply, conversation)

@@ -22,6 +22,15 @@ class ConversationErrors:
     CONVO_CANNOT_TALK = "We cannot interact here. You must be in a discord server channel to make commands. (No stages, private direct messages)"
     CANNOT_STOP_IN_CHANNEL = "You cannot do /stop in the thread created by your conversation ({})"
     CHANNEL_DOESNT_EXIST = 'Channel: "{}" pertaining to "{}" from conversation "{}" belonging to user "{}" no longer exists.'
+    TEXT_ONLY_CONVO_TYPE = "You only have a text chat."
+    
+class VoiceConversationErrors:
+    """Errors pertaining to spoken conversation."""
+    NOT_SPEAKING = "I am not speaking."
+    NOT_IN_CHANNEL = "I am not in your voice channel."
+    USER_NOT_IN_CHANNEL = "You are not in a voice channel."
+    IS_SPEAKING = "I am currently speaking."
+    TEXT_ONLY_CHAT = "This chat is text only."
     
 class UserErrors:
     """Errors pertaining to user status."""

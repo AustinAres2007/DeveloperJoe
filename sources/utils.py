@@ -22,7 +22,6 @@ def assure_class_is_value(object, __type: type):
         return object
     raise _exceptions.IncorrectInteractionSetting(object, type)
 
-
 def check_enabled(func):
     """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised.
 
@@ -31,8 +30,21 @@ def check_enabled(func):
     """
     def _inner(self, *args, **kwargs):
         if self.is_active:
+            print("CHAT CHECK")
             return func(self, *args, **kwargs)
         raise _exceptions.ChatIsDisabledError(self)
+    return _inner
+
+def dg_in_voice_channel(func):
+    """Decorator for checking if the bot is in a voice channel with you."""
+    
+    def _inner(self, *args, **kwargs):
+        print(self.client_voice)
+        if self.client_voice:
+            print("INVC CHECK")
+            return func(self, *args, **kwargs)
+        raise _exceptions.DGNotInVoiceChat(self.voice)
+    
     return _inner
 
 def has_voice(func):
@@ -42,6 +54,48 @@ def has_voice(func):
         func (_type_): The function.
     """
     def _inner(self, *args, **kwargs):
-        if self.voice and _config.ALLOW_VOICE:
+        if self.voice:
+            print("VC CHECK")
             return func(self, *args, **kwargs)
+    return _inner
+
+def has_voice_with_error(func):
+    """Decorator for checking if a user is connect to voice. Will raise `ERROR` if the check fails. Only to be used within `sources.chat.DGVoiceChat` instances.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        if self.voice:
+            print("HVC CHECK")
+            return func(self, *args, **kwargs)
+        raise _exceptions.UserNotInVoiceChannel(self.voice)
+    return _inner
+
+def dg_is_speaking(func):
+    """Decorator for checking if the bot instance is talking in the users channel.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        if self.is_speaking:
+            print("SPEAKING CHECK")
+            return func(self, *args, **kwargs)
+        raise _exceptions.DGNotTalking(self.voice)
+    
+    return _inner
+
+def dg_isnt_speaking(func):
+    """Decorator for checking if the bot instance is in the users channel, but not speaking.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        print(self.client_voice, self.client_voice.is_paused())
+        if self.client_voice and self.client_voice.is_paused():
+            return func(self, *args, **kwargs)
+        raise _exceptions.DGIsTalking(self.voice)
+
     return _inner

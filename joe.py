@@ -11,7 +11,7 @@ if not (v_info.major >= 3 and v_info.minor > 8):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math, traceback
+    import json, openai, openai_async, tiktoken, sqlite3, math, traceback, aiohttp
 
     import discord, logging, asyncio, os, datetime
     from discord.ext import commands
@@ -187,6 +187,9 @@ class DeveloperJoe(commands.Bot):
         elif current_default:
             return current_default.display_name
 
+    def get_member_conversation_bot_voice_instance(self, voice_channel: discord.VoiceChannel):
+        return discord.utils.get(self.voice_clients, guild=voice_channel.guild)
+    
     async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
         """For internal use. Error handler for DG.
 
@@ -326,12 +329,18 @@ async def run_bot():
         
         async with DeveloperJoe(command_prefix=commands.when_mentioned_or("?"), intents=DeveloperJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
+            
     except KeyboardInterrupt:
         if client:
             await client.close()
             exit(0)
+            
     except discord.errors.LoginFailure:
         print(f"Improper Discord API Token given in {TOKEN_FILE}, please make sure the API token is still valid.")
+        exit(1)
+        
+    except aiohttp.ClientConnectionError:
+        print("You are not connected to WiFi.")
         exit(1)
 
 if __name__ == "__main__":

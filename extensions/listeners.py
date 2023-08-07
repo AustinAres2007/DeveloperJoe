@@ -25,35 +25,47 @@ class listeners(commands.Cog):
                         
                         if has_private_thread and convo.is_processing != True:
                             
-                            header_text = f'{convo.display_name} | {convo.model.display_name}'
-
+                            info = f'{convo.display_name} | {convo.model.display_name}'
+                            header_and_message = f"## {info}\n\n"
+                            
+                            final_message_reply = ""
+        
+                            # If streamed reply
                             if convo.stream == True:
+                                
                                 msg: list[discord.Message] = [await message.channel.send("Asking...")]
                                 streamed_reply: AsyncGenerator = convo.ask_stream(content)
-                                full_message = f"## {header_text}\n\n"
+
                                 sendable_portion = "<>"
                                 ind, start_message_at = 0, 0
                                 
                                 # enumerate is not compatible with async syntax. There are some external modules that can do just that. But I do not want to rely on those.
                                 async for token in streamed_reply:
                                     ind += 1
-                                    full_message += token
-                                    sendable_portion = full_message[start_message_at * CHARACTER_LIMIT:((start_message_at + 1) * CHARACTER_LIMIT)]
+                                    header_and_message += token
+                                    final_message_reply += token
+                                    sendable_portion = header_and_message[start_message_at * CHARACTER_LIMIT:((start_message_at + 1) * CHARACTER_LIMIT)]
 
-                                    if len(full_message) and len(full_message) >= (start_message_at + 1) * CHARACTER_LIMIT:
+                                    if len(header_and_message) and len(header_and_message) >= (start_message_at + 1) * CHARACTER_LIMIT:
                                         await msg[-1].edit(content=sendable_portion)
                                         msg.append(await msg[-1].channel.send(":)"))
 
-                                    start_message_at = len(full_message) // CHARACTER_LIMIT
+                                    start_message_at = len(header_and_message) // CHARACTER_LIMIT
 
                                     if ind and ind % STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
                                         await msg[-1].edit(content=sendable_portion)
                                 else:
                                     return await msg[-1].edit(content=sendable_portion)
 
-                            final_reply = f"## {header_text}\n\n{await convo.ask(content)}"
-                            await message.channel.send(final_reply)
-                        
+                            # If normal reply
+                            else:
+                                final_message_reply = reply = await convo.ask(content)
+                                final_reply = header_and_message + reply
+                                await message.channel.send(final_reply)
+
+                            if isinstance(convo, DGVoiceChat):
+                                await convo.speak(final_message_reply)
+                            return
                         elif has_private_thread and convo.is_processing == True:
                             raise DGException(f"{BOT_NAME} is still processing your last request.")
                     else:
@@ -80,6 +92,7 @@ class listeners(commands.Cog):
     async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
         voice: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
+        # TODO: When `sources.chat.DGVoiceChat.manage_voice` is called, if there is a new bot voice connection, set DGVoiceChat.client_voice to the discord.VoiceClient instance.
         if convos := self.client.get_all_user_conversations(member):
             for convo in convos.values(): 
                 if isinstance(convo, DGVoiceChat):
