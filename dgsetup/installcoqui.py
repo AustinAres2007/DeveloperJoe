@@ -6,5 +6,6 @@ COQUI_TTS_MODELS = [
 
 if __name__ == "__main__":
     for model in COQUI_TTS_MODELS:
+        print(f"\nDownloading: {model}\n")
         TTS(model).download_model_by_name(model)
     print(f"Got models at: {TTS.get_models_file_path()}")

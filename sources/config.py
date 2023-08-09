@@ -13,8 +13,8 @@ STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of 
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
 DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT4 # gpt-4, or gpt-3.5-turbo
 
-#DEFAULT_TTS_MODEL = tts.GTTSModel
-ALLOW_VOICE = True
+VOICE_SPEEDUP_MULTIPLIER = 1.167 # How fast you want the default text-to-speach model to talk. (1 = default, quite slow. 2 = Quite fast)
+ALLOW_VOICE = True # Weather voice support is enabled. It is by default, and will require additional setup if you do not have FFMPEG installed. It is easy to do so.
 
 TIMEZONE = _datetime.timezone.utc # What timezone to use (UTC by default)
 
@@ -30,7 +30,7 @@ CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
-VERSION = "1.3.0-L"
+VERSION = "1.3.0-L" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is far from final release version)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)

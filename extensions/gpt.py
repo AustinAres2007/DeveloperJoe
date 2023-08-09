@@ -19,7 +19,9 @@ class gpt(commands.Cog):
     @discord.app_commands.command(name="start", description=f"Start a {BOT_NAME} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
-                                   gpt_model="The model being used for the AI (GPT 3 or GPT 4)"
+                                   gpt_model="The model being used for the AI (GPT 3 or GPT 4)",
+                                   in_thread=f"If you want a dedicated private thread to talk with {BOT_NAME} in.",
+                                   speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {BOT_NAME} will join and speak your replies."
     )
     @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=MODEL_CHOICES, in_thread=yes_no_choice, speak_reply=yes_no_choice)
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None):
@@ -275,7 +277,7 @@ class gpt(commands.Cog):
         
         if default_chat and isinstance(default_chat, DGVoiceChat):
             default_chat.resume_speaking()
-            return await interaction.response.send_message(f"Speaking...")
+            return await interaction.response.send_message("Speaking...")
         elif default_chat:
             raise ChatIsTextOnly(default_chat)
         else:

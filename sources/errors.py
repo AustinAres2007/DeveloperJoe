@@ -33,6 +33,7 @@ class VoiceConversationErrors:
     TEXT_ONLY_CHAT = "This chat is text only."
     NO_FFMPEG = "The bot owner does not currently have voice features enabled."
     NO_COQUI = "The bot owner does not have this voice model installed."
+    IS_PROCESSING_VOICE = "I am still processing / playing your last voice request."
     
 class UserErrors:
     """Errors pertaining to user status."""

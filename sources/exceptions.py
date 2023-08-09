@@ -152,3 +152,8 @@ class CoquiNotInstalled(DGException):
     reply = VoiceConversationErrors.NO_COQUI
     def __init__(self):
         super().__init__(self.reply)
+
+class IsProcessingVoice(DGException):
+    reply = VoiceConversationErrors.IS_PROCESSING_VOICE
+    def __init__(self, conversation: chat.DGChatType):
+        super().__init__(self.reply, conversation)

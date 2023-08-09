@@ -272,7 +272,7 @@ class DeveloperJoe(commands.Bot):
             
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (V: {VERSION})")
+            print(f"\n{self.application.name} Online (Version = {VERSION})\n")
 
             self.chats: dict[int, Union[dict[str, DGChatType], dict]] = {}
             self.default_chats: dict[str, Union[None, DGChatType]] = {}
@@ -316,6 +316,7 @@ class DeveloperJoe(commands.Bot):
             self.tree.on_error = self.handle_error
 
     async def setup_hook(self):
+        print("Cogs\n")
         for file in os.listdir(f"extensions"):
             if file.endswith(".py"):
                 await self.load_extension(f"extensions.{file[:-3]}")
@@ -330,7 +331,7 @@ async def run_bot():
     """Runs the bot."""
     client = None
     try:
-        print(f"Tokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
+        print(f"\nTokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
         
         with open("misc/bot_log.log", "w+"):
             ...

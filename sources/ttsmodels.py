@@ -1,5 +1,6 @@
-import io as _io, gtts as _gtts
+import io as _io, gtts as _gtts, pydub as _pydub
 from . import exceptions
+from . import config
 
 global has_coqui
 
@@ -62,22 +63,27 @@ class GTTSModel(TTSModel):
         Returns:
             _io.BytesIO: The emulated MP3 file.
         """
-        _gtts.gTTS(self.text).write_to_fp(self.emulated_file_object)
+        _gtts.gTTS(self.text, ).write_to_fp(self.emulated_file_object)
         self.emulated_file_object.seek(0)
-        return self.emulated_file_object
+        
+        speed_up = _pydub.AudioSegment.from_file(self.emulated_file_object)
+        final = speed_up.speedup(playback_speed=config.VOICE_SPEEDUP_MULTIPLIER).export(_io.BytesIO())
+        
+        return final
 
 class CoquiTTSModel(TTSModel):
     """Coqui Text-to-Speach model."""
     def process_text(self) -> _io.BytesIO:
         if has_coqui:
-            m = TTS(installcoqui.COQUI_TTS_MODELS[0], progress_bar=False)
+            
+            m = TTS(installcoqui.COQUI_TTS_MODELS[0])
             r = m.tts(text=self.text, speed=1.5)
         
             if m.synthesizer:
                 with wave.Wave_write(self.emulated_file_object) as wv:
                     wv.setparams((1, 2, int(m.synthesizer.output_sample_rate), 0, "NONE", "not compressed"))
                     wv.writeframes(array.array('h', (int(sin * 32767) for sin in r if sin != 0)))
-                self.emulated_file_object.seek(0)
+                self.emulated_file_object.seek(0)            
             
             return self.emulated_file_object
         

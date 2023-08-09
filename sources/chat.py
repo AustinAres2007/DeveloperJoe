@@ -1,6 +1,6 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
-import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio
+import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio, pydub as _pydub
 from discord.ext import commands as _commands
 
 from typing import (
@@ -57,11 +57,19 @@ class DGTextChat:
         self.model = model
         self.tokens = 0
 
-        self._is_active, self.is_processing = True, False
+        self._is_processing_voice, self._is_active, self.is_processing = False, True, False
         self.chat_history, self.readable_history = [], []
         
         self._type = DGChatTypesEnum.TEXT
         _openai.api_key = self.oapi
+    
+    @property
+    def is_processing_voice(self) -> bool:
+        return self._is_processing_voice
+    
+    @is_processing_voice.setter
+    def is_processing_voice(self, is_proc: bool):
+        self._is_processing_voice = is_proc
     
     @property
     def type(self):
@@ -359,10 +367,13 @@ class DGVoiceChat(DGTextChat):
     
     @check_enabled
     @has_voice
-    async def speak(self, text: str):
+    @dg_isnt_processing
+    async def speak(self, text: str): 
+        self.is_processing_voice = True
         new_voice = await self.manage_voice()
-        new_voice.play(_discord.FFmpegPCMAudio(source=CoquiTTSModel(text).process_text(), pipe=True))
-    
+        new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(text).process_text(), pipe=True))
+        self.is_processing_voice = False
+        
     @check_enabled
     @has_voice_with_error
     @dg_in_voice_channel
