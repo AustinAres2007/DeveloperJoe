@@ -31,6 +31,7 @@ class VoiceConversationErrors:
     USER_NOT_IN_CHANNEL = "You are not in a voice channel."
     IS_SPEAKING = "I am currently speaking."
     TEXT_ONLY_CHAT = "This chat is text only."
+    NO_FFMPEG = "The bot owner does not currently have voice features enabled."
     
 class UserErrors:
     """Errors pertaining to user status."""

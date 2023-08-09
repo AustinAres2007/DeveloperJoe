@@ -141,3 +141,9 @@ class ChatIsTextOnly(DGException):
     reply = VoiceConversationErrors.TEXT_ONLY_CHAT
     def __init__(self, conversation: chat.DGChatType):
         super().__init__(self.reply, conversation)
+
+class FFMPEGNotInstalled(DGException):
+    reply = VoiceConversationErrors.NO_FFMPEG
+    def __init__(self, ffmpeg_status):
+        super().__init__(self.reply, ffmpeg_status)
+        

@@ -46,15 +46,22 @@ class gpt(commands.Cog):
                 raise DGException(ConversationErrors.CONVO_LIMIT)
             
             # Actual Code
-
-
+            
             if in_thread == "y":
                 chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
                 await chat_thread.add_user(member)
                 await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
             chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
-            convo = DGTextChat(*chat_args) if speak_reply != "y" else DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
+            
+            if speak_reply != "y":
+                convo = DGTextChat(*chat_args)
+            elif speak_reply == "y" and self.client.has_ffmpeg:
+                convo = DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
+            elif speak_reply == "y" and self.client.has_ffmpeg == False:
+                raise FFMPEGNotInstalled(self.client.has_ffmpeg)
+            else:
+                convo = DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
             await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
@@ -131,9 +138,11 @@ class gpt(commands.Cog):
                             else:
                                 await interaction.followup.send(final_user_reply, ephemeral=False)
 
+                    
                         if isinstance(convo, DGVoiceChat):
                             await convo.speak(final_message_reply)
                         return
+                        
                     else:
                         await interaction.response.send_message(ModelErrors.MODEL_LOCKED) 
                 else:

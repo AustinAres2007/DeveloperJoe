@@ -32,6 +32,16 @@ then
         $PYTHON_PATH -m venv $DIR && . "$DIR/bin/activate"
         $PYTHON_COMMAND -m pip install -r "$DIR/dependencies/requirements.txt"
         
+        echo "Do you want to install CoQui-TTS? It is a text-to-speach system that sounds very life-like, and will be used for speach replies if the user enables it.\n\nDespite that, I ask you to proceed with caution. CoQui can be unstable on many systems, take up significant resources and HDD Space.\n\n('y' to continue, anything else to decline the install.)"
+        read WANTSVOICE
+
+        if [ "$WANTSVOICE" = "y" ]
+        then
+            $PYTHON_COMMAND -m pip install -r "$DIR/dgsetup/requirements-voice.txt"
+            $PYTHON_COMMAND -m pip install mecab-python3 unidic-lite
+            $PYTHON_COMMAND "$DIR/dgsetup/installcoqui.py"
+        fi
+
         if [ ! -e "$DIR/dependencies/api-keys.key" ]
         then
             echo "WARNING: I do not detect a "dependencies/api-keys.key" file. I will create one, but no API tokens will be inserted. Are you sure you want to continue? (Press anything if so, CTRL + C to exit)"
@@ -41,7 +51,7 @@ then
 
         if [ -e "$DIR/misc/bot_log.log" ] && [ -e "$DIR/dependencies/dg_database.db" ]
         then
-            echo Finished.
+            echo "\n\nFinished!"
         else
             echo Performing first bot startup..
             $PYTHON_COMMAND "$DIR/joe.py"

@@ -11,12 +11,13 @@ if not (v_info.major >= 3 and v_info.minor > 8):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math, traceback, aiohttp
+    import json, openai, openai_async, tiktoken, sqlite3, math
 
-    import discord, logging, asyncio, os, datetime
+    import discord, logging, asyncio, os, datetime, traceback, aiohttp
     from discord.ext import commands
     from typing import Union
-
+    from distutils.spawn import find_executable
+    
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
@@ -56,9 +57,19 @@ class DeveloperJoe(commands.Bot):
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(BOT_NAME)
+        self.__ffmpeg__ = True if find_executable(executable="ffmpeg") else False
         
         super().__init__(*args, **kwargs)
 
+    @property
+    def has_ffmpeg(self) -> bool:
+        """Returns weather the host system has FFMPEG installed.
+
+        Returns:
+            bool: If FFMPEG is installed.
+        """
+        return self.__ffmpeg__
+    
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=TIMEZONE) - self.start_time)
     
@@ -297,6 +308,7 @@ class DeveloperJoe(commands.Bot):
                 check_servers()
 
                 print("Done! Running.")
+                
             self.chats = {user.id: {} for user in self.users}
             self.chats = self.chats
             self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
