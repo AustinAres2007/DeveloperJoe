@@ -4,7 +4,6 @@ from discord import ActivityType as _ActivityType
 from discord.app_commands import Choice as _Choice
 from discord import TextChannel as _TextChannel
 
-from . import tts
 from . import models
 
 # User Configuration
@@ -14,7 +13,7 @@ STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of 
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
 DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT4 # gpt-4, or gpt-3.5-turbo
 
-DEFAULT_TTS_MODEL = tts.GTTSModel
+#DEFAULT_TTS_MODEL = tts.GTTSModel
 ALLOW_VOICE = True
 
 TIMEZONE = _datetime.timezone.utc # What timezone to use (UTC by default)

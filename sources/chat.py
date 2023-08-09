@@ -17,7 +17,7 @@ from .errors import *
 from .history import *
 from .models import *
 from .utils import *
-from .tts import *
+from .ttsmodels import GTTSModel, CoquiTTSModel
 
 class DGTextChat:
     """Represents a text-only DG Chat."""
@@ -361,7 +361,7 @@ class DGVoiceChat(DGTextChat):
     @has_voice
     async def speak(self, text: str):
         new_voice = await self.manage_voice()
-        new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(text).process_text(), pipe=True))
+        new_voice.play(_discord.FFmpegPCMAudio(source=CoquiTTSModel(text).process_text(), pipe=True))
     
     @check_enabled
     @has_voice_with_error

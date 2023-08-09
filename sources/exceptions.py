@@ -3,6 +3,7 @@ from typing import Any as _Any, Union as _Union
 from .errors import *
 from .models import *
 from sources import chat
+from .config import *
 
 # Models
 
@@ -147,3 +148,7 @@ class FFMPEGNotInstalled(DGException):
     def __init__(self, ffmpeg_status):
         super().__init__(self.reply, ffmpeg_status)
         
+class CoquiNotInstalled(DGException):
+    reply = VoiceConversationErrors.NO_COQUI
+    def __init__(self):
+        super().__init__(self.reply)

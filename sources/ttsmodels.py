@@ -1,5 +1,19 @@
 import io as _io, gtts as _gtts
+from . import exceptions
 
+global has_coqui
+
+try:
+    from TTS.api import TTS
+    from dgsetup import installcoqui
+    import wave, array
+except ModuleNotFoundError:
+    print("Coqui not installed. Ignoring..")
+    has_coqui = False
+else:
+    print("Coqui installed. (Imported)")
+    has_coqui = True
+    
 """I want to put more TTS models here, but using one that is not system dependent and has a package for python is difficult."""
 
 class TTSModel:
@@ -51,4 +65,23 @@ class GTTSModel(TTSModel):
         _gtts.gTTS(self.text).write_to_fp(self.emulated_file_object)
         self.emulated_file_object.seek(0)
         return self.emulated_file_object
+
+class CoquiTTSModel(TTSModel):
+    """Coqui Text-to-Speach model."""
+    def process_text(self) -> _io.BytesIO:
+        if has_coqui:
+            m = TTS(installcoqui.COQUI_TTS_MODELS[0], progress_bar=False)
+            r = m.tts(text=self.text, speed=1.5)
+        
+            if m.synthesizer:
+                with wave.Wave_write(self.emulated_file_object) as wv:
+                    wv.setparams((1, 2, int(m.synthesizer.output_sample_rate), 0, "NONE", "not compressed"))
+                    wv.writeframes(array.array('h', (int(sin * 32767) for sin in r if sin != 0)))
+                self.emulated_file_object.seek(0)
+            
+            return self.emulated_file_object
+        
+        raise exceptions.CoquiNotInstalled()
+        
+        
         

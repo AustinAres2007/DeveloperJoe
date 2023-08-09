@@ -1,4 +1,4 @@
-from .config import *
+from . import config
 
 """Error reply texts."""
 
@@ -8,14 +8,14 @@ GENERIC_ERROR = "Unknown error, contact administrator."
 class ConversationErrors:
     """Errors pertaining to general conversations."""
 
-    NO_CONVO = f"You either do not have a conversation with {BOT_NAME}, or the provided name does not match any chats you currently have."
+    NO_CONVO = f"You either do not have a conversation with {config.BOT_NAME}, or the provided name does not match any chats you currently have."
     HAS_CONVO = "There is already a conversation with the specified name."
-    CANNOT_CONVO = f"""You cannot interact with {BOT_NAME} inside this channel. You may only interact with {BOT_NAME} in 
-    a server text channel, A private server thread (Only two users, you and {BOT_NAME}) or in Direct Messages."""
+    CANNOT_CONVO = f"""You cannot interact with {config.BOT_NAME} inside this channel. You may only interact with {config.BOT_NAME} in 
+    a server text channel, A private server thread (Only two users, you and {config.BOT_NAME}) or in Direct Messages."""
     NO_CONVO_WITH_NAME = "No conversation with the specified name."
-    CONVO_LIMIT = f"You cannot start anymore than {CHATS_LIMIT} chats."
+    CONVO_LIMIT = f"You cannot start anymore than {config.CHATS_LIMIT} chats."
     CONVO_NEEDED_NAME = "If you have any more than 1 chat, you must chose a name."
-    ALREADY_PROCESSING_CONVO = f"{BOT_NAME} is already processing a request for you."
+    ALREADY_PROCESSING_CONVO = f"{config.BOT_NAME} is already processing a request for you."
 
     CONVO_TOKEN_LIMIT = "You have reached your maximum conversation length. I have disabled your chat. You may still export and save it."
     CONVO_CLOSED = "The chat selected has been closed. This is because you have reached the conversation limit. You can still export and save this chat. Please start another if you wish to keep talking."
@@ -32,6 +32,7 @@ class VoiceConversationErrors:
     IS_SPEAKING = "I am currently speaking."
     TEXT_ONLY_CHAT = "This chat is text only."
     NO_FFMPEG = "The bot owner does not currently have voice features enabled."
+    NO_COQUI = "The bot owner does not have this voice model installed."
     
 class UserErrors:
     """Errors pertaining to user status."""
