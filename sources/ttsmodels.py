@@ -58,22 +58,28 @@ class TTSModel:
 class GTTSModel(TTSModel):
     """Google Text-to-Speach model."""
     def process_text(self) -> _io.BytesIO:
-        """Processes test into the Google TTS voice.
+        """Processes text into the Google TTS voice.
 
         Returns:
             _io.BytesIO: The emulated MP3 file.
         """
-        _gtts.gTTS(self.text, ).write_to_fp(self.emulated_file_object)
-        self.emulated_file_object.seek(0)
         
-        speed_up = _pydub.AudioSegment.from_file(self.emulated_file_object)
-        final = speed_up.speedup(playback_speed=config.VOICE_SPEEDUP_MULTIPLIER).export(_io.BytesIO())
+        _temp_file = _io.BytesIO()
+        _gtts.gTTS(self.text).write_to_fp(_temp_file)
+        _temp_file.seek(0)
         
-        return final
+        speed_up = _pydub.AudioSegment.from_file(_temp_file)
+        return speed_up.speedup(playback_speed=config.VOICE_SPEEDUP_MULTIPLIER).export(self.emulated_file_object)
+        
+        
 
 class CoquiTTSModel(TTSModel):
     """Coqui Text-to-Speach model."""
     def process_text(self) -> _io.BytesIO:
+        """
+        Probably wont use this model. It sounds really good for general conversation but for anything out of a normal conversation.
+        It struggles with different terminologies (that derive from from foreign languages) acronyms, and shorthand. (For example, instead of saying "GPT-3" It will say NOTHING.)
+        """
         if has_coqui:
             
             m = TTS(installcoqui.COQUI_TTS_MODELS[0])

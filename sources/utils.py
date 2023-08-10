@@ -101,13 +101,14 @@ def dg_isnt_speaking(func):
     return _inner
 
 def dg_isnt_processing(func):
-    """Decorator for checking if a conversation is processing a voice request.
+    """Decorator for checking if a conversation is processing a request.
 
     Args:
         func (_type_): The function.
     """
     def _inner(self, *args, **kwargs):
-        if not self.is_processing_voice:
+        print(self.is_processing)
+        if not self.is_processing:
             return func(self, *args, **kwargs)
         raise _exceptions.IsProcessingVoice(self)
 

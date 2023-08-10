@@ -33,18 +33,11 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 ## Errors
 
-* If there are any errors, check the file `misc/bot_log.log` and contact me, give me the contents of said file, and I will resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
+* If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
 ## Release Notes 1.3.0
 
 1. Voice Support
-
-## Future
-
-* ~~Make shell script that can install everything for the user manually.~~
-* ~~GPT Models can be locked behind roles or permissions.~~
-* ~~Add proper error handling~~
-* Add voice support
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
 [^op]: If you want details, use any Python version 3.9 and above, and execute `joe.py` within the root folder of DeveloperJoe.

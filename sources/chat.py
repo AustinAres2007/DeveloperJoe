@@ -57,23 +57,15 @@ class DGTextChat:
         self.model = model
         self.tokens = 0
 
-        self._is_processing_voice, self._is_active, self.is_processing = False, True, False
+        self._is_active, self.is_processing = True, False
         self.chat_history, self.readable_history = [], []
         
-        self._type = DGChatTypesEnum.TEXT
+
         _openai.api_key = self.oapi
     
     @property
-    def is_processing_voice(self) -> bool:
-        return self._is_processing_voice
-    
-    @is_processing_voice.setter
-    def is_processing_voice(self, is_proc: bool):
-        self._is_processing_voice = is_proc
-    
-    @property
     def type(self):
-        return self._type
+        return DGChatTypesEnum.TEXT
     
     @property
     def is_active(self) -> bool:
@@ -320,7 +312,6 @@ class DGVoiceChat(DGTextChat):
         super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread)
         self._voice = voice
         self._client_voice_instance: _Union[_discord.VoiceClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
-        self._type = DGChatTypesEnum.VOICE
         self._is_speaking = False
     
     @property
@@ -333,7 +324,7 @@ class DGVoiceChat(DGTextChat):
     
     @property
     def type(self):
-        return self._type
+        return DGChatTypesEnum.VOICE
 
     @property
     def is_speaking(self) -> bool:
@@ -369,10 +360,11 @@ class DGVoiceChat(DGTextChat):
     @has_voice
     @dg_isnt_processing
     async def speak(self, text: str): 
-        self.is_processing_voice = True
+        self.is_processing = True
         new_voice = await self.manage_voice()
         new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(text).process_text(), pipe=True))
-        self.is_processing_voice = False
+        print("noLonger")
+        self.is_processing = False
         
     @check_enabled
     @has_voice_with_error
