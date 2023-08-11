@@ -10,9 +10,9 @@ from typing import (
 )
 
 from enum import Enum as _Enum
+from . import exceptions
 
 from .config import *
-from .exceptions import *
 from .errors import *
 from .history import *
 from .models import *
@@ -149,7 +149,7 @@ class DGTextChat:
                 r_history.extend([kwargs, dict(actual_reply)])
                 self.readable_history.append(r_history)
             else:
-                raise GPTReplyError(reply, type(reply))
+                raise exceptions.GPTReplyError(reply, type(reply))
             
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
@@ -162,7 +162,7 @@ class DGTextChat:
 
                 self.readable_history.append(r_history)
             else:
-                raise GPTReplyError(image_request, type(image_request), dir(image_request))
+                raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
         
         else:
             error = f"Generic ({query_type})"
@@ -190,11 +190,11 @@ class DGTextChat:
                 yield c_token
             elif stop_reason == "length":
                 add_history = self.is_active = False
-                raise GPTReachedLimit()
+                raise exceptions.GPTReachedLimit()
 
             elif stop_reason == "content_filter":
                 add_history = False
-                raise GPTContentFilter(kwargs["content"])
+                raise exceptions.GPTContentFilter(kwargs["content"])
 
         if add_history == True:
             replicate_reply = {"role": "assistant", "content": replied_content}
@@ -264,7 +264,7 @@ class DGTextChat:
             str: A farewell message.
         """
         if isinstance(self.chat_thread, _discord.Thread) and self.chat_thread.id == interaction.channel_id:
-            raise CannotDeleteThread(self.chat_thread)
+            raise exceptions.CannotDeleteThread(self.chat_thread)
         try:
             farewell = f"Ended chat: {self.display_name} with {BOT_NAME}!"
             if save_history == "y":
@@ -277,7 +277,7 @@ class DGTextChat:
                 await self.chat_thread.delete()
             return farewell
         except _discord.Forbidden as e:
-            raise DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
+            raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.user} is_active={self.is_active}>"
@@ -313,6 +313,7 @@ class DGVoiceChat(DGTextChat):
         self._voice = voice
         self._client_voice_instance: _Union[_discord.VoiceClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
+        self.voice_tss_queue: list[str] = []
     
     @property
     def voice(self):
@@ -341,7 +342,6 @@ class DGVoiceChat(DGTextChat):
     async def manage_voice(self) -> _discord.VoiceClient:
         
         voice: _discord.VoiceClient = _discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
-        print(voice, self.voice)
         
         # I know elif exists. I am doing this for effiency.
         if voice and voice.is_connected() and (self.voice == voice.channel):
@@ -358,13 +358,26 @@ class DGVoiceChat(DGTextChat):
     
     @check_enabled
     @has_voice
-    @dg_isnt_processing
     async def speak(self, text: str): 
-        self.is_processing = True
-        new_voice = await self.manage_voice()
-        new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(text).process_text(), pipe=True))
-        print("noLonger")
-        self.is_processing = False
+        try:
+            self.voice_tss_queue.append(text)
+            new_voice = await self.manage_voice()
+            
+            def _play_voice(index: int, error: _Any=None):
+                if not error:
+                    if not (index >= len(self.voice_tss_queue)):
+                        return new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(self.voice_tss_queue[index]).process_text(), pipe=True), after=lambda error: _play_voice(index + 1, error))
+                    return self.voice_tss_queue.clear()
+                else:
+                    raise exceptions.DGException(f"VoiceError: {str(error)}")
+                
+            _play_voice(0)
+            
+        except _discord.ClientException:
+            pass
+        except IndexError:
+            return self.voice_tss_queue.clear()
+            
         
     @check_enabled
     @has_voice_with_error

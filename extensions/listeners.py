@@ -101,6 +101,7 @@ class listeners(commands.Cog):
                     else:
                         await voice.disconnect()
                         voice.cleanup()
+                        convo.voice_tss_queue.clear()
 
 async def setup(client: DeveloperJoe):
     await client.add_cog(listeners(client))

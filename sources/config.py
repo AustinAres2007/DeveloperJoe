@@ -6,19 +6,19 @@ from discord import TextChannel as _TextChannel
 
 from . import models
 
-# User Configuration
+"""User Configuration"""
 
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
 STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
 DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT4 # gpt-4, or gpt-3.5-turbo
 
-VOICE_SPEEDUP_MULTIPLIER = 1.167 # How fast you want the default text-to-speach model to talk. (1 = default, quite slow. 2 = Quite fast)
+VOICE_SPEEDUP_MULTIPLIER = 1.17 # How fast you want the default text-to-speach model to talk. (1 = default, quite slow. 2 = Quite fast)
 ALLOW_VOICE = True # Weather voice support is enabled. It is by default, and will require additional setup if you do not have FFMPEG installed. It is easy to do so.
 
 TIMEZONE = _datetime.timezone.utc # What timezone to use (UTC by default)
 
-# ADVANCED
+"""ADVANCED"""
 
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
 QUERY_TIMEOUT = 10 # Timeout for destructive actions.
@@ -28,9 +28,9 @@ STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictate
 CHATS_LIMIT = 20 # How many chats a user can have at one time.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
-FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
+FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
-VERSION = "1.3.0-G" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is far from final release version)
+VERSION = "1.3.0" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is far from final release version)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
@@ -38,8 +38,7 @@ WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome te
 ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / welcome text is located. (Reletive)
 
 MODEL_CHOICES: list[_Choice] = [
-    _Choice(name="GPT 3 - Davinci", value="text-davinci-003"),
-    _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"), 
+    _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately.
 REGISTERED_MODELS = {

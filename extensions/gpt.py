@@ -101,6 +101,7 @@ class gpt(commands.Cog):
                             sendable_portion = "<>"
 
                             async for t in reply:
+                                
                                 i += 1
                                 full_message += t
                                 final_message_reply += t
