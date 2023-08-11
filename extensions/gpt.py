@@ -23,8 +23,8 @@ class gpt(commands.Cog):
                                    in_thread=f"If you want a dedicated private thread to talk with {BOT_NAME} in.",
                                    speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {BOT_NAME} will join and speak your replies."
     )
-    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=MODEL_CHOICES, in_thread=yes_no_choice, speak_reply=yes_no_choice)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None):
+    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=MODEL_CHOICES, in_thread=yes_no_choice)
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None):
         
         member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
         channel: discord.TextChannel = utils.assure_class_is_value(interaction.channel, discord.TextChannel)
@@ -54,6 +54,7 @@ class gpt(commands.Cog):
                 await chat_thread.add_user(member)
                 await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
+<<<<<<< HEAD
             chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
             
             if speak_reply != "y":
@@ -64,6 +65,10 @@ class gpt(commands.Cog):
                 raise FFMPEGNotInstalled(self.client.has_ffmpeg)
             else:
                 convo = DGTextChat(*chat_args)
+=======
+            chat_args = (self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
+            convo = DGTextChat(*chat_args)
+>>>>>>> cdc2bf0 (Removed references to voice capabilities)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
             await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
