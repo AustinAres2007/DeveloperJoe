@@ -1,7 +1,11 @@
 import discord as discord
+
 from discord.ext.commands import Cog as _Cog
 from joe import DeveloperJoe
-from sources import utils, guildconfig
+from sources import (
+    utils, 
+    guildconfig
+)
 
 class Configuration(_Cog):
     def __init__(self, client):

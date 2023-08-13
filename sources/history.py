@@ -1,8 +1,10 @@
-import json as _json
+"""Module for anything ralating to conversation storage"""
 
-from typing import Iterable as _Iterable, Any as _Any
-from .database import *
-from .exceptions import *        
+import json as _json
+from . import (
+    database, 
+    exceptions
+)     
    
 class DGHistoryChat:
         
@@ -33,7 +35,7 @@ class DGHistoryChat:
     def private(self) -> bool:
         return self._private
  
-class DGHistorySession(DGDatabaseSession):
+class DGHistorySession(database.DGDatabaseSession):
 
     """
             Handles history between the end-user and the database.
@@ -59,7 +61,7 @@ class DGHistorySession(DGDatabaseSession):
         if self.retrieve_chat_history(history_id):
             self._exec_db_command("DELETE FROM history WHERE uid=?", (history_id,))
             return f"Deleted chat history with ID: {history_id}"
-        raise HistoryNotExist(history_id)
+        raise exceptions.HistoryNotExist(history_id)
     
     def upload_chat_history(self, chat) -> list:
         json_dump = _json.dumps(chat.readable_history)

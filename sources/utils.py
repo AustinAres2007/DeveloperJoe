@@ -2,7 +2,11 @@
 
 import io as _io, os as _os
 from discord import File as _File, Interaction as _Interaction
-from . import config as _config, models as _models, exceptions as _exceptions
+from . import (
+    config, 
+    models, 
+    exceptions
+)
 
 def to_file(content: str, name: str) -> _File:
         """From `str` to `discord.File`"""
@@ -13,17 +17,17 @@ def to_file(content: str, name: str) -> _File:
 def to_file_fp(fp: str) -> _File:
     return _File(fp)
 
-def get_modeltype_from_name(name: str) -> _models.GPTModelType:
+def get_modeltype_from_name(name: str) -> models.GPTModelType:
         """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
-        if name in list(_config.REGISTERED_MODELS):
-            return _config.REGISTERED_MODELS[name]
-        raise _exceptions.ModelNotExist(None, name)
+        if name in list(config.REGISTERED_MODELS):
+            return config.REGISTERED_MODELS[name]
+        raise exceptions.ModelNotExist(None, name)
 
 def assure_class_is_value(object, __type: type):
     """For internal use. Exact same as `isinstance` but raises `IncorrectInteractionSetting` if the result is `False`."""
     if type(object) == __type:
         return object
-    raise _exceptions.IncorrectInteractionSetting(object, type)
+    raise exceptions.IncorrectInteractionSetting(object, type)
 
 def check_enabled(func):
     """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised.
@@ -34,7 +38,7 @@ def check_enabled(func):
     def _inner(self, *args, **kwargs):
         if self.is_active:
             return func(self, *args, **kwargs)
-        raise _exceptions.ChatIsDisabledError(self)
+        raise exceptions.ChatIsDisabledError(self)
     return _inner
 
 def dg_in_voice_channel(func):
@@ -43,7 +47,7 @@ def dg_in_voice_channel(func):
     def _inner(self, *args, **kwargs):
         if self.client_voice:
             return func(self, *args, **kwargs)
-        raise _exceptions.DGNotInVoiceChat(self.voice)
+        raise exceptions.DGNotInVoiceChat(self.voice)
     
     return _inner
 
@@ -67,7 +71,7 @@ def has_voice_with_error(func):
     def _inner(self, *args, **kwargs):
         if self.voice:
             return func(self, *args, **kwargs)
-        raise _exceptions.UserNotInVoiceChannel(self.voice)
+        raise exceptions.UserNotInVoiceChannel(self.voice)
     return _inner
 
 def dg_is_speaking(func):
@@ -79,12 +83,11 @@ def dg_is_speaking(func):
     def _inner(self, *args, **kwargs):
         if self.is_speaking:
             return func(self, *args, **kwargs)
-        raise _exceptions.DGNotTalking(self.voice)
+        raise exceptions.DGNotTalking(self.voice)
     
     return _inner
 
 def dg_isnt_speaking(func):
-    print("SPEAK_CHECK")
     """Decorator for checking if the bot instance is in the users channel, but not speaking.
 
     Args:
@@ -93,12 +96,11 @@ def dg_isnt_speaking(func):
     def _inner(self, *args, **kwargs):
         if self.client_voice and self.client_voice.is_paused():
             return func(self, *args, **kwargs)
-        raise _exceptions.DGIsTalking(self.voice)
+        raise exceptions.DGIsTalking(self.voice)
 
     return _inner
 
 def has_config(func):
-    print("PROC_I111NNER")
     """Decorator for checking if a conversation is processing a request. (Not used currently)
 
     Args:

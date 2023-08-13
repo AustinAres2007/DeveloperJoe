@@ -20,8 +20,24 @@ except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
 
-from sources import *
-
+try:
+    from sources import (
+        chat, 
+        config, 
+        database, 
+        errors, 
+        exceptions, 
+        guildconfig, 
+        history, 
+        modelhandler, 
+        models, 
+        ttsmodels, 
+        utils   
+    )
+except ImportError as err:
+    print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
+    exit(1)
+    
 # Configuration
 
 try:
@@ -34,12 +50,12 @@ except (FileNotFoundError, ValueError, IndexError):
     print("Missing token file / Missing tokens within token file"); exit(1)
 
 try:
-    with open(WELCOME_FILE) as welcome_file, open(ADMIN_FILE) as admin_file:
+    with open(config.WELCOME_FILE) as welcome_file, open(config.ADMIN_FILE) as admin_file:
         WELCOME_TEXT = welcome_file.read()
         ADMIN_TEXT = admin_file.read()
 
 except FileNotFoundError:
-    print(f"Missing server join files. ({WELCOME_FILE} and {ADMIN_FILE})")
+    print(f"Missing server join files. ({config.WELCOME_FILE} and {config.ADMIN_FILE})")
 
 # Main Bot Class
 
@@ -53,8 +69,8 @@ class DeveloperJoe(commands.Bot):
         self._DISCORD_TOKEN = DISCORD_TOKEN
         self._OPENAI_TOKEN = OPENAI_TOKEN
 
-        self.WELCOME_TEXT = WELCOME_TEXT.format(BOT_NAME)
-        self.ADMIN_TEXT = ADMIN_TEXT.format(BOT_NAME)
+        self.WELCOME_TEXT = WELCOME_TEXT.format(config.BOT_NAME)
+        self.ADMIN_TEXT = ADMIN_TEXT.format(config.BOT_NAME)
         self.__ffmpeg__ = True if find_executable(executable="ffmpeg") else False
         self.__tzs__ = pytz.all_timezones
         
@@ -70,10 +86,10 @@ class DeveloperJoe(commands.Bot):
         return self.__ffmpeg__
     
     def get_uptime(self) -> datetime.timedelta:
-        return (datetime.datetime.now(tz=DATETIME_TZ) - self.start_time)
+        return (datetime.datetime.now(tz=config.DATETIME_TZ) - self.start_time)
     
     
-    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[DGTextChat, DGVoiceChat], None]:
+    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[chat.DGTextChat, chat.DGVoiceChat], None]:
         """ Get the specified members current chat.
 
         Args:
@@ -93,9 +109,9 @@ class DeveloperJoe(commands.Bot):
             elif chat_name and chat_name in self.chats[member.id]:
                 return self.chats[member.id][chat_name]
         
-        raise UserDoesNotHaveChat(chat_name, member)
+        raise exceptions.UserDoesNotHaveChat(chat_name, member)
     
-    def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, DGChatType], None]:
+    def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, chat.DGChatType], None]:
         """Get all of a specified members conversation(s)
 
         Args:
@@ -107,7 +123,7 @@ class DeveloperJoe(commands.Bot):
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
-    def get_user_has_permission(self, member: Union[discord.Member, None], model: GPTModelType) -> bool:
+    def get_user_has_permission(self, member: Union[discord.Member, None], model: models.GPTModelType) -> bool:
         """Return if the user has permission to user a model
 
         Args:
@@ -118,11 +134,11 @@ class DeveloperJoe(commands.Bot):
             bool: True if the user has correct permissions, False if not.
         """
         if isinstance(member, discord.Member):
-            with DGRules(member.guild) as check_rules:
+            with modelhandler.DGRules(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
         return False
     
-    def get_default_conversation(self, member: discord.Member) -> Union[DGChatType, None]:
+    def get_default_conversation(self, member: discord.Member) -> Union[chat.DGChatType, None]:
         """Get a users default conversation
 
         Args:
@@ -133,7 +149,7 @@ class DeveloperJoe(commands.Bot):
         """
         return self.default_chats[f"{member.id}-latest"]
     
-    def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[DGVoiceChat, None]:
+    def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[chat.DGVoiceChat, None]:
         # TODO: Add funcion that aquires all voice chats only
         """Get a users chat, only if it supports voice.
 
@@ -144,8 +160,8 @@ class DeveloperJoe(commands.Bot):
         Returns:
             Union[DGVoiceChat, None]: The chat, or None if the chat doesn't exist, or does not support voice.
         """
-        chat = self.get_user_conversation(member, chat_name=chat_name)
-        return chat if isinstance(chat, DGVoiceChat) else None
+        __chat__ = self.get_user_conversation(member, chat_name=chat_name)
+        return __chat__ if isinstance(__chat__, chat.DGVoiceChat) else None
     
     def delete_conversation(self, member: discord.Member, conversation_name: str) -> None:
         """Deletes a members chat.
@@ -156,7 +172,7 @@ class DeveloperJoe(commands.Bot):
         """
         del self.chats[member.id][conversation_name]
 
-    def add_conversation(self, member: discord.Member, name: str, conversation: DGChatType) -> None:
+    def add_conversation(self, member: discord.Member, name: str, conversation: chat.DGChatType) -> None:
         """Adds a conversation to a users chat database.
 
         Args:
@@ -188,7 +204,7 @@ class DeveloperJoe(commands.Bot):
         """
         current_default = self.get_default_conversation(member)
         names_convo = self.get_user_conversation(member, name)
-        name_is_chat = isinstance(names_convo, DGChatType)
+        name_is_chat = isinstance(names_convo, chat.DGChatType)
 
         if name_is_chat:
             self.set_default_conversation(member, name)
@@ -260,7 +276,7 @@ class DeveloperJoe(commands.Bot):
             return message.author.id == interaction.user.id and message.channel == interaction.channel
         
         await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
-        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=QUERY_TIMEOUT)
+        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=config.QUERY_TIMEOUT)
         return message
     
     async def send_debug_message(self, interaction: discord.Interaction, error: BaseException, cog: str) -> None:
@@ -274,22 +290,22 @@ class DeveloperJoe(commands.Bot):
         Raises:
             error: the error given.
         """
-        if DEBUG == True:
+        if config.DEBUG == True:
             exception_text = f"From main class error handler \n\nError Class: {str(Exception)}\nError Arguments: {str(Exception.args)}\nFrom cog: {cog} "
             await interaction.followup.send(exception_text) if interaction.response.is_done() else await interaction.response.send_message(exception_text) 
             raise error
             
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (Version = {VERSION})\n1")
+            print(f"\n{self.application.name} Online (Version = {config.VERSION})\n")
 
-            self.chats: dict[int, Union[dict[str, DGChatType], dict]] = {}
-            self.default_chats: dict[str, Union[None, DGChatType]] = {}
+            self.chats: dict[int, Union[dict[str, chat.DGChatType], dict]] = {}
+            self.default_chats: dict[str, Union[None, chat.DGChatType]] = {}
 
-            self.start_time = datetime.datetime.now(tz=DATETIME_TZ)
+            self.start_time = datetime.datetime.now(tz=config.DATETIME_TZ)
             
-            await self.change_presence(activity=discord.Activity(type=STATUS_TYPE, name=STATUS_TEXT))
-            with (DGDatabaseSession() as database, DGRulesManager() as _guild_handler):
+            await self.change_presence(activity=discord.Activity(type=config.STATUS_TYPE, name=config.STATUS_TEXT))
+            with (database.DGDatabaseSession() as database_session, modelhandler.DGRulesManager() as _guild_handler):
                 
                 
                 def check_servers():
@@ -304,9 +320,9 @@ class DeveloperJoe(commands.Bot):
                 async def _check_integrity(i: int):
                     print("Performing database check..")
                     if not i > 1:
-                        if not database.check():
+                        if not database_session.check():
                             print("Database file has been modified / deleted, rebuilding..")
-                            database.init()
+                            database_session.init()
                             return await _check_integrity(i+1)
                             
                         return print("Database all set.")
@@ -354,7 +370,7 @@ async def run_bot():
             exit(0)
             
     except discord.errors.LoginFailure:
-        print(f"Improper Discord API Token given in {TOKEN_FILE}, please make sure the API token is still valid.")
+        print(f"Improper Discord API Token given in {config.TOKEN_FILE}, please make sure the API token is still valid.")
         exit(1)
         
     except aiohttp.ClientConnectionError:

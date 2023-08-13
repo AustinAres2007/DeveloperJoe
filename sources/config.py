@@ -1,4 +1,4 @@
-import datetime as _datetime, pytz
+import pytz as _pytz
 from discord import ChannelType as _ChannelType
 from discord import ActivityType as _ActivityType
 from discord.app_commands import Choice as _Choice
@@ -54,4 +54,4 @@ GUILD_CONFIG_KEYS = {
     "voice": VOICE_SPEEDUP_MULTIPLIER,
     "timezone": TIMEZONE
 } # Default values for guild configurations
-DATETIME_TZ = pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.
+DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.

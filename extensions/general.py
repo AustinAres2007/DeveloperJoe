@@ -1,7 +1,11 @@
 import discord
+
 from discord.ext.commands import Cog as _Cog
-from joe import *
-from sources import *
+from joe import DeveloperJoe
+from sources import (
+    config, 
+    utils
+)
 
 class General(_Cog):
     def __init__(self, client):
@@ -11,7 +15,7 @@ class General(_Cog):
     @discord.app_commands.command(name="help", description="Lists avalible commands")
     async def help_command(self, interaction: discord.Interaction):
 
-        embed = self.client.get_embed(f"{BOT_NAME} Commands")
+        embed = self.client.get_embed(f"{config.BOT_NAME} Commands")
         get_name = lambda cmd: cmd.name
 
         for name, cog in self.client.cogs.items():

@@ -1,9 +1,15 @@
 import discord
 
 from discord.ext import commands
-from joe import *
 from typing import Union, AsyncGenerator
-from sources import *
+from joe import DeveloperJoe
+from sources import (
+    utils,
+    config,
+    chat,
+    exceptions,
+    modelhandler
+)
 
 class Listeners(commands.Cog):
     def __init__(self, client: DeveloperJoe):
@@ -14,9 +20,9 @@ class Listeners(commands.Cog):
     async def on_message(self, message: discord.Message):   
         convo = None
         try:
-            if self.client.application and message.author.id != self.client.application.id and message.content != QUERY_CONFIRMATION:
+            if self.client.application and message.author.id != self.client.application.id and message.content != config.QUERY_CONFIRMATION:
                 member: discord.Member = utils.assure_class_is_value(message.author, discord.Member)
-                if isinstance(convo := self.client.get_default_conversation(member), DGChatType) and message.guild:
+                if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if self.client.get_user_has_permission(message.guild.get_member(member.id), convo.model):
 
                         thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
@@ -44,15 +50,15 @@ class Listeners(commands.Cog):
                                     ind += 1
                                     header_and_message += token
                                     final_message_reply += token
-                                    sendable_portion = header_and_message[start_message_at * CHARACTER_LIMIT:((start_message_at + 1) * CHARACTER_LIMIT)]
+                                    sendable_portion = header_and_message[start_message_at * config.CHARACTER_LIMIT:((start_message_at + 1) * config.CHARACTER_LIMIT)]
 
-                                    if len(header_and_message) and len(header_and_message) >= (start_message_at + 1) * CHARACTER_LIMIT:
+                                    if len(header_and_message) and len(header_and_message) >= (start_message_at + 1) * config.CHARACTER_LIMIT:
                                         await msg[-1].edit(content=sendable_portion)
                                         msg.append(await msg[-1].channel.send(":)"))
 
-                                    start_message_at = len(header_and_message) // CHARACTER_LIMIT
+                                    start_message_at = len(header_and_message) // config.CHARACTER_LIMIT
 
-                                    if ind and ind % STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
+                                    if ind and ind % config.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
                                         await msg[-1].edit(content=sendable_portion)
                                 else:
                                     return await msg[-1].edit(content=sendable_portion)
@@ -63,18 +69,18 @@ class Listeners(commands.Cog):
                                 final_reply = header_and_message + reply
                                 await message.channel.send(final_reply)
 
-                            if isinstance(convo, DGVoiceChat):
+                            if isinstance(convo, chat.DGVoiceChat):
                                 await convo.speak(final_message_reply)
                             return
                         elif has_private_thread and convo.is_processing == True:
-                            raise DGException(f"{BOT_NAME} is still processing your last request.")
+                            raise exceptions.DGException(f"{config.BOT_NAME} is still processing your last request.")
                     else:
-                        raise ModelIsLockedError(convo.model)
+                        raise exceptions.ModelIsLockedError(convo.model)
 
-        except (ChatIsDisabledError, GPTContentFilter) as error:
+        except (exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
             await message.channel.send(error.reply)
         except discord.Forbidden:
-            raise ChatChannelDoesntExist(message, convo) 
+            raise exceptions.ChatChannelDoesntExist(message, convo) 
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
@@ -85,7 +91,7 @@ class Listeners(commands.Cog):
             #[await owner.send(self.client.ADMIN_TEXT[.CHARACTER_LIMIT * t:]) for t in range(ceil(len(self.client.ADMIN_TEXT) / .CHARACTER_LIMIT))]
             await owner.send(file=utils.to_file(self.client.ADMIN_TEXT, "admin-introduction.md"))
 
-        with DGRules(guild) as _:
+        with modelhandler.DGRules(guild) as _:
             ...
     
     @commands.Cog.listener()
@@ -95,7 +101,7 @@ class Listeners(commands.Cog):
         # TODO: When `sources.chat.DGVoiceChat.manage_voice` is called, if there is a new bot voice connection, set DGVoiceChat.client_voice to the discord.VoiceClient instance.
         if convos := self.client.get_all_user_conversations(member):
             for convo in convos.values(): 
-                if isinstance(convo, DGVoiceChat):
+                if isinstance(convo, chat.DGVoiceChat):
                     if after.channel:
                         convo.voice = after.channel
                     else:

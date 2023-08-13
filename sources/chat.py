@@ -1,23 +1,23 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio
-from discord.ext import commands as _commands
 
+from discord.ext import commands as _commands
+from enum import Enum as _Enum
 from typing import (
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator
 )
-
-from enum import Enum as _Enum
-from . import exceptions, guildconfig
-
-from .config import *
-from .errors import *
-from .history import *
-from .models import *
-from .utils import *
-from .ttsmodels import GTTSModel
+from . import (
+    exceptions, 
+    guildconfig, 
+    config, 
+    history, 
+    models, 
+    utils, 
+    ttsmodels
+)
 
 class DGTextChat:
     """Represents a text-only DG Chat."""
@@ -28,7 +28,7 @@ class DGTextChat:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: GPTModelType=DEFAULT_GPT_MODEL, 
+                model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -94,10 +94,10 @@ class DGTextChat:
         if is_gpt_reply and save_message and query_type == "query":
             self.tokens += tokens
     
-    @check_enabled
+    @utils.check_enabled
     async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> _AsyncGenerator:
         payload = {"model": self.model.model, "messages": messages, "stream": True} | kwargs
-        reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+        reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
         responses: list[str] = [""]
@@ -122,11 +122,10 @@ class DGTextChat:
 
             last_char = char
             
-    @check_enabled
+    @utils.check_enabled
     async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
             
-        replied_content = GENERIC_ERROR
-        error = None
+        error, replied_content = None, None
         r_history = []
         replied_content = ""
 
@@ -145,7 +144,7 @@ class DGTextChat:
                         "model": self.model.model,
                         "messages": self.chat_history    
             }
-            _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+            _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
             
             reply = _reply.json()["choices"][0]
             usage = _reply.json()["usage"]
@@ -179,7 +178,7 @@ class DGTextChat:
         self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
         return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
-    @check_enabled
+    @utils.check_enabled
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
         r_history = []
@@ -214,7 +213,7 @@ class DGTextChat:
 
             self.__manage_history__(generator_reply, "query", save_message, total_tokens)
 
-    @check_enabled
+    @utils.check_enabled
     async def ask(self, query: str) -> str:
         """Asks your GPT Model a question.
 
@@ -229,7 +228,7 @@ class DGTextChat:
         """
         return str(await self.__send_query__(query_type="query", role="user", content=query))
 
-    @check_enabled
+    @utils.check_enabled
     def ask_stream(self, query: str) -> _AsyncGenerator:
         """Asks your GPT Model a question, but the reply is a generator (yield)
 
@@ -257,7 +256,7 @@ class DGTextChat:
         self.readable_history.clear()
         self.chat_history.clear()
     
-    async def stop(self, interaction: _discord.Interaction, history: DGHistorySession, save_history: str) -> str:
+    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: str) -> str:
         """Stops the chat instance.
 
         Args:
@@ -275,7 +274,7 @@ class DGTextChat:
         if isinstance(self.chat_thread, _discord.Thread) and self.chat_thread.id == interaction.channel_id:
             raise exceptions.CannotDeleteThread(self.chat_thread)
         try:
-            farewell = f"Ended chat: {self.display_name} with {BOT_NAME}!"
+            farewell = f"Ended chat: {self.display_name} with {config.BOT_NAME}!"
             if save_history == "y":
                 history.upload_chat_history(self)
                 farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"
@@ -301,7 +300,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: GPTModelType=DEFAULT_GPT_MODEL, 
+            model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
             associated_thread: _Union[_discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -366,8 +365,8 @@ class DGVoiceChat(DGTextChat):
         
         return voice
     
-    @check_enabled
-    @has_voice
+    @utils.check_enabled
+    @utils.has_voice
     async def speak(self, text: str): 
         try:
             self.voice_tss_queue.append(text)
@@ -377,7 +376,7 @@ class DGVoiceChat(DGTextChat):
                 if not error:
                     if not (index >= len(self.voice_tss_queue)):
                         speed = guildconfig.get_guild_config(new_voice.guild).config_data["voice"]
-                        return new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(self.voice_tss_queue[index]).process_text(speed), pipe=True), after=lambda error: _play_voice(index + 1, error))
+                        return new_voice.play(_discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), pipe=True), after=lambda error: _play_voice(index + 1, error))
                         
                     self.voice_tss_queue.clear()
                 else:
@@ -391,24 +390,24 @@ class DGVoiceChat(DGTextChat):
             self.voice_tss_queue.clear()
             
         
-    @check_enabled
-    @has_voice_with_error
-    @dg_in_voice_channel
-    @dg_is_speaking
+    @utils.check_enabled
+    @utils.has_voice_with_error
+    @utils.dg_in_voice_channel
+    @utils.dg_is_speaking
     def stop_speaking(self):
         if self.client_voice: self.client_voice.stop()
     
-    @check_enabled
-    @has_voice_with_error
-    @dg_in_voice_channel
-    @dg_is_speaking
+    @utils.check_enabled
+    @utils.has_voice_with_error
+    @utils.dg_in_voice_channel
+    @utils.dg_is_speaking
     def pause_speaking(self):
         if self.client_voice: self.client_voice.pause()
     
-    @check_enabled
-    @has_voice_with_error
-    @dg_in_voice_channel
-    @dg_isnt_speaking
+    @utils.check_enabled
+    @utils.has_voice_with_error
+    @utils.dg_in_voice_channel
+    @utils.dg_isnt_speaking
     def resume_speaking(self):
         if self.client_voice: self.client_voice.resume()
         

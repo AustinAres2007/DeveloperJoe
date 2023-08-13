@@ -1,8 +1,15 @@
-from discord.ext.commands import Cog
-from joe import DeveloperJoe
-from sources import utils, guildconfig, chat, config, exceptions
-
 import discord
+from discord.ext.commands import Cog
+
+from joe import DeveloperJoe
+from sources import (
+    utils, 
+    guildconfig, 
+    chat, 
+    config, 
+    exceptions
+)
+
 class Voice(Cog):
     def __init__(self, client):
         self.client: DeveloperJoe = client
