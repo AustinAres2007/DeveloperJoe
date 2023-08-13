@@ -1,6 +1,6 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
-import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio, pydub as _pydub
+import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio
 from discord.ext import commands as _commands
 
 from typing import (
