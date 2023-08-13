@@ -31,22 +31,6 @@ then
         echo "Installing virtual enviroment at "$DIR".."
         $PYTHON_PATH -m venv $DIR && . "$DIR/bin/activate"
         $PYTHON_COMMAND -m pip install -r "$DIR/dependencies/requirements.txt"
-        
-        echo "Do you want to install CoQui-TTS? 
-        
-        It is a text-to-speach system that sounds very life-like in most circumstances, and will be used for speach replies if the user enables it.
-        Despite that, I ask you to proceed with caution. CoQui can be unstable on many systems, take up significant resources & HDD Space, can take awhile to install models
-        and has difficulty with some pronunciation. (Like acronyms, certain foreign names and pronouncing foreign characters that are in English)
-        
-        ('y' to continue, anything else to decline the install.)"
-        read WANTSVOICE
-
-        if [ "$WANTSVOICE" = "y" ]
-        then
-            $PYTHON_COMMAND -m pip install -r "$DIR/dgsetup/requirements-voice.txt"
-            $PYTHON_COMMAND -m pip install mecab-python3 unidic-lite
-            $PYTHON_COMMAND "$DIR/dgsetup/installcoqui.py"
-        fi
 
         if [ ! -e "$DIR/dependencies/api-keys.key" ]
         then

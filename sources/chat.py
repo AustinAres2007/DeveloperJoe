@@ -17,7 +17,7 @@ from .errors import *
 from .history import *
 from .models import *
 from .utils import *
-from .ttsmodels import GTTSModel, CoquiTTSModel
+from .ttsmodels import GTTSModel
 
 class DGTextChat:
     """Represents a text-only DG Chat."""
