@@ -15,6 +15,14 @@ def to_file(content: str, name: str) -> _File:
         return _File(f)
 
 def to_file_fp(fp: str) -> _File:
+    """Get `File` object from a filepath.
+
+    Args:
+        fp (str): Path of the file (aka a filepath lol)
+
+    Returns:
+        _File: The object made from the filepath.
+    """
     return _File(fp)
 
 def get_modeltype_from_name(name: str) -> models.GPTModelType:

@@ -140,44 +140,41 @@ class ChatChannelDoesntExist(DGException):
 class DGNotTalking(DGException):
     reply = errors.VoiceConversationErrors.NOT_SPEAKING
     def __init__(self, voice_channel: _discord.VoiceChannel):
+        """Will be raised when the bot is supposed to be talking, but isn't."""
         super().__init__(self.reply, voice_channel)
 
 class DGNotInVoiceChat(DGException):
     reply = errors.VoiceConversationErrors.NOT_IN_CHANNEL
     def __init__(self, voice_channel: _discord.VoiceChannel):
+        """Will be raised when the bot is not in a voice chat."""
         super().__init__(self.reply, voice_channel)
 
 class UserNotInVoiceChannel(DGException):
     reply = errors.VoiceConversationErrors.USER_NOT_IN_CHANNEL
     def __init__(self, supposed_voice_channel: _discord.VoiceChannel | _Any):
+        """Will be raised when a user is not in a voice chat."""
         super().__init__(self.reply, supposed_voice_channel)
     
 class DGIsTalking(DGException):
     reply = errors.VoiceConversationErrors.IS_SPEAKING
     def __init__(self, conversation: chat.DGChatType):
+        """Will be raised when the bot not supposed talking, but is."""
         super().__init__(self.reply, conversation)
 
 class ChatIsTextOnly(DGException):
     reply = errors.VoiceConversationErrors.TEXT_ONLY_CHAT
     def __init__(self, conversation: chat.DGChatType):
+        """Will be raised when a chat is text only."""
         super().__init__(self.reply, conversation)
 
 class FFMPEGNotInstalled(DGException):
     reply = errors.VoiceConversationErrors.NO_FFMPEG
     def __init__(self, ffmpeg_status):
+        """Will be raised when FFMPEG is not installed. (If FFMPEG is a command on your terminal, you have it installed)"""
         super().__init__(self.reply, ffmpeg_status)
-        
-class CoquiNotInstalled(DGException):
-    reply = errors.VoiceConversationErrors.NO_COQUI
-    def __init__(self):
-        super().__init__(self.reply)
-
-class IsProcessingVoice(DGException):
-    reply = errors.VoiceConversationErrors.IS_PROCESSING_VOICE
-    def __init__(self, conversation: chat.DGChatType):
-        super().__init__(self.reply, conversation)
 
 class CannotTalkInChannel(DGException):
     reply = errors.ConversationErrors.CANNOT_CONVO
     def __init__(self, channel_type: _Any):
+        """Will be raised when a user is trying to talk in an enviroment where the bot cannot talk."""
         super().__init__(self.reply, channel_type)
