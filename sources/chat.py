@@ -375,7 +375,7 @@ class DGVoiceChat(DGTextChat):
             def _play_voice(index: int, error: _Any=None):
                 if not error:
                     if not (index >= len(self.voice_tss_queue)):
-                        speed = guildconfig.get_guild_config(new_voice.guild).config_data["voice"]
+                        speed = guildconfig.get_guild_config(new_voice.guild).config_data["speed"]
                         return new_voice.play(_discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), pipe=True), after=lambda error: _play_voice(index + 1, error))
                         
                     self.voice_tss_queue.clear()

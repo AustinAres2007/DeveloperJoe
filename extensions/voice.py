@@ -20,7 +20,7 @@ class Voice(Cog):
     async def set_speed(self, interaction: discord.Interaction, speed: float):
         if guild := utils.assure_class_is_value(interaction.guild, discord.Guild):
             if not speed < 1.0:
-                guildconfig.edit_guild_config(guild, "voice", speed)
+                guildconfig.edit_guild_config(guild, "speed", speed)
                 await interaction.response.send_message(f"Changed voice speed to {speed}")
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0.")

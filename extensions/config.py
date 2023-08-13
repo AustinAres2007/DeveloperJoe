@@ -4,7 +4,8 @@ from discord.ext.commands import Cog as _Cog
 from joe import DeveloperJoe
 from sources import (
     utils, 
-    guildconfig
+    guildconfig,
+    config
 )
 
 class Configuration(_Cog):
@@ -34,6 +35,15 @@ class Configuration(_Cog):
                 guildconfig.edit_guild_config(guild, "timezone", timezone)
                 return await interaction.response.send_message(f"Changed bots timezone to {timezone}.")
             await interaction.response.send_message(f"Unknown timezone: {timezone}")
+    
+    @discord.app_commands.command(name="voice", description=f"Configure if users can have spoken {config.BOT_NAME} chats.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.check(utils.in_correct_channel)
+    async def config_voice(self, interaction: discord.Interaction, allow_voice: bool):
+        if guild := utils.assure_class_is_value(interaction.guild, discord.Guild):
+            guildconfig.edit_guild_config(guild, "timezone", allow_voice)
+            return await interaction.response.send_message(f"Users {'cannot' if allow_voice == False else 'can'} use voice.")
             
+    
 async def setup(client):
     await client.add_cog(Configuration(client))

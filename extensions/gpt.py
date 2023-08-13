@@ -9,7 +9,8 @@ from sources import (
     utils,
     chat,
     errors,
-    history
+    history,
+    guildconfig
 )
 
 yes_no_choice: list[discord.app_commands.Choice] = [
@@ -64,13 +65,16 @@ class Communication(commands.Cog):
                 await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
             chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread, is_private_choice)
+            print(guildconfig.get_guild_config_attribute(interaction.guild, "voice"))
             
             if speak_reply != "y":
                 convo = chat.DGTextChat(*chat_args)
-            elif speak_reply == "y" and self.client.has_ffmpeg:
-                convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
             elif speak_reply == "y" and self.client.has_ffmpeg == False:
                 raise exceptions.FFMPEGNotInstalled(self.client.has_ffmpeg)
+            elif speak_reply == "y" and guildconfig.get_guild_config_attribute(interaction.guild, "voice") == False:
+                raise exceptions.VoiceIsLockedError()
+            elif speak_reply == "y" and self.client.has_ffmpeg:
+                convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
             else:
                 convo = chat.DGTextChat(*chat_args)
             
@@ -251,6 +255,14 @@ class Communication(commands.Cog):
         name = self.client.manage_defaults(member, name)
         await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else f"You do not have any {config.BOT_NAME} conversations.")
 
-        
+    @discord.app_commands.command(name="chats", description="List all chats you currently have.")
+    async def list_user_chats(self, interaction: discord.Interaction):
+        member = utils.assure_class_is_value(interaction.user, discord.Member)
+        embed = self.client.get_embed(f"{member} Conversations")
+        for chat in self.client.get_all_user_conversations_with_exceptions(member).values():
+            embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private}", inline=False)
+             
+        await interaction.response.send_message(embed=embed)
+            
 async def setup(client):
     await client.add_cog(Communication(client))

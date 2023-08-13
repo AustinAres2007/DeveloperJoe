@@ -61,6 +61,11 @@ class UserDoesNotHaveChat(DGException):
         """Will be raised if the user specifies a chat that doesn't exist."""
         super().__init__(self.reply, name, *args)
 
+class UserDoesNotHaveAnyChats(DGException):
+    reply = errors.ConversationErrors.NO_CONVOS
+    def __init__(self):
+        super().__init__(self.reply)
+        
 class CannotDeleteThread(DGException):
     reply = errors.ConversationErrors.CANNOT_STOP_IN_CHANNEL
     def __init__(self, thread: _discord.Thread, *args):
@@ -97,6 +102,11 @@ class ModelIsLockedError(DGException):
         """Will be raised if a user does not have access to a model they want to use."""
         super().__init__(self.reply, model, *args)
 
+class VoiceIsLockedError(DGException):
+    reply = errors.VoiceConversationErrors.VOICE_IS_LOCKED
+    def __init__(self):
+        super().__init__(self.reply)
+        
 class GPTReachedLimit(DGException):
     reply = errors.ConversationErrors.CONVO_TOKEN_LIMIT
     def __init__(self, *args):

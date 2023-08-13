@@ -25,7 +25,7 @@ QUERY_TIMEOUT = 10 # Timeout for destructive actions.
 QUERY_CONFIRMATION = ">y" # What keyword to use for confirmation of destructive actions
 
 STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictates every set amount of tokens to update the message. Any less that 10 and it will lag.
-CHATS_LIMIT = 20 # How many chats a user can have at one time.
+CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be more than 14.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
@@ -51,7 +51,8 @@ REGISTERED_MODELS = {
 ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
 ALLOW_TRACEBACK = True # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
 GUILD_CONFIG_KEYS = {
-    "voice": VOICE_SPEEDUP_MULTIPLIER,
-    "timezone": TIMEZONE
+    "speed": VOICE_SPEEDUP_MULTIPLIER,
+    "timezone": TIMEZONE,
+    "voice": True
 } # Default values for guild configurations
 DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.

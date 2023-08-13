@@ -9,6 +9,7 @@ class ConversationErrors:
     """Errors pertaining to general conversations."""
 
     NO_CONVO = f"You either do not have a conversation with {config.BOT_NAME}, or the provided name does not match any chats you currently have."
+    NO_CONVOS = "You do not have any conversations."
     HAS_CONVO = "There is already a conversation with the specified name."
     CANNOT_CONVO = f"""You cannot interact with {config.BOT_NAME} inside this channel. You may only interact with {config.BOT_NAME} in 
     a server text channel, A private server thread (Only two users, you and {config.BOT_NAME}) or in Direct Messages."""
@@ -34,6 +35,7 @@ class VoiceConversationErrors:
     NO_FFMPEG = "The bot owner does not currently have voice features enabled."
     NO_COQUI = "The bot owner does not have this voice model installed."
     IS_PROCESSING_VOICE = "I am still processing / playing your last voice request."
+    VOICE_IS_LOCKED = "This discord server has disabled voice abilities."
     
 class UserErrors:
     """Errors pertaining to user status."""

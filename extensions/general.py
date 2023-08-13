@@ -19,7 +19,9 @@ class General(_Cog):
         get_name = lambda cmd: cmd.name
 
         for name, cog in self.client.cogs.items():
-            embed.add_field(name=f" ~ {name} ~", value="commands", inline=False)
+            if not cog.get_app_commands():
+                continue
+            embed.add_field(name=f" 💻 {name} 💻 ", value="commands", inline=False)
 
             for command in cog.walk_app_commands():
                 if isinstance(command, discord.app_commands.Command):
@@ -31,6 +33,11 @@ class General(_Cog):
     @discord.app_commands.command(name="times", description="Provides a file which contains timezones you can use.")
     async def give_zones(self, interaction: discord.Interaction):
         await interaction.response.send_message(file=utils.to_file_fp("misc/timezones.txt"))
-        
+    
+    @discord.app_commands.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
+    async def get_models(self, interaction: discord.Interaction):
+        embed = self.client.get_embed("GPT Models")
+        [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in config.REGISTERED_MODELS.values()]
+        await interaction.response.send_message(embed=embed)
 async def setup(client):
     await client.add_cog(General(client))

@@ -75,4 +75,11 @@ def get_guild_config(guild: _discord.Guild) -> GuildData:
 def edit_guild_config(guild: _discord.Guild, key: str, value: _Any) -> None:
     with DGGuildConfigSession(guild) as cs:
         return cs.edit_guild(**{key: value})
+
+def get_guild_config_attribute(guild, attribute: str) -> _Union[_Any, None]:
+    with DGGuildConfigSession(guild) as cs:
+        cf = cs.get_guild().config_data
+        if attribute in cf:
+            return cf[attribute]
+        
         

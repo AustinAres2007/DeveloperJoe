@@ -123,6 +123,19 @@ class DeveloperJoe(commands.Bot):
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
+    def get_all_user_conversations_with_exceptions(self, member: discord.Member) -> dict[str, chat.DGChatType]:
+        """Get all of a specified members conversation(s) but if the user has None, then `UserDoesNotHaveAnyChats` is raised.
+
+        Args:
+            member (discord.Member): _description_
+
+        Returns:
+            dict[str, chat.DGChatType]: _description_
+        """
+        if convos := self.get_all_user_conversations(member):
+            return convos
+        raise exceptions.UserDoesNotHaveAnyChats()
+    
     def get_user_has_permission(self, member: Union[discord.Member, None], model: models.GPTModelType) -> bool:
         """Return if the user has permission to user a model
 
