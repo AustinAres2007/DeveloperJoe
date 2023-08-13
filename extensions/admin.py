@@ -1,18 +1,10 @@
 import discord as _discord
 from discord.ext.commands import Cog as _Cog
+
 from joe import *
-
-#from objects import GPTConfig, GPTModelRules, GPTExceptions, GPTChat, GPTErrors
-
 from sources import *
 
-def in_correct_channel(interaction: _discord.Interaction) -> bool:
-    return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
-
-# TODO: Add proper error handling for incorrect channel setting
-# TODO: Refactorise imports
-
-class admin(_Cog):
+class Administration(_Cog):
     def __init__(self, client):
         self.client: DeveloperJoe = client
         print(f"{self.__cog_name__} Loaded")
@@ -29,7 +21,7 @@ class admin(_Cog):
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
     @_discord.app_commands.choices(gpt_model=MODEL_CHOICES)
     @_discord.app_commands.describe(gpt_model="The GPT model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
-    @_discord.app_commands.check(in_correct_channel)
+    @_discord.app_commands.check(utils.in_correct_channel)
     async def lock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
         with DGRules(role.guild) as rules:
             _gpt_model = utils.get_modeltype_from_name(gpt_model)
@@ -40,7 +32,7 @@ class admin(_Cog):
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
     @_discord.app_commands.choices(gpt_model=MODEL_CHOICES)
     @_discord.app_commands.describe(gpt_model="The GPT model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
-    @_discord.app_commands.check(in_correct_channel)
+    @_discord.app_commands.check(utils.in_correct_channel)
     async def unlock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
         with DGRules(role.guild) as rules:
             model = utils.get_modeltype_from_name(gpt_model)
@@ -49,7 +41,7 @@ class admin(_Cog):
 
     @_discord.app_commands.command(name="locks", description="View all models and which roles may utilise them.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.check(in_correct_channel)
+    @_discord.app_commands.check(utils.in_correct_channel)
     async def view_locks(self, interaction: _discord.Interaction):    
         
         if guild := utils.assure_class_is_value(interaction.guild, _discord.Guild):
@@ -69,6 +61,6 @@ class admin(_Cog):
                 text = '\n'.join(model_texts) if models else no_roles
 
                 await interaction.response.send_message(text)
-        
+                
 async def setup(client):
-    await client.add_cog(admin(client))
+    await client.add_cog(Administration(client))

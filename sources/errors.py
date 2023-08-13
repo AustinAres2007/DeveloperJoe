@@ -51,6 +51,7 @@ class HistoryErrors:
     INVALID_HISTORY_ID = "Input a valid ID."
     HISTORY_DOESNT_EXIST = "No history with the specified name."
     HISTORY_EMPTY = "No chat history."
+    HISTORY_NOT_USERS = "This saved chat history is private."
 
 class ModelErrors:
     """Errors pertaining to the model lock list."""

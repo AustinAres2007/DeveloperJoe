@@ -37,9 +37,9 @@ class ModelNotExist(DGException):
 
 class GuildNotExist(DGException):
     reply = ModelErrors.GUILD_NOT_IN_DATABASE
-    def __init__(self, guild: _discord.Guild, *args):
-        """Will be raised if a guild does not exist within the model lock list database"""
-        super().__init__(self.reply.format(guild.name), guild, log_error=True, *args)
+    def __init__(self, guild: _Union[_discord.Guild, int], *args):
+        """Will be raised if a guild does not exist within the model lock list or configuration database."""
+        super().__init__(self.reply.format(guild), guild, log_error=True, *args)
         
 class GuildExistsError(DGException):
     reply = ModelErrors.GUILD_IN_MODEL_DATABASE
@@ -112,6 +112,12 @@ class HistoryNotExist(DGException):
         """Will be raised when a given history ID does not exist within the database."""
         super().__init__(self.reply, _id, *args)
 
+class InvalidHistoryOwner(DGException):
+    reply = HistoryErrors.HISTORY_NOT_USERS
+    def __init__(self, _id: str):
+        """Will be raised when a user other than the owner of a private chat requests the transcript."""
+        super().__init__(self.reply, _id)
+        
 class ChatChannelDoesntExist(DGException):
     reply = ConversationErrors.CHANNEL_DOESNT_EXIST
     def __init__(self, message: _discord.Message, conversation: _Union[chat.DGChatType, None]):

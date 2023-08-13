@@ -1,2 +1,0 @@
-This is where all general, non-critical information will be stored. Usually just a file called bot_log.log but I also put other testing
-files in this folder.

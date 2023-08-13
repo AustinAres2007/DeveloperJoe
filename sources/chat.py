@@ -10,7 +10,7 @@ from typing import (
 )
 
 from enum import Enum as _Enum
-from . import exceptions
+from . import exceptions, guildconfig
 
 from .config import *
 from .errors import *
@@ -29,7 +29,8 @@ class DGTextChat:
                 stream: bool,
                 display_name: str, 
                 model: GPTModelType=DEFAULT_GPT_MODEL, 
-                associated_thread: _Union[_discord.Thread, None]=None, 
+                associated_thread: _Union[_discord.Thread, None]=None,
+                is_private: bool=True 
         ):
         """Represents a text DG Chat.
 
@@ -57,7 +58,7 @@ class DGTextChat:
         self.model = model
         self.tokens = 0
 
-        self._is_active, self.is_processing = True, False
+        self._private, self._is_active, self.is_processing = is_private, True, False
         self.chat_history, self.readable_history = [], []
         
 
@@ -75,6 +76,14 @@ class DGTextChat:
     def is_active(self, value: bool):
         self._is_active = value
     
+    @property
+    def private(self) -> bool:
+        return self._private
+
+    @private.setter
+    def private(self, is_p: bool):
+        self._private = is_p
+        
     def __manage_history__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
 
@@ -294,6 +303,7 @@ class DGVoiceChat(DGTextChat):
             display_name: str, 
             model: GPTModelType=DEFAULT_GPT_MODEL, 
             associated_thread: _Union[_discord.Thread, None]=None, 
+            is_private: bool=True,
             voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
         ):
         """Represents a voice and text DG Chat.
@@ -309,7 +319,7 @@ class DGVoiceChat(DGTextChat):
             associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
-        super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread)
+        super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
         self._voice = voice
         self._client_voice_instance: _Union[_discord.VoiceClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
@@ -366,17 +376,19 @@ class DGVoiceChat(DGTextChat):
             def _play_voice(index: int, error: _Any=None):
                 if not error:
                     if not (index >= len(self.voice_tss_queue)):
-                        return new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(self.voice_tss_queue[index]).process_text(), pipe=True), after=lambda error: _play_voice(index + 1, error))
-                    return self.voice_tss_queue.clear()
+                        speed = guildconfig.get_guild_config(new_voice.guild).config_data["voice"]
+                        return new_voice.play(_discord.FFmpegPCMAudio(source=GTTSModel(self.voice_tss_queue[index]).process_text(speed), pipe=True), after=lambda error: _play_voice(index + 1, error))
+                        
+                    self.voice_tss_queue.clear()
                 else:
-                    raise exceptions.DGException(f"VoiceError: {str(error)}")
+                    raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
                 
             _play_voice(0)
             
         except _discord.ClientException:
             pass
         except IndexError:
-            return self.voice_tss_queue.clear()
+            self.voice_tss_queue.clear()
             
         
     @check_enabled

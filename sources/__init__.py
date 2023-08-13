@@ -8,3 +8,4 @@ from .history import *
 from .models import *
 from .utils import *
 from .ttsmodels import *
+from .guildconfig import *

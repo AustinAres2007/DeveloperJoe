@@ -1,11 +1,11 @@
 import discord, json, datetime, io, asyncio
 
-from typing import Union
+from typing import Union, Any
 from discord.ext import commands
 from joe import *
 from sources import *
 
-class history(commands.Cog):
+class History(commands.Cog):
     def __init__(self, client):
         self.client: DeveloperJoe = client
         print(f"{self.__cog_name__} Loaded")
@@ -18,13 +18,13 @@ class history(commands.Cog):
                 if 'content' in entry[0] else f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"
         
         return final
-    
+
     @discord.app_commands.command(name="delete", description="Delete a past saved conversation.")
     async def delete_chat_history(self, interaction: discord.Interaction, history_id: str):
         try:
             await interaction.response.defer(thinking=False, ephemeral=True)
             with DGHistorySession() as history:
-                reply: discord.Message = await self.client.get_confirmation(interaction, f'Are you sure? \n(Send reply within {QUERY_TIMEOUT} seconds, \nand "{QUERY_CONFIRMATION}" to confirm, anything else to cancel.)')
+                reply: discord.Message = await self.client.get_input(interaction, f'Are you sure? \n(Send reply within {QUERY_TIMEOUT} seconds, \nand "{QUERY_CONFIRMATION}" to confirm, anything else to cancel.)')
                 if reply.content == QUERY_CONFIRMATION:
                     return await interaction.followup.send(history.delete_chat_history(history_id))
                 return await interaction.followup.send("Cancelled action.")
@@ -54,20 +54,21 @@ class history(commands.Cog):
     async def get_chat_history(self, interaction: discord.Interaction, history_id: str):
         try:
             with DGHistorySession() as history:
-                if h_file := history.retrieve_chat_history(history_id):
-                    
-                    list_history = json.loads(h_file[0][3])
-                    history_user = self.client.get_user(h_file[0][1])
-                    formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User") if list_history else HistoryErrors.HISTORY_EMPTY
+                if history_chat := history.retrieve_chat_history(history_id):
+                    if history_chat.private == False or interaction.user.id == history_chat.user:
+                        list_history: Any = history_chat.data
+                        history_user = self.client.get_user(history_chat.user)
+                        formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User") if list_history else HistoryErrors.HISTORY_EMPTY
 
-                    history_file = io.BytesIO(formatted.encode())
-                    history_file.name = f"{h_file[0][0]}-transcript.txt"
+                        history_file = io.BytesIO(formatted.encode())
+                        history_file.name = f"{history_chat.name}-transcript.txt"
 
-                    await interaction.user.send(file=discord.File(history_file))
-                    return await interaction.response.send_message("I have sent your history transcript to our direct messages.")
+                        await interaction.user.send(file=discord.File(history_file))
+                        return await interaction.response.send_message("I have sent the history transcript to our direct messages.")
+                    raise InvalidHistoryOwner(history_id)
                 raise HistoryNotExist(history_id)
         except ValueError:
             raise InvalidHistoryID(history_id)
         
 async def setup(client):
-    await client.add_cog(history(client))
+    await client.add_cog(History(client))

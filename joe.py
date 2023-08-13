@@ -3,15 +3,13 @@
 import sys
 v_info = sys.version_info
 
-def print_and_exit(text, sys):
-    ...
 if not (v_info.major >= 3 and v_info.minor > 8):
     print(f'You must run this bot with Python 3.9 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
     exit(1)
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math
+    import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz
 
     import discord, logging, asyncio, os, datetime, traceback, aiohttp
     from discord.ext import commands
@@ -58,6 +56,7 @@ class DeveloperJoe(commands.Bot):
         self.WELCOME_TEXT = WELCOME_TEXT.format(BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(BOT_NAME)
         self.__ffmpeg__ = True if find_executable(executable="ffmpeg") else False
+        self.__tzs__ = pytz.all_timezones
         
         super().__init__(*args, **kwargs)
 
@@ -71,7 +70,8 @@ class DeveloperJoe(commands.Bot):
         return self.__ffmpeg__
     
     def get_uptime(self) -> datetime.timedelta:
-        return (datetime.datetime.now(tz=TIMEZONE) - self.start_time)
+        return (datetime.datetime.now(tz=DATETIME_TZ) - self.start_time)
+    
     
     def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[DGTextChat, DGVoiceChat], None]:
         """ Get the specified members current chat.
@@ -237,7 +237,16 @@ class DeveloperJoe(commands.Bot):
 
         return await send_with_file(error_text, error_traceback)
 
-    async def get_confirmation(self, interaction: discord.Interaction, msg: str) -> discord.Message:
+    def get_embed(self, title: str) -> discord.Embed:
+        
+        uptime = self.get_uptime()
+        embed = discord.Embed(title=title)
+        embed.color = discord.Colour.lighter_grey()
+        embed.set_footer(text=f"Uptime — {uptime.days} Days ({uptime}) | Version — {config.VERSION}")
+        
+        return embed
+    
+    async def get_input(self, interaction: discord.Interaction, msg: str) -> discord.Message:
         """Get confirmation for an action that a user can perform (For example; /stop)
 
         Args:
@@ -272,15 +281,15 @@ class DeveloperJoe(commands.Bot):
             
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (Version = {VERSION})\n")
+            print(f"\n{self.application.name} Online (Version = {VERSION})\n1")
 
             self.chats: dict[int, Union[dict[str, DGChatType], dict]] = {}
             self.default_chats: dict[str, Union[None, DGChatType]] = {}
 
-            self.start_time = datetime.datetime.now(tz=TIMEZONE)
+            self.start_time = datetime.datetime.now(tz=DATETIME_TZ)
             
             await self.change_presence(activity=discord.Activity(type=STATUS_TYPE, name=STATUS_TEXT))
-            with (DGHistorySession() as _history, DGRulesManager() as _guild_handler):
+            with (DGDatabaseSession() as database, DGRulesManager() as _guild_handler):
                 
                 
                 def check_servers():
@@ -295,9 +304,9 @@ class DeveloperJoe(commands.Bot):
                 async def _check_integrity(i: int):
                     print("Performing database check..")
                     if not i > 1:
-                        if not _history.__check__():
+                        if not database.check():
                             print("Database file has been modified / deleted, rebuilding..")
-                            _history.init_history()
+                            database.init()
                             return await _check_integrity(i+1)
                             
                         return print("Database all set.")
@@ -332,12 +341,8 @@ async def run_bot():
     client = None
     try:
         print(f"\nTokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
-        
-        with open("misc/bot_log.log", "w+"):
-            ...
             
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
-
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
         async with DeveloperJoe(command_prefix=commands.when_mentioned_or("?"), intents=DeveloperJoe.INTENTS) as client:

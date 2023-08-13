@@ -10,7 +10,7 @@ yes_no_choice: list[discord.app_commands.Choice] = [
         discord.app_commands.Choice(name="No", value="n")
 ]
 
-class gpt(commands.Cog):
+class Communication(commands.Cog):
 
     def __init__(self, client):
         self.client: DeveloperJoe = client
@@ -21,10 +21,11 @@ class gpt(commands.Cog):
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)",
                                    in_thread=f"If you want a dedicated private thread to talk with {BOT_NAME} in.",
-                                   speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {BOT_NAME} will join and speak your replies."
+                                   speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {BOT_NAME} will join and speak your replies.",
+                                   is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
     )
-    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=MODEL_CHOICES, in_thread=yes_no_choice)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None):
+    @discord.app_commands.choices(stream_conversation=yes_no_choice, gpt_model=MODEL_CHOICES, in_thread=yes_no_choice, speak_reply=yes_no_choice, is_private=yes_no_choice)
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: Union[str, None]=None, gpt_model: Union[str, None]=None, in_thread: Union[str, None]=None, speak_reply: Union[str, None]=None, is_private: Union[str, None]=None):
         
         member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
         channel: discord.TextChannel = utils.assure_class_is_value(interaction.channel, discord.TextChannel)
@@ -33,6 +34,7 @@ class gpt(commands.Cog):
         async def command():
             
             actual_choice = True if stream_conversation == "y" else False
+            is_private_choice = True if is_private == "y" else False
             actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{member.display_name}"
             chats = self.client.get_all_user_conversations(member)
             name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
@@ -54,7 +56,7 @@ class gpt(commands.Cog):
                 await chat_thread.add_user(member)
                 await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
-            chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread)
+            chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread, is_private_choice)
             
             if speak_reply != "y":
                 convo = DGTextChat(*chat_args)
@@ -167,7 +169,7 @@ class gpt(commands.Cog):
             with DGHistorySession() as history:
     
                 if self.client.get_all_user_conversations(member):
-                    reply = await self.client.get_confirmation(interaction, f'Are you sure you want to end {name}? (Send reply within {QUERY_TIMEOUT} seconds, and "{QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+                    reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {QUERY_TIMEOUT} seconds, and "{QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
                     if reply.content != QUERY_CONFIRMATION:
                         return await interaction.followup.send("Cancelled action.", ephemeral=False)
                     
@@ -246,43 +248,6 @@ class gpt(commands.Cog):
         name = self.client.manage_defaults(member, name)
         await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else f"You do not have any {BOT_NAME} conversations.")
 
-    @discord.app_commands.command(name="shutup", description=f"If you have a {BOT_NAME} voice chat and you want it to stop talking a reply, execute this command.")
-    async def shutup_reply(self, interaction: discord.Interaction):
-        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
-        default_chat = self.client.get_default_conversation(member)
-        if default_chat and isinstance(default_chat, DGVoiceChat):
-            default_chat.stop_speaking()
-            return await interaction.response.send_message(f"I have shut up.")
-        elif default_chat:
-            raise ChatIsTextOnly(default_chat)
-        else:
-            raise UserDoesNotHaveChat(str(default_chat))
-
-    @discord.app_commands.command(name="pause", description="Paused the bots voice reply.")
-    async def pause_reply(self, interaction: discord.Interaction):
-        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
-        default_chat = self.client.get_default_conversation(member)
-        
-        if default_chat and isinstance(default_chat, DGVoiceChat):
-            default_chat.pause_speaking()
-            return await interaction.response.send_message(f"I have paused my reply.")
-        elif default_chat:
-            raise ChatIsTextOnly(default_chat)
-        else:
-            raise UserDoesNotHaveChat(str(default_chat))
-    
-    @discord.app_commands.command(name="resume", description="Resues the bots voice reply.")
-    async def resume_reply(self, interaction: discord.Interaction):
-        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
-        default_chat = self.client.get_default_conversation(member)
-        
-        if default_chat and isinstance(default_chat, DGVoiceChat):
-            default_chat.resume_speaking()
-            return await interaction.response.send_message("Speaking...")
-        elif default_chat:
-            raise ChatIsTextOnly(default_chat)
-        else:
-            raise UserDoesNotHaveChat(str(default_chat))
         
 async def setup(client):
-    await client.add_cog(gpt(client))
+    await client.add_cog(Communication(client))

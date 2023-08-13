@@ -1,7 +1,7 @@
 """General Utilities that DG Uses."""
 
-import io as _io
-from discord import File as _File
+import io as _io, os as _os
+from discord import File as _File, Interaction as _Interaction
 from . import config as _config, models as _models, exceptions as _exceptions
 
 def to_file(content: str, name: str) -> _File:
@@ -9,6 +9,9 @@ def to_file(content: str, name: str) -> _File:
         f = _io.BytesIO(content.encode())
         f.name = name
         return _File(f)
+
+def to_file_fp(fp: str) -> _File:
+    return _File(fp)
 
 def get_modeltype_from_name(name: str) -> _models.GPTModelType:
         """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
@@ -81,6 +84,7 @@ def dg_is_speaking(func):
     return _inner
 
 def dg_isnt_speaking(func):
+    print("SPEAK_CHECK")
     """Decorator for checking if the bot instance is in the users channel, but not speaking.
 
     Args:
@@ -93,15 +97,19 @@ def dg_isnt_speaking(func):
 
     return _inner
 
-def dg_isnt_processing(func):
+def has_config(func):
+    print("PROC_I111NNER")
     """Decorator for checking if a conversation is processing a request. (Not used currently)
 
     Args:
         func (_type_): The function.
     """
     def _inner(self, *args, **kwargs):
-        if not self.is_processing:
-            return func(self, *args, **kwargs)
-        raise _exceptions.IsProcessingVoice(self)
+        if not self._manager.has_guild():
+            self._manager.add_guild()
+        return func(self, *args, **kwargs)
 
     return _inner
+
+def in_correct_channel(interaction: _Interaction) -> bool:
+    return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)

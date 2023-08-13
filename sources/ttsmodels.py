@@ -1,6 +1,5 @@
 import io as _io, gtts as _gtts, pydub as _pydub
 from . import exceptions
-from . import config
 
 global has_coqui
 
@@ -47,21 +46,27 @@ class TTSModel:
         """
         return self._emulated_file_object
 
-    def process_text(self) -> _io.BytesIO:
+    def process_text(self, speed: float) -> _io.BytesIO:
         """This must translate the text to a `io.BytesIO` object.
 
+        Args:
+            speed (float): The speed at which the bot will talk.
+
         Returns:
-            _io.BytesIO: The emulated MP3 file.
+            _io.BytesIO: The spoken response.
         """
         ...
 
 class GTTSModel(TTSModel):
     """Google Text-to-Speach model."""
-    def process_text(self) -> _io.BytesIO:
+    def process_text(self, speed: float) -> _io.BytesIO:
         """Processes text into the Google TTS voice.
 
+        Args:
+            speed (float): The speed at which the bot will talk
+
         Returns:
-            _io.BytesIO: The emulated MP3 file.
+            _io.BytesIO: The spoken response.
         """
         
         _temp_file = _io.BytesIO()
@@ -69,7 +74,7 @@ class GTTSModel(TTSModel):
         _temp_file.seek(0)
         
         speed_up = _pydub.AudioSegment.from_file(_temp_file)
-        return speed_up.speedup(playback_speed=config.VOICE_SPEEDUP_MULTIPLIER).export(self.emulated_file_object)
+        return speed_up.speedup(playback_speed=speed).export(self.emulated_file_object)
         
         
 

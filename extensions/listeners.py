@@ -5,7 +5,7 @@ from joe import *
 from typing import Union, AsyncGenerator
 from sources import *
 
-class listeners(commands.Cog):
+class Listeners(commands.Cog):
     def __init__(self, client: DeveloperJoe):
         self.client: DeveloperJoe = client
         print(f"{self.__cog_name__} Loaded")
@@ -104,4 +104,4 @@ class listeners(commands.Cog):
                         convo.voice_tss_queue.clear()
 
 async def setup(client: DeveloperJoe):
-    await client.add_cog(listeners(client))
+    await client.add_cog(Listeners(client))

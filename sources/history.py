@@ -1,8 +1,38 @@
 import json as _json
 
+from typing import Iterable as _Iterable, Any as _Any
 from .database import *
-from .exceptions import *
+from .exceptions import *        
+   
+class DGHistoryChat:
+        
+    def __init__(self, data: list):
+        self._id: str = data[0][0]
+        self._user: int = data[0][1]
+        self._name: str = data[0][2]
+        self._data: dict = _json.loads(data[0][3])
+        self._private: bool = data[0][4]
+        
+    @property
+    def history_id(self) -> str:
+        return self._id
 
+    @property
+    def user(self) -> int:
+        return self._user
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def data(self) -> dict:
+        return self._data
+
+    @property
+    def private(self) -> bool:
+        return self._private
+ 
 class DGHistorySession(DGDatabaseSession):
 
     """
@@ -22,8 +52,8 @@ class DGHistorySession(DGDatabaseSession):
         """
         super().__init__()
     
-    def retrieve_chat_history(self, history_id: str) -> list:
-        return self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,))
+    def retrieve_chat_history(self, history_id: str) -> DGHistoryChat:
+        return DGHistoryChat(self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,)))
     
     def delete_chat_history(self, history_id: str) -> str:
         if self.retrieve_chat_history(history_id):
@@ -33,8 +63,4 @@ class DGHistorySession(DGDatabaseSession):
     
     def upload_chat_history(self, chat) -> list:
         json_dump = _json.dumps(chat.readable_history)
-        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?)", (chat.hid, chat.user.id, chat.name, json_dump,))
-
-    def init_history(self) -> None:
-        self._exec_db_command("CREATE TABLE history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL)")
-        self._exec_db_command("CREATE TABLE model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
+        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.user.id, chat.name, json_dump, int(chat.private)))

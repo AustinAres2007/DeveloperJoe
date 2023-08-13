@@ -29,10 +29,11 @@ class DGDatabaseSession:
         self.database: _sqlite3.Connection = _sqlite3.connect(database_file, timeout=60)
         self.cursor: _Union[_sqlite3.Cursor, None] = self.database.cursor()
 
-    def __check__(self) -> bool:
+    def check(self) -> bool:
         try:
             self._exec_db_command("SELECT * FROM history")
             self._exec_db_command("SELECT * FROM model_rules")
+            self._exec_db_command("SELECT * FROM guild_configs")
             return True
         except _sqlite3.OperationalError:
             return False
@@ -48,3 +49,8 @@ class DGDatabaseSession:
         self.cursor = None
 
         return fetched
+    
+    def init(self) -> None:
+        self._exec_db_command("CREATE TABLE history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")
+        self._exec_db_command("CREATE TABLE model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
+        self._exec_db_command("CREATE TABLE guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
