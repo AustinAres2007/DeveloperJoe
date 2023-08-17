@@ -138,7 +138,6 @@ class DGTextChat:
             # Put necessary variables here (Doesn't matter weather streaming or not)
             self.chat_history.append(kwargs)
 
-            # TODO: Test async module
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             payload = {
                         "model": self.model.model,
@@ -146,6 +145,7 @@ class DGTextChat:
             }
             _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
             
+            # TODO: Fix token limit error.
             reply = _reply.json()["choices"][0]
             usage = _reply.json()["usage"]
 
@@ -161,17 +161,18 @@ class DGTextChat:
             
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
+            try:
+                image_request: dict = dict(_openai.Image.create(**kwargs))
+                if isinstance(image_request, dict) == True:
+                    image_url = image_request['data'][0]['url']
+                    replied_content = f"Created Image at {_datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
+                    r_history.extend([{'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'}, {'image_return': image_url}])
 
-            image_request: dict = dict(_openai.Image.create(**kwargs))
-            if isinstance(image_request, dict) == True:
-                image_url = image_request['data'][0]['url']
-                replied_content = f"Created Image at {_datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
-                r_history.extend([{'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'}, {'image_return': image_url}])
-
-                self.readable_history.append(r_history)
-            else:
-                raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
-        
+                    self.readable_history.append(r_history)
+                else:
+                    raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
+            except _openai.InvalidRequestError:
+                raise exceptions.GPTContentFilter(kwargs["prompt"])
         else:
             error = f"Generic ({query_type})"
 

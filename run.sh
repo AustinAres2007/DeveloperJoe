@@ -1,5 +1,5 @@
 #!/bin/sh
-# TODO: Support linux
+
 PYTHON_COMMAND=python3
 DIR=$(cd "$(dirname "$0")"; pwd)
 cd $DIR && source $DIR/bin/activate

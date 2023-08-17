@@ -20,6 +20,7 @@ class Listeners(commands.Cog):
     async def on_message(self, message: discord.Message):   
         convo = None
         try:
+            # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != config.QUERY_CONFIRMATION:
                 member: discord.Member = utils.assure_class_is_value(message.author, discord.Member)
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
@@ -61,7 +62,7 @@ class Listeners(commands.Cog):
                                     if ind and ind % config.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
                                         await msg[-1].edit(content=sendable_portion)
                                 else:
-                                    return await msg[-1].edit(content=sendable_portion)
+                                    await msg[-1].edit(content=sendable_portion)
 
                             # If normal reply
                             else:
@@ -72,6 +73,7 @@ class Listeners(commands.Cog):
                             if isinstance(convo, chat.DGVoiceChat):
                                 await convo.speak(final_message_reply)
                             return
+                        
                         elif has_private_thread and convo.is_processing == True:
                             raise exceptions.DGException(f"{config.BOT_NAME} is still processing your last request.")
                     else:
@@ -98,7 +100,6 @@ class Listeners(commands.Cog):
     async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
         voice: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
-        # TODO: When `sources.chat.DGVoiceChat.manage_voice` is called, if there is a new bot voice connection, set DGVoiceChat.client_voice to the discord.VoiceClient instance.
         if convos := self.client.get_all_user_conversations(member):
             for convo in convos.values(): 
                 if isinstance(convo, chat.DGVoiceChat):

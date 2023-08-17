@@ -65,7 +65,6 @@ class Communication(commands.Cog):
                 await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
 
             chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, actual_choice, name, actual_model, chat_thread, is_private_choice)
-            print(guildconfig.get_guild_config_attribute(interaction.guild, "voice"))
             
             if speak_reply != "y":
                 convo = chat.DGTextChat(*chat_args)
@@ -79,7 +78,7 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
-            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'}*", ephemeral=False)
+            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == 'y' else 'No'} | Private - {'Yes' if is_private_choice == True else 'No'}*", ephemeral=False)
 
             self.client.add_conversation(member, name, convo)
             self.client.set_default_conversation(member, name)
@@ -207,13 +206,10 @@ class Communication(commands.Cog):
 
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        if resolution in ["256x256", "512x512", "1024x1024"]:
-            if convo := self.client.get_user_conversation(member, save_to):
-                result = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
-            else:
-                result = errors.ConversationErrors.NO_CONVO
+        if convo := self.client.get_user_conversation(member, save_to):
+            result = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
         else:
-            result = "Incorrect resolution setting. (Must be: 256x256, 512x512, 1024x1024)"
+            result = errors.ConversationErrors.NO_CONVO
 
         return await interaction.followup.send(result, ephemeral=False)
 
