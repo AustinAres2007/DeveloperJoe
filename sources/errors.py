@@ -2,8 +2,16 @@ from . import config
 
 """Error reply texts."""
 
-NONE = None
 GENERIC_ERROR = "Unknown error, contact administrator."
+
+__all__ = [
+    "ConversationErrors",
+    "VoiceConversationErrors",
+    "UserErrors",
+    "GptErrors",
+    "HistoryErrors",
+    "ModelErrors"
+]
 
 class ConversationErrors:
     """Errors pertaining to general conversations."""
@@ -27,6 +35,8 @@ class ConversationErrors:
     
 class VoiceConversationErrors:
     """Errors pertaining to spoken conversation."""
+    
+    NO_VOICE_CONVO = "You either do not have any conversation, or the conversation you have does not have voice support enabled."
     NOT_SPEAKING = "I am not speaking."
     NOT_IN_CHANNEL = "I am not in your voice channel."
     USER_NOT_IN_CHANNEL = "You are not in a voice channel."
@@ -36,6 +46,8 @@ class VoiceConversationErrors:
     NO_COQUI = "The bot owner does not have this voice model installed."
     IS_PROCESSING_VOICE = "I am still processing / playing your last voice request."
     VOICE_IS_LOCKED = "This discord server has disabled voice abilities."
+    IS_LISTENING = "I am already listening to voice."
+    NOT_LISTENING = "I am not listening to voice."
     
 class UserErrors:
     """Errors pertaining to user status."""

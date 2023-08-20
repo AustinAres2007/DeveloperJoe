@@ -1,8 +1,8 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
-import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio
+import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
-from discord.ext import commands as _commands
+from discord.ext.commands import Bot
 from enum import Enum as _Enum
 from typing import (
     Union as _Union, 
@@ -18,11 +18,15 @@ from . import (
     utils, 
     ttsmodels
 )
+from .voice import voice_client, reader
 
-class DGTextChat:
-    """Represents a text-only DG Chat."""
+__all__ = [
+    "DGTextChat",
+    "DGVoiceChat"
+]
+class DGChats:
     def __init__(self, 
-                bot_instance: _commands.Bot,
+                bot_instance: Bot,
                 _openai_token: str, 
                 user: _Union[_discord.User, _discord.Member], 
                 name: str,
@@ -30,25 +34,30 @@ class DGTextChat:
                 display_name: str, 
                 model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
                 associated_thread: _Union[_discord.Thread, None]=None,
-                is_private: bool=True 
+                is_private: bool=True,
+                voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
         ):
-        """Represents a text DG Chat.
+        """Represents a base DGChat. Do not use, inherit from this.
 
         Args:
-            _openai_token (str): Your OpenAI API Token
-            user (_Union[_discord.User, _discord.Member]): The member this text chat will belong too.
-            name (str): Name of the chat.
-            stream (bool): Weather the chat will be streamed. (Like ChatGPT)
-            display_name (str): What the display name of the chat will be.
-            model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
-            associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
+            bot_instance (_DeveloperJoe): _description_
+            _openai_token (str): _description_
+            user (_Union[_discord.User, _discord.Member]): _description_
+            name (str): _description_
+            stream (bool): _description_
+            display_name (str): _description_
+            model (models.GPTModelType, optional): _description_. Defaults to config.DEFAULT_GPT_MODEL.
+            associated_thread (_Union[_discord.Thread, None], optional): _description_. Defaults to None.
+            is_private (bool, optional): _description_. Defaults to True.
+            voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): _description_. Defaults to None.
         """
-        self.bot = bot_instance
+        
+        self.bot: Bot = bot_instance
         self.user: _Union[_discord.User, _discord.Member] = user
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
-
+        self.last_channel: _discord.TextChannel | None = None
         self.oapi = _openai_token
 
         self.name = name
@@ -61,12 +70,13 @@ class DGTextChat:
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.chat_history, self.readable_history = [], []
         
-
+        # Voice attributes
+        
+        self._voice = voice
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._is_speaking = False
+        self.voice_tss_queue: list[str] = []
         _openai.api_key = self.oapi
-    
-    @property
-    def type(self):
-        return DGChatTypesEnum.TEXT
     
     @property
     def is_active(self) -> bool:
@@ -83,7 +93,7 @@ class DGTextChat:
     @private.setter
     def private(self, is_p: bool):
         self._private = is_p
-        
+    
     def __manage_history__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
         self.is_processing = False
 
@@ -213,9 +223,148 @@ class DGTextChat:
             self.readable_history.append(r_history)
 
             self.__manage_history__(generator_reply, "query", save_message, total_tokens)
+    
+    """
+    def __manage_history__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
+        raise NotImplementedError
+    
+    async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> _AsyncGenerator:
+        raise NotImplementedError
+            
+    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
+        raise NotImplementedError
+
+    async def __stream_send_query__(self, save_message: bool=True, **kwargs):
+        raise NotImplementedError
+    """
+    async def ask(self, query: str, *_args, **_kwargs) -> str:
+        raise NotImplementedError
+        
+    def ask_stream(self, query: str) -> _AsyncGenerator:
+        raise NotImplementedError
+    
+    async def start(self) -> str:
+        raise NotImplementedError
+
+    def clear(self) -> None:
+        raise NotImplementedError
+    
+    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: str) -> str:
+        raise NotImplementedError
+
+    @property
+    def voice(self):
+        return self._voice
+    
+    @voice.setter
+    def voice(self, _voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]):
+        self._voice = _voice
+    
+    @property
+    def type(self):
+        return DGChatTypesEnum.VOICE
+
+    @property
+    def is_speaking(self) -> bool:
+        return self.client_voice.is_playing() if self.client_voice else False
+    
+    @property
+    def client_voice(self) -> voice_client.VoiceRecvClient | None:
+        return self._client_voice_instance
+    
+    @property
+    def has_voice(self):
+        return True if self.voice else False
+    
+    @client_voice.setter
+    def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
+        self._client_voice_instance = _bot_vc 
+    
+    async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
+        raise NotImplementedError
+        
+    async def manage_voice(self) -> _discord.VoiceClient:
+       raise NotImplementedError
+   
+    async def speak(self, text: str, channel: _discord.TextChannel): 
+       raise NotImplementedError
+            
+    def stop_speaking(self):
+        raise NotImplementedError
+    
+    def pause_speaking(self):
+        raise NotImplementedError
+    
+    def resume_speaking(self):
+        raise NotImplementedError
+    
+    def listen(self):
+        raise NotImplementedError
+    
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__}>"
+    
+class DGTextChat(DGChats):
+    """Represents a text-only DG Chat."""
+    def __init__(self, 
+                bot_instance: Bot,
+                _openai_token: str, 
+                user: _Union[_discord.User, _discord.Member], 
+                name: str,
+                stream: bool,
+                display_name: str, 
+                model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
+                associated_thread: _Union[_discord.Thread, None]=None,
+                is_private: bool=True 
+        ):
+        """Represents a text DG Chat.
+
+        Args:
+            bot_instance (DeveloperJoe): The DeveloperJoe client instance. This is not type checked so please be wary.
+            _openai_token (str): Your OpenAI API Token
+            user (_Union[_discord.User, _discord.Member]): The member this text chat will belong too.
+            name (str): Name of the chat.
+            stream (bool): Weather the chat will be streamed. (Like ChatGPT)
+            display_name (str): What the display name of the chat will be.
+            model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
+            associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
+            is_private (bool): Weather the chat will be private (Only showable to the user) Defaults to True.
+        """
+        
+        super().__init__(
+            bot_instance=bot_instance,
+            _openai_token=_openai_token,
+            user=user,
+            name=name,
+            stream=stream,
+            display_name=display_name,
+            model=model,
+            associated_thread=associated_thread,
+            is_private=is_private
+        )
+    
+    @property
+    def type(self):
+        return DGChatTypesEnum.TEXT
+    
+    @property
+    def is_active(self) -> bool:
+        return self._is_active
+    
+    @is_active.setter
+    def is_active(self, value: bool):
+        self._is_active = value
+    
+    @property
+    def private(self) -> bool:
+        return self._private
+
+    @private.setter
+    def private(self, is_p: bool):
+        self._private = is_p
 
     @utils.check_enabled
-    async def ask(self, query: str) -> str:
+    async def ask(self, query: str, *_args, **_kwargs) -> str:
         """Asks your GPT Model a question.
 
         Args:
@@ -228,6 +377,7 @@ class DGTextChat:
             str: The reply GPT sent.
         """
         return str(await self.__send_query__(query_type="query", role="user", content=query))
+        
 
     @utils.check_enabled
     def ask_stream(self, query: str) -> _AsyncGenerator:
@@ -295,7 +445,7 @@ class DGVoiceChat(DGTextChat):
     """Represents a voice and text DG Chat."""
     def __init__(
             self,
-            bot_instance: _commands.Bot,
+            bot_instance: _Any,
             _openai_token: str, 
             user: _discord.Member, 
             name: str,
@@ -321,7 +471,7 @@ class DGVoiceChat(DGTextChat):
         """
         super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
         self._voice = voice
-        self._client_voice_instance: _Union[_discord.VoiceClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
     
@@ -342,16 +492,40 @@ class DGVoiceChat(DGTextChat):
         return self.client_voice.is_playing() if self.client_voice else False
     
     @property
-    def client_voice(self) -> _discord.VoiceClient | None:
+    def client_voice(self) -> voice_client.VoiceRecvClient | None:
         return self._client_voice_instance
     
+    @property
+    def has_voice(self):
+        return True if self.voice else False
+    
     @client_voice.setter
-    def client_voice(self, _bot_vc: _discord.VoiceClient | None) -> None:
-        self._client_voice_instance = _bot_vc
+    def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
+        self._client_voice_instance = _bot_vc 
+    
+    async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
+        recogniser = _speech_recognition.Recognizer()
+        try:
+            with _speech_recognition.AudioFile(voice) as wav_file:
+                data = recogniser.record(wav_file)
+                text = recogniser.recognize_google(data, pfilter=0)
+        except _speech_recognition.UnknownValueError:
+            return
+        
+        prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
+        
+        if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
+            text = text.split(config.LISTENING_KEYWORD)[1].lstrip()
+            usr_voice_convo = self.bot.get_default_voice_conversation(member) # type: ignore hope that DeveloperJoe instance is self.bot
+            
+            if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
+                if usr_voice_convo.stream != True:
+                    return await self.last_channel.send(await usr_voice_convo.ask(text, self.last_channel))    
+                raise NotImplementedError # TODO
         
     async def manage_voice(self) -> _discord.VoiceClient:
         
-        voice: _discord.VoiceClient = _discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
+        voice: voice_client.VoiceRecvClient = _discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
         
         # I know elif exists. I am doing this for effiency.
         if voice and voice.is_connected() and (self.voice == voice.channel):
@@ -360,16 +534,17 @@ class DGVoiceChat(DGTextChat):
             if voice and voice.is_connected() and (self.voice != voice.channel):
                 await voice.move_to(self.voice)
             elif self.voice:
-                self.client_voice = voice = await self.voice.connect()
-                
+                self.client_voice = await self.voice.connect(cls=voice_client.VoiceRecvClient)
+                voice: voice_client.VoiceRecvClient = self.client_voice
             await _asyncio.sleep(5.0)
         
         return voice
     
     @utils.check_enabled
     @utils.has_voice
-    async def speak(self, text: str): 
+    async def speak(self, text: str, channel: _discord.TextChannel): 
         try:
+            self.last_channel = channel
             self.voice_tss_queue.append(text)
             new_voice = await self.manage_voice()
             
@@ -396,6 +571,7 @@ class DGVoiceChat(DGTextChat):
     @utils.dg_in_voice_channel
     @utils.dg_is_speaking
     def stop_speaking(self):
+        """Stops the bots voice reply for a user. (Cannot be resumed)"""
         if self.client_voice: self.client_voice.stop()
     
     @utils.check_enabled
@@ -403,15 +579,46 @@ class DGVoiceChat(DGTextChat):
     @utils.dg_in_voice_channel
     @utils.dg_is_speaking
     def pause_speaking(self):
-        if self.client_voice: self.client_voice.pause()
+        """Pauses the bots voice reply for a user."""
+        self.client_voice.pause() # type: ignore Checks done with decorators.
     
     @utils.check_enabled
     @utils.has_voice_with_error
     @utils.dg_in_voice_channel
     @utils.dg_isnt_speaking
     def resume_speaking(self):
-        if self.client_voice: self.client_voice.resume()
+        """Resumes the bots voice reply for a user."""
+        self.client_voice.resume() # type: ignore Checks done with decorators.
+    
+    @utils.check_enabled
+    @utils.has_voice_with_error
+    @utils.dg_in_voice_channel
+    @utils.dg_isnt_speaking
+    @utils.dg_isnt_listening
+    def listen(self):
+        """Starts the listening events for a users voice conversation."""
+        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 2.5)) # type: ignore Checks done with decorators.
+    
+    @utils.check_enabled
+    @utils.has_voice_with_error
+    @utils.dg_in_voice_channel
+    @utils.dg_isnt_speaking
+    @utils.dg_is_listening
+    def stop_listening(self):
+        """Stops the listening events for a users voice conversation"""
+        self.client_voice._reader.sink.cleanup() # type: ignore Checks done with decorators.
+        self.client_voice.stop_listening() # type: ignore Checks done with decorators.
         
+        
+    async def ask(self, query: str, channel: _discord.TextChannel | None=None):
+        text = await super().ask(query)
+        if isinstance(channel, _discord.TextChannel):
+            await self.speak(text, channel)
+        else:
+            raise TypeError("channel cannot be {}. discord.TextChannel only.".format(channel.__class__))
+        
+        return text
+    
     def __str__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.user}, voice={self.voice}, is_active={self.is_active}>"
     

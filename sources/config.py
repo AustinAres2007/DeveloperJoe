@@ -8,13 +8,21 @@ from . import models
 
 """END-USER CONFIGURATION"""
 
+# General
+
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
 STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
-DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT4 # gpt-4, or gpt-3.5-turbo
+DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT3Turbo # gpt-4, or gpt-3.5-turbo (GPT4 or GPT3Turbo)
 
+# Voice
+
+LISTENING_KEYWORD = "developer" # The name that will invoke the bots reply (Like with "Hey Siri" or "Alexa", example: "Hey developer, what is factorial of 1?")
+LISTENING_TIMEOUT = 2.5 # How many seconds of silence there must be until the bot will process a users voice request.
 VOICE_SPEEDUP_MULTIPLIER = 1.17 # How fast you want the default text-to-speach model to talk. (1 = default, quite slow. 2 = Quite fast)
 ALLOW_VOICE = True # Weather voice support is enabled. It is by default, and will require additional setup if you do not have FFMPEG installed. It is easy to do so.
+
+# Region
 
 TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.txt for a list of all.)
 
@@ -28,9 +36,9 @@ STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictate
 CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be more than 14.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
-FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
+FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
-VERSION = "1.3.1" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.3.2-K" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
@@ -53,6 +61,7 @@ ALLOW_TRACEBACK = True # If a minor error occurs, this determines weather it wi
 GUILD_CONFIG_KEYS = {
     "speed": VOICE_SPEEDUP_MULTIPLIER,
     "timezone": TIMEZONE,
-    "voice": True
+    "voice": True,
+    "voice-keyword": LISTENING_KEYWORD
 } # Default values for guild configurations
 DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.

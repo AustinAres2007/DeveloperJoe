@@ -1,7 +1,7 @@
 """General Utilities that DG Uses."""
 
 import io as _io, os as _os
-from discord import File as _File, Interaction as _Interaction
+from discord import File as _File, Interaction as _Interaction, errors as _errors
 from . import (
     config, 
     models, 
@@ -38,7 +38,7 @@ def assure_class_is_value(object, __type: type):
     raise exceptions.IncorrectInteractionSetting(object, type)
 
 def check_enabled(func):
-    """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised.
+    """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised. If making a custom method, this decorator MUST come first.
 
     Args:
         func (_type_): The function.
@@ -102,10 +102,34 @@ def dg_isnt_speaking(func):
         func (_type_): The function.
     """
     def _inner(self, *args, **kwargs):
-        if self.client_voice and self.client_voice.is_paused():
+        if self.client_voice and (self.client_voice.is_paused() or not self.client_voice.is_playing()):
             return func(self, *args, **kwargs)
         raise exceptions.DGIsTalking(self.voice)
 
+    return _inner
+
+def dg_is_listening(func):
+    """Decorator for checking if the bot instance is listening to voice chat.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        if self.client_voice.is_listening():
+            return func(self, *args, **kwargs)
+        raise exceptions.DGNotListening()
+    return _inner
+
+def dg_isnt_listening(func):
+    """Decorator for checking if the bot instance is not listening to voice chat.
+
+    Args:
+        func (_type_): The function.
+    """
+    def _inner(self, *args, **kwargs):
+        if not self.client_voice.is_listening():
+            return func(self, *args, **kwargs)
+        raise exceptions.DGIsListening()
     return _inner
 
 def has_config(func):

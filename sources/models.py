@@ -1,6 +1,12 @@
 import tiktoken as _tiktoken
 from typing import Union as _Union, Type as _Type
 
+__all__ = [
+    "GPTModel",
+    "GPT3Turbo",
+    "GPT4",
+    "GPTModelType"
+]
 class GPTModel:
 
     _model: str = ""

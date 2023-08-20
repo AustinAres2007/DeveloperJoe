@@ -90,12 +90,12 @@ class Communication(commands.Cog):
     @discord.app_commands.command(name="ask", description=f"Ask {config.BOT_NAME} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {config.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
     @discord.app_commands.choices(stream=yes_no_choice)
-    async def ask(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: Union[str, None]=None):
+    async def ask_query(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: Union[str, None]=None):
 
             member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
             channel: discord.TextChannel = utils.assure_class_is_value(interaction.channel, discord.TextChannel)
             name = self.client.manage_defaults(member, name)
-            
+            print('eegqeg')
             if channel and channel.type in config.ALLOWED_INTERACTIONS: # Check if in right channel
                 if convo := self.client.get_user_conversation(member, name): # Check if user has a conversation 
                     if self.client.get_user_has_permission(member, convo.model): # If user has model permission
@@ -140,11 +140,12 @@ class Communication(commands.Cog):
                                     await interaction.edit_original_response(content=sendable_portion)
                                 else:
                                     await msg[-1].edit(content=sendable_portion)
-                                
+                            
+                            return
                         else:         
                             
                             await interaction.response.defer(ephemeral=False, thinking=True)
-                            final_message_reply = reply = await convo.ask(message)
+                            final_message_reply = reply = await convo.ask(message, channel)
                             final_user_reply = f"## {header_text}\n\n{reply}"
                             
                             if len(final_user_reply) > config.CHARACTER_LIMIT:
@@ -153,15 +154,27 @@ class Communication(commands.Cog):
                             else:
                                 await interaction.followup.send(final_user_reply, ephemeral=False)
 
-                    
-                        if isinstance(convo, chat.DGVoiceChat):
-                            await convo.speak(final_message_reply)
-                        return
-                    
+                            return
                     raise exceptions.ModelIsLockedError(utils.get_modeltype_from_name(convo.model.model))
                 raise exceptions.UserDoesNotHaveChat(name)
             raise exceptions.CannotTalkInChannel(channel.type)
 
+    @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
+    async def enabled_listening(self, interaction: discord.Interaction, listen: bool):
+        try:
+            member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+            if vc_chat := self.client.get_default_voice_conversation(member):
+                if listen == True:
+                    vc_chat.listen()
+                    await interaction.response.send_message("Listening to voice..")
+                else:
+                    vc_chat.stop_listening()
+                    await interaction.response.send_message("Stopped listening to voice.")
+            else:
+                raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
+        except Exception as e:
+            print(e)
+            
     @discord.app_commands.command(name="stop", description=f"Stop a {config.BOT_NAME} session.")
     @discord.app_commands.describe(save="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     @discord.app_commands.choices(save=[
@@ -260,5 +273,6 @@ class Communication(commands.Cog):
              
         await interaction.response.send_message(embed=embed)
             
+    
 async def setup(client):
     await client.add_cog(Communication(client))

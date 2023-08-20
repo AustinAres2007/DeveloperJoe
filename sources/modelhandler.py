@@ -13,6 +13,10 @@ from typing import (
 )
 
 GuildModels = _TypedDict('GuildModels', {"model": list[int]})
+__all__ = [
+    "DGRulesManager",
+    "DGRules"
+]
 
 class DGRulesManager(database.DGDatabaseSession):
     """Performs static operations on the database."""

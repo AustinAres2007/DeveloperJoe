@@ -5,6 +5,9 @@ from . import config
 
 database_file = config.DATABASE_FILE
 
+__all__ = [
+    "DGDatabaseSession"
+]
 class DGDatabaseSession:
     """
         Handles connection between the server and discord client.

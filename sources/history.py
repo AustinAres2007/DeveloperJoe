@@ -5,9 +5,15 @@ from . import (
     database, 
     exceptions
 )     
-   
+
+__all__ = [
+    "DGHistoryChat",
+    "DGHistorySession"
+]
+
 class DGHistoryChat:
-        
+    
+    # TODO: History system not working. Fix.
     def __init__(self, data: list):
         self._id: str = data[0][0]
         self._user: int = data[0][1]

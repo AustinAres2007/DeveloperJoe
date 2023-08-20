@@ -7,6 +7,14 @@ from . import (
     utils
 )
 
+__all__ = [
+    "GuildData",
+    "DGGuildConfigSession",
+    "DGGuildConfigSessionManager",
+    "get_guild_config",
+    "edit_guild_config",
+    "get_guild_config_attribute"
+]
 class GuildData:
     def __init__(self, data: list):
         try:
@@ -69,6 +77,14 @@ class DGGuildConfigSessionManager(database.DGDatabaseSession):
         self._exec_db_command("UPDATE guild_configs SET json=? WHERE gid=?", (_json.dumps(data), self._session.guild.id))
 
 def get_guild_config(guild: _discord.Guild) -> GuildData:
+    """Returns a guilds full config.
+
+    Args:
+        guild (_discord.Guild): The guild.
+
+    Returns:
+        GuildData: _description_
+    """
     with DGGuildConfigSession(guild) as cs:
         return cs.get_guild()
 
@@ -76,10 +92,22 @@ def edit_guild_config(guild: _discord.Guild, key: str, value: _Any) -> None:
     with DGGuildConfigSession(guild) as cs:
         return cs.edit_guild(**{key: value})
 
-def get_guild_config_attribute(guild, attribute: str) -> _Union[_Any, None]:
+def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Union[_Any, None]:
+    """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
+
+    Args:
+        guild (_discord.Guild): The guild in question
+        attribute (str): The attribute of the guild config you want.
+
+    Returns:
+        _Union[_Any, None]: The value, or None.
+    """
     with DGGuildConfigSession(guild) as cs:
         cf = cs.get_guild().config_data
         if attribute in cf:
             return cf[attribute]
+        elif attribute in config.GUILD_CONFIG_KEYS:
+            return config.GUILD_CONFIG_KEYS.get(attribute)
+        
         
         

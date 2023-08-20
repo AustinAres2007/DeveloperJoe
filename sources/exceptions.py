@@ -61,6 +61,11 @@ class UserDoesNotHaveChat(DGException):
         """Will be raised if the user specifies a chat that doesn't exist."""
         super().__init__(self.reply, name, *args)
 
+class UserDoesNotHaveVoiceChat(DGException):
+    reply = errors.VoiceConversationErrors.NO_VOICE_CONVO
+    def __init__(self, name: str | None):
+        super().__init__(self.reply, name)
+        
 class UserDoesNotHaveAnyChats(DGException):
     reply = errors.ConversationErrors.NO_CONVOS
     def __init__(self):
@@ -100,7 +105,7 @@ class ModelIsLockedError(DGException):
     reply = errors.ModelErrors.MODEL_LOCKED
     def __init__(self, model: models.GPTModelType, *args):
         """Will be raised if a user does not have access to a model they want to use."""
-        super().__init__(self.reply, model, *args)
+        super().__init__(self.reply, model, log_error=True, send_exceptions=True, *args)
 
 class VoiceIsLockedError(DGException):
     reply = errors.VoiceConversationErrors.VOICE_IS_LOCKED
@@ -143,6 +148,16 @@ class DGNotTalking(DGException):
         """Will be raised when the bot is supposed to be talking, but isn't."""
         super().__init__(self.reply, voice_channel)
 
+class DGIsListening(DGException):
+    reply = errors.VoiceConversationErrors.IS_LISTENING
+    def __init__(self):
+        super().__init__(self.reply)
+
+class DGNotListening(DGException):
+    reply = errors.VoiceConversationErrors.NOT_LISTENING
+    def __init__(self):
+        super().__init__(self.reply)
+        
 class DGNotInVoiceChat(DGException):
     reply = errors.VoiceConversationErrors.NOT_IN_CHANNEL
     def __init__(self, voice_channel: _discord.VoiceChannel):

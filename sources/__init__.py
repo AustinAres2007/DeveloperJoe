@@ -9,3 +9,6 @@ from .models import *
 from .utils import *
 from .ttsmodels import *
 from .guildconfig import *
+
+from .voice.voice_client import *
+from .voice.common import *

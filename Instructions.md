@@ -35,9 +35,9 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.1
+## Release Notes 1.3.2
 
-1. Localised guild configuration
+1. Bot can now listen to your queries.
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
 [^op]: If you want details, use any Python version 3.9 and above, and execute `joe.py` within the root folder of DeveloperJoe.

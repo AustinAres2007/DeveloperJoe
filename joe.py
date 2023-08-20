@@ -34,7 +34,7 @@ try:
         ttsmodels, 
         utils   
     )
-except ImportError as err:
+except IndexError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
     exit(1)
     
@@ -89,7 +89,7 @@ class DeveloperJoe(commands.Bot):
         return (datetime.datetime.now(tz=config.DATETIME_TZ) - self.start_time)
     
     
-    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[Union[chat.DGTextChat, chat.DGVoiceChat], None]:
+    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[chat.DGChatType, None]:
         """ Get the specified members current chat.
 
         Args:
@@ -149,18 +149,31 @@ class DeveloperJoe(commands.Bot):
         if isinstance(member, discord.Member):
             with modelhandler.DGRules(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
-        return False
+        else:
+            raise TypeError("member must be discord.Member, not {}".format(member.__class__))
     
     def get_default_conversation(self, member: discord.Member) -> Union[chat.DGChatType, None]:
         """Get a users default conversation
 
         Args:
-            member (discord.Member): Which member to get default chat
+            member (discord.Member): Which member's default chat to obtain
 
         Returns:
             Union[DGChatType, None]: The default chat, or None if the user doesn't have one.
         """
         return self.default_chats[f"{member.id}-latest"]
+    
+    def get_default_voice_conversation(self, member: discord.Member) -> chat.DGVoiceChat | None:
+        """Returns a users default conversation only if it supports voice.
+
+        Args:
+            member (discord.Member): Which member's default chat to obtain
+
+        Returns:
+            Union[DGChatType, None]: The default voice chat, or None if the user doesn't have one or it is a text chat.
+        """
+        _chat = self.get_default_conversation(member)
+        return _chat if isinstance(_chat, chat.DGVoiceChat) else None
     
     def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[chat.DGVoiceChat, None]:
         # TODO: Add funcion that aquires all voice chats only
