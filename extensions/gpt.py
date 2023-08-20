@@ -70,7 +70,7 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             elif speak_reply == "y" and self.client.has_ffmpeg == False:
                 raise exceptions.FFMPEGNotInstalled(self.client.has_ffmpeg)
-            elif speak_reply == "y" and guildconfig.get_guild_config_attribute(interaction.guild, "voice") == False:
+            elif speak_reply == "y" and interaction.guild and guildconfig.get_guild_config_attribute(interaction.guild, "voice") == False:
                 raise exceptions.VoiceIsLockedError()
             elif speak_reply == "y" and self.client.has_ffmpeg:
                 convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
@@ -95,7 +95,7 @@ class Communication(commands.Cog):
             member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
             channel: discord.TextChannel = utils.assure_class_is_value(interaction.channel, discord.TextChannel)
             name = self.client.manage_defaults(member, name)
-            print('eegqeg')
+
             if channel and channel.type in config.ALLOWED_INTERACTIONS: # Check if in right channel
                 if convo := self.client.get_user_conversation(member, name): # Check if user has a conversation 
                     if self.client.get_user_has_permission(member, convo.model): # If user has model permission
@@ -161,19 +161,16 @@ class Communication(commands.Cog):
 
     @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
     async def enabled_listening(self, interaction: discord.Interaction, listen: bool):
-        try:
-            member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
-            if vc_chat := self.client.get_default_voice_conversation(member):
-                if listen == True:
-                    vc_chat.listen()
-                    await interaction.response.send_message("Listening to voice..")
-                else:
-                    vc_chat.stop_listening()
-                    await interaction.response.send_message("Stopped listening to voice.")
+        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+        if vc_chat := self.client.get_default_voice_conversation(member):
+            if listen == True:
+                vc_chat.listen()
+                await interaction.response.send_message("Listening to voice..")
             else:
-                raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
-        except Exception as e:
-            print(e)
+                vc_chat.stop_listening()
+                await interaction.response.send_message("Stopped listening to voice.")
+        else:
+            raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
             
     @discord.app_commands.command(name="stop", description=f"Stop a {config.BOT_NAME} session.")
     @discord.app_commands.describe(save="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")

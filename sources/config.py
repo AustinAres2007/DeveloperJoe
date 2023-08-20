@@ -38,7 +38,7 @@ CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
-VERSION = "1.3.2-K" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.3.2-H" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
@@ -56,8 +56,8 @@ REGISTERED_MODELS = {
 
 """VERY ADVANCED. IGNORE IF NOT CONCERNED."""
 
-ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
-ALLOW_TRACEBACK = True # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
+ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel, _ChannelType.private_thread] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
+ALLOW_TRACEBACK = False # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
 GUILD_CONFIG_KEYS = {
     "speed": VOICE_SPEEDUP_MULTIPLIER,
     "timezone": TIMEZONE,

@@ -8,7 +8,8 @@ from sources import (
     config,
     chat,
     exceptions,
-    modelhandler
+    modelhandler,
+    voice
 )
 
 class Listeners(commands.Cog):
@@ -70,8 +71,8 @@ class Listeners(commands.Cog):
                                 final_reply = header_and_message + reply
                                 await message.channel.send(final_reply)
 
-                            if isinstance(convo, chat.DGVoiceChat):
-                                await convo.speak(final_message_reply)
+                            if isinstance(convo, chat.DGVoiceChat) and message.channel.type in config.ALLOWED_INTERACTIONS:
+                                await convo.speak(final_message_reply, message.channel)
                             return
                         
                         elif has_private_thread and convo.is_processing == True:
@@ -97,18 +98,45 @@ class Listeners(commands.Cog):
             ...
     
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member, _before: discord.VoiceState, after: discord.VoiceState):
-        voice: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        bot_voice: voice.VoiceRecvClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
-        if convos := self.client.get_all_user_conversations(member):
-            for convo in convos.values(): 
-                if isinstance(convo, chat.DGVoiceChat):
-                    if after.channel:
-                        convo.voice = after.channel
-                    else:
-                        await voice.disconnect()
-                        voice.cleanup()
-                        convo.voice_tss_queue.clear()
-
+        b_channel = getattr(before, "channel", None)
+        a_channel = getattr(after, "channel", None)
+        
+        if member.id != self.client.user.id: # type: ignore will always be True
+            if convos := self.client.get_all_user_conversations(member):
+                
+                async def _manage_bot_disconnect(convo: chat.DGVoiceChat):
+                    if bot_voice:
+                        try:
+                            convo.stop_listening()
+                            convo.voice_tss_queue.clear() 
+                        except exceptions.DGNotListening:
+                            pass
+                        finally:
+                            await bot_voice.disconnect()
+                            bot_voice.cleanup()
+                            
+                for convo in convos.values(): 
+                    if isinstance(convo, chat.DGVoiceChat):
+                        if a_channel:
+                            convo.voice = a_channel
+                        
+                        if b_channel == None and isinstance(a_channel, discord.VoiceChannel): # User joined VC
+                            pass
+                        
+                        elif isinstance(b_channel, discord.VoiceChannel) and a_channel == None: # User left VC
+                            await _manage_bot_disconnect(convo)
+                            
+                        elif isinstance(b_channel, discord.VoiceChannel) and isinstance(a_channel, discord.VoiceChannel): # User done something with VC or moved
+                            if b_channel == a_channel: # User has muted or deafened. Etc...
+                                pass
+                            elif b_channel != a_channel: # User has moved channel
+                                await _manage_bot_disconnect(convo)
+                                
+                        else: # No fucking clue what happened. Panic disconnect!
+                            await _manage_bot_disconnect(convo)
+                                    
 async def setup(client: DeveloperJoe):
     await client.add_cog(Listeners(client))

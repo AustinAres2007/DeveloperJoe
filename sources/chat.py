@@ -57,7 +57,7 @@ class DGChats:
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
-        self.last_channel: _discord.TextChannel | None = None
+        self.last_channel: _discord.abc.MessageableChannel | None = None
         self.oapi = _openai_token
 
         self.name = name
@@ -513,7 +513,7 @@ class DGVoiceChat(DGTextChat):
             return
         
         prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
-        
+        print("GUILD PREFIX: ",prefix)
         if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
             text = text.split(config.LISTENING_KEYWORD)[1].lstrip()
             usr_voice_convo = self.bot.get_default_voice_conversation(member) # type: ignore hope that DeveloperJoe instance is self.bot
@@ -542,7 +542,7 @@ class DGVoiceChat(DGTextChat):
     
     @utils.check_enabled
     @utils.has_voice
-    async def speak(self, text: str, channel: _discord.TextChannel): 
+    async def speak(self, text: str, channel: _discord.abc.MessageableChannel): 
         try:
             self.last_channel = channel
             self.voice_tss_queue.append(text)
@@ -572,7 +572,7 @@ class DGVoiceChat(DGTextChat):
     @utils.dg_is_speaking
     def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
-        if self.client_voice: self.client_voice.stop()
+        self.client_voice.stop() # type: ignore Checks done with decorators.
     
     @utils.check_enabled
     @utils.has_voice_with_error
@@ -610,7 +610,7 @@ class DGVoiceChat(DGTextChat):
         self.client_voice.stop_listening() # type: ignore Checks done with decorators.
         
         
-    async def ask(self, query: str, channel: _discord.TextChannel | None=None):
+    async def ask(self, query: str, channel: _discord.abc.MessageableChannel | None=None):
         text = await super().ask(query)
         if isinstance(channel, _discord.TextChannel):
             await self.speak(text, channel)

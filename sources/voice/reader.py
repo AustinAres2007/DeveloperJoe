@@ -96,13 +96,6 @@ class AudioSink:
     def cleanup(self):
         pass
 
-    # @staticmethod
-    # def pack_data(data, user=None, packet=None):
-    #     return VoiceData(data, user, packet) # is this even necessary?
-
-class UserVoice:
-    ...
-
 class SentenceSink(AudioSink):
     def __init__(self, bot_instance: Client, voice_callback: Callable[[Member, io.BytesIO], Any], wait_for_duration: float=3.0) -> None:
         super().__init__()
@@ -118,9 +111,9 @@ class SentenceSink(AudioSink):
         self.voice_callback = voice_callback
         self.on_voice_packet = self._get_packets_for_member
         self.wait_for_duration = wait_for_duration
-        
-        bot_instance.loop.create_task(self._check_if_expired())
-        
+        self.bot_instance = bot_instance
+        self._check_task = asyncio.create_task(self._check_if_expired())
+
     def _get_packets_for_member(self, member: Member, packet: rtp.RTPPacket) -> None:
         if isinstance(member, Member):
             print("PKT", packet.sequence)
@@ -160,7 +153,11 @@ class SentenceSink(AudioSink):
 
         await self.voice_callback(member, io_bytes_obj)
         print(self._member_packets)
-        
+    
+    def cleanup(self):
+        """Stops checking task and performs cleanup."""
+        if self._check_task:
+            self._check_task.cancel()
         
 class BasicSink(AudioSink):
     def __init__(self, event, *, rtcp_event=lambda _: None):

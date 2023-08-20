@@ -5,7 +5,8 @@ from discord import File as _File, Interaction as _Interaction, errors as _error
 from . import (
     config, 
     models, 
-    exceptions
+    exceptions,
+    voice
 )
 
 def to_file(content: str, name: str) -> _File:
@@ -53,7 +54,7 @@ def dg_in_voice_channel(func):
     """Decorator for checking if the bot is in a voice channel with you."""
     
     def _inner(self, *args, **kwargs):
-        if self.client_voice:
+        if isinstance(self.client_voice, voice.VoiceRecvClient) and self.client_voice.is_connected():
             return func(self, *args, **kwargs)
         raise exceptions.DGNotInVoiceChat(self.voice)
     
