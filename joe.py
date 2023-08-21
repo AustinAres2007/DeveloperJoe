@@ -71,7 +71,7 @@ class DeveloperJoe(commands.Bot):
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(config.BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(config.BOT_NAME)
-        self.__ffmpeg__ = True if find_executable(executable="ffmpeg") else False
+        self.__ffmpeg__ = True if find_executable(executable=config.FFMPEG) else False
         self.__tzs__ = pytz.all_timezones
         
         super().__init__(*args, **kwargs)
@@ -323,7 +323,7 @@ class DeveloperJoe(commands.Bot):
             
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (Version = {config.VERSION})\n")
+            print(f"\n{self.application.name} Online (Version = {config.VERSION}, FFMPEG = {self.has_ffmpeg})\n")
 
             self.chats: dict[int, Union[dict[str, chat.DGChatType], dict]] = {}
             self.default_chats: dict[str, Union[None, chat.DGChatType]] = {}

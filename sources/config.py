@@ -53,6 +53,7 @@ REGISTERED_MODELS = {
     "gpt-4": models.GPT4,
     "gpt-3.5-turbo": models.GPT3Turbo
 } # These keys MUST corrolate with the value parameter of MODEL_CHOICES, and the value MUST inherit from models.GPTModel
+FFMPEG = "ffmpeg" # FFMPEG executable. Defaults to what is found in $PATH. Can be an absolute or relative file path.
 
 """VERY ADVANCED. IGNORE IF NOT CONCERNED."""
 

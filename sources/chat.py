@@ -18,6 +18,7 @@ from . import (
     utils, 
     ttsmodels
 )
+
 from .voice import voice_client, reader
 
 __all__ = [
@@ -57,7 +58,7 @@ class DGChats:
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
-        self.last_channel: _discord.abc.MessageableChannel | None = None
+        self.last_channel: _discord.abc.Messageable | None = None
         self.oapi = _openai_token
 
         self.name = name
@@ -542,7 +543,7 @@ class DGVoiceChat(DGTextChat):
     
     @utils.check_enabled
     @utils.has_voice
-    async def speak(self, text: str, channel: _discord.abc.MessageableChannel): 
+    async def speak(self, text: str, channel: _discord.abc.Messageable): 
         try:
             self.last_channel = channel
             self.voice_tss_queue.append(text)
@@ -610,7 +611,7 @@ class DGVoiceChat(DGTextChat):
         self.client_voice.stop_listening() # type: ignore Checks done with decorators.
         
         
-    async def ask(self, query: str, channel: _discord.abc.MessageableChannel | None=None):
+    async def ask(self, query: str, channel: _discord.abc.Messageable | None=None):
         text = await super().ask(query)
         if isinstance(channel, _discord.TextChannel):
             await self.speak(text, channel)
