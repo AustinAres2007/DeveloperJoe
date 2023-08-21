@@ -14,7 +14,9 @@ try:
     import discord, logging, asyncio, os, datetime, traceback, aiohttp
     from discord.ext import commands
     from typing import Union
+    
     from distutils.spawn import find_executable
+    from ctypes.util import find_library
     
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
@@ -71,19 +73,9 @@ class DeveloperJoe(commands.Bot):
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(config.BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(config.BOT_NAME)
-        self.__ffmpeg__ = True if find_executable(executable=config.FFMPEG) else False
         self.__tzs__ = pytz.all_timezones
         
         super().__init__(*args, **kwargs)
-
-    @property
-    def has_ffmpeg(self) -> bool:
-        """Returns weather the host system has FFMPEG installed.
-
-        Returns:
-            bool: If FFMPEG is installed.
-        """
-        return self.__ffmpeg__
     
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=config.DATETIME_TZ) - self.start_time)
@@ -320,10 +312,16 @@ class DeveloperJoe(commands.Bot):
             exception_text = f"From main class error handler \n\nError Class: {str(Exception)}\nError Arguments: {str(Exception.args)}\nFrom cog: {cog} "
             await interaction.followup.send(exception_text) if interaction.response.is_done() else await interaction.response.send_message(exception_text) 
             raise error
-            
+    
+    @property
+    def is_voice_compatible(self) -> bool:
+        self.__ffmpeg__ = find_executable(config.FFMPEG)
+        self.__ffprobe__ = find_executable(config.FFMPEG)
+        return bool(find_library('opus') and self.__ffmpeg__ and self.__ffprobe__)
+    
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (Version = {config.VERSION}, FFMPEG = {self.has_ffmpeg})\n")
+            print(f"\n{self.application.name} Online (Version = {config.VERSION}, Can Use Voice = {self.is_voice_compatible})\n")
 
             self.chats: dict[int, Union[dict[str, chat.DGChatType], dict]] = {}
             self.default_chats: dict[str, Union[None, chat.DGChatType]] = {}
@@ -357,9 +355,10 @@ class DeveloperJoe(commands.Bot):
             
                 await _check_integrity(0)
                 check_servers()
-
-                print("Done! Running.")
                 
+                print("Done! Running.")
+            
+            
             self.chats = {user.id: {} for user in self.users}
             self.chats = self.chats
             self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}

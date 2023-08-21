@@ -1,5 +1,5 @@
-import io as _io, gtts as _gtts, pydub as _pydub
-    
+import io as _io, gtts as _gtts, pydub as _pydub, json as _json
+
 """I want to put more TTS models here, but using one that is not system dependent and has a package for python is difficult."""
 
 __all__ = [
@@ -63,5 +63,11 @@ class GTTSModel(TTSModel):
         _gtts.gTTS(self.text).write_to_fp(_temp_file)
         _temp_file.seek(0)
         
-        speed_up = _pydub.AudioSegment.from_file(_temp_file)
-        return speed_up.speedup(playback_speed=speed).export(self.emulated_file_object)
+        try:
+            speed_up = _pydub.AudioSegment.from_file(_temp_file)
+        except _json.decoder.JSONDecodeError: # pydub may not work sometimes depending on ffmpeg / ffprobe version, return non-speedup file instead
+            return self.emulated_file_object
+        else:
+            return speed_up.speedup(playback_speed=speed).export(self.emulated_file_object)
+        
+        

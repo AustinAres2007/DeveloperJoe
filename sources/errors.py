@@ -42,7 +42,7 @@ class VoiceConversationErrors:
     USER_NOT_IN_CHANNEL = "You are not in a voice channel."
     IS_SPEAKING = "I am currently speaking."
     TEXT_ONLY_CHAT = "This chat is text only."
-    NO_FFMPEG = "The bot owner does not currently have voice features enabled."
+    NO_VOICE = "This bot currently does not have voice support setup."
     NO_COQUI = "The bot owner does not have this voice model installed."
     IS_PROCESSING_VOICE = "I am still processing / playing your last voice request."
     VOICE_IS_LOCKED = "This discord server has disabled voice abilities."

@@ -182,10 +182,10 @@ class ChatIsTextOnly(DGException):
         """Will be raised when a chat is text only."""
         super().__init__(self.reply, conversation)
 
-class FFMPEGNotInstalled(DGException):
-    reply = errors.VoiceConversationErrors.NO_FFMPEG
+class VoiceNotEnabled(DGException):
+    reply = errors.VoiceConversationErrors.NO_VOICE
     def __init__(self, ffmpeg_status):
-        """Will be raised when FFMPEG is not installed. (If FFMPEG is a command on your terminal, you have it installed)"""
+        """Will be raised when a user tries to use a voice feature when it is not installed."""
         super().__init__(self.reply, ffmpeg_status)
 
 class CannotTalkInChannel(DGException):
