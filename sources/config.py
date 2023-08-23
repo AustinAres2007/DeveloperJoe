@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import pytz as _pytz
 from discord import ChannelType as _ChannelType
 from discord import ActivityType as _ActivityType
 from discord.app_commands import Choice as _Choice
 from discord import TextChannel as _TextChannel
+from typing import TYPE_CHECKING
 
 from . import models
 
+if TYPE_CHECKING:
+    from .common.dgtypes import GPTModelType
 """END-USER CONFIGURATION"""
 
 # General
@@ -13,11 +18,11 @@ from . import models
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
 STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
-DEFAULT_GPT_MODEL: models.GPTModelType = models.GPT3Turbo # gpt-4, or gpt-3.5-turbo (GPT4 or GPT3Turbo)
+DEFAULT_GPT_MODEL = models.GPT3Turbo # gpt-4, or gpt-3.5-turbo (GPT4 or GPT3Turbo)
 
 # Voice
 
-LISTENING_KEYWORD = "developer" # The name that will invoke the bots reply (Like with "Hey Siri" or "Alexa", example: "Hey developer, what is factorial of 1?")
+LISTENING_KEYWORD = "assistant" # The name that will invoke the bots reply (Like with "Hey Siri" or "Alexa", example: "Hey developer, what is factorial of 1?")
 LISTENING_TIMEOUT = 2.5 # How many seconds of silence there must be until the bot will process a users voice request.
 VOICE_SPEEDUP_MULTIPLIER = 1.17 # How fast you want the default text-to-speach model to talk. (1 = default, quite slow. 2 = Quite fast)
 ALLOW_VOICE = True # Weather voice support is enabled. It is by default, and will require additional setup if you do not have FFMPEG installed. It is easy to do so.
@@ -49,11 +54,12 @@ MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
-REGISTERED_MODELS = {
+REGISTERED_MODELS: dict[str, GPTModelType] = {
     "gpt-4": models.GPT4,
     "gpt-3.5-turbo": models.GPT3Turbo
 } # These keys MUST corrolate with the value parameter of MODEL_CHOICES, and the value MUST inherit from models.GPTModel
 FFMPEG = "ffmpeg" # FFMPEG executable. Defaults to what is found in $PATH. Can be an absolute or relative file path.
+STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This is needed as a placeholder text so that the initial streaming message is not empty. This can be anything as long as it is not empty, and not more than 2000 characters. It usually doesn't appear for more than half a second.
 
 """VERY ADVANCED. IGNORE IF NOT CONCERNED."""
 

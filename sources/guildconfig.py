@@ -4,7 +4,9 @@ from typing import Union as _Union, Any as _Any
 from . import (
     database, 
     config, 
-    utils
+)
+from .common import (
+    decorators
 )
 
 __all__ = [
@@ -42,7 +44,7 @@ class DGGuildConfigSession:
     def guild(self) -> _discord.Guild:
         return self._guild
     
-    @utils.has_config
+    @decorators.has_config
     def edit_guild(self, **keys):
         
         if set(keys.keys()).issubset(set(config.GUILD_CONFIG_KEYS.keys())):
@@ -50,7 +52,7 @@ class DGGuildConfigSession:
             data.config_data.update(keys)
             self._manager.edit_guild(data.config_data)
     
-    @utils.has_config
+    @decorators.has_config
     def get_guild(self) -> GuildData:
         return self._manager.get_guild()
     

@@ -1,10 +1,13 @@
 import discord
 
 from discord.ext.commands import Cog as _Cog
+
 from joe import DeveloperJoe
 from sources import (
-    config, 
-    utils
+    config
+)
+from sources.common import (
+    commands_utils
 )
 
 class General(_Cog):
@@ -32,7 +35,7 @@ class General(_Cog):
 
     @discord.app_commands.command(name="times", description="Provides a file which contains timezones you can use.")
     async def give_zones(self, interaction: discord.Interaction):
-        await interaction.response.send_message(file=utils.to_file_fp("misc/timezones.txt"))
+        await interaction.response.send_message(file=commands_utils.to_file_fp("misc/timezones.txt"))
     
     @discord.app_commands.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
     async def get_models(self, interaction: discord.Interaction):

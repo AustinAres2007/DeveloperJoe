@@ -6,6 +6,7 @@ __all__ = [
     "TTSModel",
     "GTTSModel"
 ]
+
 class TTSModel:
     """Base class for generating text-to-speach for discord.py"""
     

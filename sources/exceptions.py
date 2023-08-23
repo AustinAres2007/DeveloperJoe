@@ -1,12 +1,16 @@
+from __future__ import annotations
 import discord as _discord, httpx as _httpx
-from typing import Any as _Any, Union as _Union
+from typing import Any as _Any, Union as _Union, TYPE_CHECKING
 
 from . import (
     errors, 
-    models, 
-    chat, 
     config
 )
+
+if TYPE_CHECKING:
+    from .common import (
+        dgtypes
+    )
 
 # Models
 
@@ -34,7 +38,7 @@ class DGException(Exception):
     
 class ModelNotExist(DGException):
     reply = errors.ModelErrors.MODEL_NOT_IN_DATABASE
-    def __init__(self, guild: _Union[_discord.Guild, None], model: _Union[models.GPTModelType, str], *args):
+    def __init__(self, guild: _Union[_discord.Guild, None], model: _Union[dgtypes.GPTModelType, str], *args):
         """Will be raised if a model does not exist within a lock list."""
         super().__init__(self.reply.format(model, guild), guild, model, *args)
 
@@ -103,7 +107,7 @@ class ChatIsDisabledError(DGException):
 
 class ModelIsLockedError(DGException):
     reply = errors.ModelErrors.MODEL_LOCKED
-    def __init__(self, model: models.GPTModelType, *args):
+    def __init__(self, model: dgtypes.GPTModelType, *args):
         """Will be raised if a user does not have access to a model they want to use."""
         super().__init__(self.reply, model, log_error=True, send_exceptions=True, *args)
 
@@ -138,7 +142,7 @@ class InvalidHistoryOwner(DGException):
         
 class ChatChannelDoesntExist(DGException):
     reply = errors.ConversationErrors.CHANNEL_DOESNT_EXIST
-    def __init__(self, message: _discord.Message, conversation: _Union[chat.DGChatType, None]):
+    def __init__(self, message: _discord.Message, conversation: dgtypes.DGChatType | None):
         """Will be raised when a channel from a discord guild no longer exists (reletive to the bot, this could mean the bot was kicked / banned)"""
         super().__init__(self.reply.format(message, message.guild, conversation, conversation), message, conversation, log_error=True, send_exceptions=False)
 
@@ -172,13 +176,13 @@ class UserNotInVoiceChannel(DGException):
     
 class DGIsTalking(DGException):
     reply = errors.VoiceConversationErrors.IS_SPEAKING
-    def __init__(self, conversation: chat.DGChatType):
+    def __init__(self, conversation: dgtypes.DGChatType | None):
         """Will be raised when the bot not supposed talking, but is."""
         super().__init__(self.reply, conversation)
 
 class ChatIsTextOnly(DGException):
     reply = errors.VoiceConversationErrors.TEXT_ONLY_CHAT
-    def __init__(self, conversation: chat.DGChatType):
+    def __init__(self, conversation: dgtypes.DGChatType | None):
         """Will be raised when a chat is text only."""
         super().__init__(self.reply, conversation)
 

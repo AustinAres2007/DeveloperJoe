@@ -1,18 +1,18 @@
 import json as _json, discord as _discord
-
-from . import (
-    database, 
-    exceptions, 
-    utils,
-    models
-)
 from typing import (
     Union as _Union, 
-    TypedDict as _TypedDict, 
     Any as _Any
 )
 
-GuildModels = _TypedDict('GuildModels', {"model": list[int]})
+from . import (
+    database, 
+    exceptions
+)
+from .common import (
+    commands_utils,
+    dgtypes
+)
+
 __all__ = [
     "DGRulesManager",
     "DGRules"
@@ -83,7 +83,7 @@ class DGRules(database.DGDatabaseSession):
     def guild(self):
         return self._guild
     
-    def get_guild_model(self, model: models.GPTModelType) -> list[int]:
+    def get_guild_model(self, model: dgtypes.GPTModelType) -> list[int]:
         models = self.get_guild_models()
         
         if models:
@@ -92,9 +92,9 @@ class DGRules(database.DGDatabaseSession):
             raise exceptions.ModelNotExist(self.guild, model)
         return []
     
-    def get_guild_models(self) -> dict[models.GPTModelType, list[int]]:
+    def get_guild_models(self) -> dict[dgtypes.GPTModelType, list[int]]:
         models = self._get_guild_models_raw()
-        return {utils.get_modeltype_from_name(model): data for model, data in models.items()}
+        return {commands_utils.get_modeltype_from_name(model): data for model, data in models.items()}
 
     def _get_guild_models_raw(self) -> dict[str, list[int]]:
         _guild_pointer = self._get_raw_models_database()
@@ -107,7 +107,7 @@ class DGRules(database.DGDatabaseSession):
     def has_guild(self) -> bool:
         return bool(self._exec_db_command("SELECT jsontables FROM model_rules WHERE gid=?", (self.guild.id,)))
     
-    def upload_guild_model(self, model: models.GPTModelType, role: _discord.Role) -> bool:
+    def upload_guild_model(self, model: dgtypes.GPTModelType, role: _discord.Role) -> bool:
         guild_rules = self._get_guild_models_raw() 
 
         if model.model in list(guild_rules) and isinstance(guild_rules, dict) and role.id not in guild_rules[model.model]:
@@ -123,7 +123,7 @@ class DGRules(database.DGDatabaseSession):
         
         return True
 
-    def remove_guild_model(self, model: models.GPTModelType, role: _discord.Role):
+    def remove_guild_model(self, model: dgtypes.GPTModelType, role: _discord.Role):
         models_allowed_roles = self._get_guild_models_raw()
 
         if model.model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model.model]):
@@ -148,7 +148,7 @@ class DGRules(database.DGDatabaseSession):
             return not self.has_guild()
         raise exceptions.GuildNotExist(self.guild)
     
-    def user_has_model_permissions(self, user_role: _discord.Role, model: models.GPTModelType) -> bool:
+    def user_has_model_permissions(self, user_role: _discord.Role, model: dgtypes.GPTModelType) -> bool:
         try:
             model_roles = self.get_guild_model(model)
             def _does_have_senior_role():
@@ -160,7 +160,7 @@ class DGRules(database.DGDatabaseSession):
         except exceptions.ModelNotExist:
             return True
     
-    def get_models(self) -> tuple[models.GPTModelType, ...]:
+    def get_models(self) -> tuple[dgtypes.GPTModelType, ...]:
         models = self.get_guild_models()
         return tuple(models.keys())
          

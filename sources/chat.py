@@ -1,5 +1,6 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
+from __future__ import annotations
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
 from discord.ext.commands import Bot
@@ -7,17 +8,22 @@ from enum import Enum as _Enum
 from typing import (
     Union as _Union, 
     Any as _Any, 
-    AsyncGenerator as _AsyncGenerator
+    AsyncGenerator as _AsyncGenerator,
+    TYPE_CHECKING
 )
 from . import (
     exceptions, 
     guildconfig, 
     config, 
     history, 
-    models, 
-    utils, 
     ttsmodels
 )
+from .common import (
+    decorators,
+    commands_utils,
+)
+if TYPE_CHECKING:
+    from common.dgtypes import GPTModelType, InteractableChannel
 
 from .voice import voice_client, reader
 
@@ -33,7 +39,7 @@ class DGChats:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
+                model: GPTModelType=config.DEFAULT_GPT_MODEL, 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -58,7 +64,7 @@ class DGChats:
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
-        self.last_channel: _discord.abc.Messageable | None = None
+        self.last_channel: InteractableChannel | None = None
         self.oapi = _openai_token
 
         self.name = name
@@ -70,6 +76,7 @@ class DGChats:
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.chat_history, self.readable_history = [], []
+        self.header = f'{self.display_name} | {self.model.display_name}'
         
         # Voice attributes
         
@@ -105,9 +112,9 @@ class DGChats:
         if is_gpt_reply and save_message and query_type == "query":
             self.tokens += tokens
     
-    @utils.check_enabled
-    async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> _AsyncGenerator:
-        payload = {"model": self.model.model, "messages": messages, "stream": True} | kwargs
+    @decorators.check_enabled
+    async def __get_stream_parsed_data__(self, **kwargs) -> _AsyncGenerator:
+        payload = {"model": self.model.model, "messages": self.chat_history, "stream": True} | kwargs
         reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
@@ -133,7 +140,7 @@ class DGChats:
 
             last_char = char
             
-    @utils.check_enabled
+    @decorators.check_enabled
     async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
             
         error, replied_content = None, None
@@ -190,7 +197,7 @@ class DGChats:
         self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
         return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
-    @utils.check_enabled
+    @decorators.check_enabled
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
         r_history = []
@@ -198,7 +205,7 @@ class DGChats:
 
         add_history, self.is_processing = True, True
         self.chat_history.append(kwargs)
-        generator_reply = self.__get_stream_parsed_data__(self.chat_history)
+        generator_reply = self.__get_stream_parsed_data__()
 
         async for chunk in generator_reply:
             stop_reason = chunk["choices"][0]["finish_reason"]
@@ -225,19 +232,6 @@ class DGChats:
 
             self.__manage_history__(generator_reply, "query", save_message, total_tokens)
     
-    """
-    def __manage_history__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
-        raise NotImplementedError
-    
-    async def __get_stream_parsed_data__(self, messages: list[dict], **kwargs) -> _AsyncGenerator:
-        raise NotImplementedError
-            
-    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
-        raise NotImplementedError
-
-    async def __stream_send_query__(self, save_message: bool=True, **kwargs):
-        raise NotImplementedError
-    """
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
         
@@ -287,7 +281,7 @@ class DGChats:
     async def manage_voice(self) -> _discord.VoiceClient:
        raise NotImplementedError
    
-    async def speak(self, text: str, channel: _discord.TextChannel): 
+    async def speak(self, text: str, channel: InteractableChannel): 
        raise NotImplementedError
             
     def stop_speaking(self):
@@ -314,7 +308,7 @@ class DGTextChat(DGChats):
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
+                model: GPTModelType=config.DEFAULT_GPT_MODEL, 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -362,39 +356,57 @@ class DGTextChat(DGChats):
 
     @private.setter
     def private(self, is_p: bool):
-        self._private = is_p
-
-    @utils.check_enabled
-    async def ask(self, query: str, *_args, **_kwargs) -> str:
-        """Asks your GPT Model a question.
-
-        Args:
-            query (str): The message you want to ask.
-
-        Raises:
-            ChatIsDisabledError: Raised if your chat is disabled.
-
-        Returns:
-            str: The reply GPT sent.
-        """
-        return str(await self.__send_query__(query_type="query", role="user", content=query))
-        
-
-    @utils.check_enabled
-    def ask_stream(self, query: str) -> _AsyncGenerator:
-        """Asks your GPT Model a question, but the reply is a generator (yield)
-
-        Args:
-            query (str): The message you want to ask
-
-        Raises:
-            ChatIsDisabledError: Raised if your chat is disabled.
-
-        Returns:
-            _AsyncGenerator: Thr reply GPT sent.
-        """
-        return self.__stream_send_query__(role="user", content=query)
+        self._private = is_p        
     
+    @decorators.check_enabled
+    async def ask_stream(self, query: str, channel: InteractableChannel) -> str:
+        og_message = await channel.send(config.STREAM_PLACEHOLDER)
+                            
+        msg: list[_discord.Message] = [og_message]
+        reply = self.__stream_send_query__(role="user", content=query)
+        full_message = f"## {self.header}\n\n"
+        i, start_message_at = 0, 0
+        sendable_portion = "<>"
+        message = ""
+        
+        async with channel.typing():
+            async for t in reply:
+                
+                i += 1
+                full_message += t
+                message += t
+                sendable_portion = full_message[start_message_at * config.CHARACTER_LIMIT:((start_message_at + 1) * config.CHARACTER_LIMIT)]
+        
+                if len(full_message) and len(full_message) >= (start_message_at + 1) * config.CHARACTER_LIMIT:
+                    await msg[-1].edit(content=sendable_portion)
+                    msg.append(await msg[-1].channel.send(config.STREAM_PLACEHOLDER))
+
+                start_message_at = len(full_message) // config.CHARACTER_LIMIT
+                if i and i % config.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
+                    await msg[-1].edit(content=sendable_portion)
+
+            else:
+                if not msg:
+                    await og_message.edit(content=sendable_portion)
+                else:
+                    await msg[-1].edit(content=sendable_portion)
+            
+        return message
+    
+    @decorators.check_enabled
+    async def ask(self, query: str, channel: InteractableChannel):
+        async with channel.typing():
+            reply = await self.__send_query__(query_type="query", role="user", content=query)
+            final_user_reply = f"## {self.header}\n\n{reply}"
+            
+            if len(final_user_reply) > config.CHARACTER_LIMIT:
+                file_reply: _discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
+                await channel.send(file=file_reply)
+            else:
+                await channel.send(final_user_reply)
+                
+        return reply
+            
     async def start(self) -> str:
         """Sends a start query to GPT.
 
@@ -452,7 +464,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: models.GPTModelType=config.DEFAULT_GPT_MODEL, 
+            model: GPTModelType=config.DEFAULT_GPT_MODEL, 
             associated_thread: _Union[_discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -515,13 +527,14 @@ class DGVoiceChat(DGTextChat):
         
         prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
         print("GUILD PREFIX: ",prefix)
+        print(text)
         if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
             text = text.split(config.LISTENING_KEYWORD)[1].lstrip()
             usr_voice_convo = self.bot.get_default_voice_conversation(member) # type: ignore hope that DeveloperJoe instance is self.bot
             
             if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
                 if usr_voice_convo.stream != True:
-                    return await self.last_channel.send(await usr_voice_convo.ask(text, self.last_channel))    
+                    return await usr_voice_convo.ask(text, self.last_channel)
                 raise NotImplementedError # TODO
         
     async def manage_voice(self) -> _discord.VoiceClient:
@@ -541,9 +554,9 @@ class DGVoiceChat(DGTextChat):
         
         return voice
     
-    @utils.check_enabled
-    @utils.has_voice
-    async def speak(self, text: str, channel: _discord.abc.Messageable): 
+    @decorators.check_enabled
+    @decorators.has_voice
+    async def speak(self, text: str, channel: InteractableChannel): 
         try:
             self.last_channel = channel
             self.voice_tss_queue.append(text)
@@ -567,56 +580,65 @@ class DGVoiceChat(DGTextChat):
             self.voice_tss_queue.clear()
             
         
-    @utils.check_enabled
-    @utils.has_voice_with_error
-    @utils.dg_in_voice_channel
-    @utils.dg_is_speaking
+    @decorators.check_enabled
+    @decorators.has_voice_with_error
+    @decorators.dg_in_voice_channel
+    @decorators.dg_is_speaking
     def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
         self.client_voice.stop() # type: ignore Checks done with decorators.
     
-    @utils.check_enabled
-    @utils.has_voice_with_error
-    @utils.dg_in_voice_channel
-    @utils.dg_is_speaking
+    @decorators.check_enabled
+    @decorators.has_voice_with_error
+    @decorators.dg_in_voice_channel
+    @decorators.dg_is_speaking
     def pause_speaking(self):
         """Pauses the bots voice reply for a user."""
         self.client_voice.pause() # type: ignore Checks done with decorators.
     
-    @utils.check_enabled
-    @utils.has_voice_with_error
-    @utils.dg_in_voice_channel
-    @utils.dg_isnt_speaking
+    @decorators.check_enabled
+    @decorators.has_voice_with_error
+    @decorators.dg_in_voice_channel
+    @decorators.dg_isnt_speaking
     def resume_speaking(self):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
     
-    @utils.check_enabled
-    @utils.has_voice_with_error
-    @utils.dg_in_voice_channel
-    @utils.dg_isnt_speaking
-    @utils.dg_isnt_listening
+    @decorators.check_enabled
+    @decorators.has_voice_with_error
+    @decorators.dg_in_voice_channel
+    @decorators.dg_isnt_speaking
+    @decorators.dg_isnt_listening
     def listen(self):
         """Starts the listening events for a users voice conversation."""
         self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 2.5)) # type: ignore Checks done with decorators.
     
-    @utils.check_enabled
-    @utils.has_voice_with_error
-    @utils.dg_in_voice_channel
-    @utils.dg_isnt_speaking
-    @utils.dg_is_listening
+    @decorators.check_enabled
+    @decorators.has_voice_with_error
+    @decorators.dg_in_voice_channel
+    @decorators.dg_isnt_speaking
+    @decorators.dg_is_listening
     def stop_listening(self):
         """Stops the listening events for a users voice conversation"""
         self.client_voice._reader.sink.cleanup() # type: ignore Checks done with decorators.
         self.client_voice.stop_listening() # type: ignore Checks done with decorators.
         
         
-    async def ask(self, query: str, channel: _discord.abc.Messageable | None=None):
-        text = await super().ask(query)
-        if isinstance(channel, _discord.TextChannel):
+    async def ask(self, query: str, channel: InteractableChannel) -> str:
+        text = await super().ask(query, channel)
+        if isinstance(channel, InteractableChannel):
             await self.speak(text, channel)
         else:
-            raise TypeError("channel cannot be {}. discord.TextChannel only.".format(channel.__class__))
+            raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
+        
+        return text
+
+    async def ask_stream(self, query: str, channel: InteractableChannel) -> str:
+        text = await super().ask_stream(query, channel)
+        if isinstance(channel, InteractableChannel):
+            await self.speak(text, channel)
+        else:
+            raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
         
         return text
     
@@ -627,5 +649,3 @@ class DGChatTypesEnum(_Enum):
     """Enums for chat types (text or voice)"""
     TEXT = 1
     VOICE = 2
-
-DGChatType = _Union[DGTextChat, DGVoiceChat]

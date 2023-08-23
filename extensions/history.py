@@ -7,10 +7,12 @@ from joe import DeveloperJoe
 from sources import (
     history, 
     config, 
-    utils, 
     exceptions, 
-    errors,
-    chat
+    errors
+)
+from sources.common import (
+    commands_utils,
+    dgtypes
 )
 
 class History(commands.Cog):
@@ -45,9 +47,9 @@ class History(commands.Cog):
     @discord.app_commands.command(name="export", description="Export current chat history.")
     async def export_chat_history(self, interaction: discord.Interaction, name: Union[None, str]):
 
-        member: discord.Member = utils.assure_class_is_value(interaction.user, discord.Member)
+        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         name = self.client.manage_defaults(member, name)
-        if isinstance(convo := self.client.get_user_conversation(member, name), chat.DGChatType):
+        if isinstance(convo := self.client.get_user_conversation(member, name), dgtypes.DGChatType):
 
             formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else errors.HistoryErrors.HISTORY_EMPTY
             file_like = io.BytesIO(formatted_history_string.encode())

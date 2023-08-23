@@ -1,11 +1,9 @@
 import tiktoken as _tiktoken
-from typing import Union as _Union, Type as _Type
 
 __all__ = [
     "GPTModel",
     "GPT3Turbo",
-    "GPT4",
-    "GPTModelType"
+    "GPT4"
 ]
 class GPTModel:
 
@@ -67,5 +65,3 @@ class GPT4(GPTModel):
     @classmethod
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
-
-GPTModelType = _Type[_Union[GPT3Turbo, GPT4]]

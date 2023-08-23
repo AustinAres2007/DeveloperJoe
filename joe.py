@@ -1,5 +1,6 @@
 """Main DeveloperJoe file."""
 
+from __future__ import annotations
 import sys
 v_info = sys.version_info
 
@@ -34,7 +35,11 @@ try:
         modelhandler, 
         models, 
         ttsmodels, 
-        utils   
+    )
+    from sources.common import (
+        dgtypes,
+        commands_utils,
+        decorators
     )
 except IndexError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
@@ -81,7 +86,7 @@ class DeveloperJoe(commands.Bot):
         return (datetime.datetime.now(tz=config.DATETIME_TZ) - self.start_time)
     
     
-    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> Union[chat.DGChatType, None]:
+    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> dgtypes.DGChatType | None:
         """ Get the specified members current chat.
 
         Args:
@@ -103,7 +108,7 @@ class DeveloperJoe(commands.Bot):
         
         raise exceptions.UserDoesNotHaveChat(chat_name, member)
     
-    def get_all_user_conversations(self, member: discord.Member) -> Union[dict[str, chat.DGChatType], None]:
+    def get_all_user_conversations(self, member: discord.Member) -> dict[str, dgtypes.DGChatType] | None:
         """Get all of a specified members conversation(s)
 
         Args:
@@ -115,7 +120,7 @@ class DeveloperJoe(commands.Bot):
         if member.id in list(self.chats) and self.chats[member.id]:
             return self.chats[member.id]
     
-    def get_all_user_conversations_with_exceptions(self, member: discord.Member) -> dict[str, chat.DGChatType]:
+    def get_all_user_conversations_with_exceptions(self, member: discord.Member) -> dict[str, dgtypes.DGChatType]:
         """Get all of a specified members conversation(s) but if the user has None, then `UserDoesNotHaveAnyChats` is raised.
 
         Args:
@@ -128,7 +133,7 @@ class DeveloperJoe(commands.Bot):
             return convos
         raise exceptions.UserDoesNotHaveAnyChats()
     
-    def get_user_has_permission(self, member: Union[discord.Member, None], model: models.GPTModelType) -> bool:
+    def get_user_has_permission(self, member: Union[discord.Member, None], model: dgtypes.GPTModelType) -> bool:
         """Return if the user has permission to user a model
 
         Args:
@@ -144,7 +149,7 @@ class DeveloperJoe(commands.Bot):
         else:
             raise TypeError("member must be discord.Member, not {}".format(member.__class__))
     
-    def get_default_conversation(self, member: discord.Member) -> Union[chat.DGChatType, None]:
+    def get_default_conversation(self, member: discord.Member) -> Union[dgtypes.DGChatType, None]:
         """Get a users default conversation
 
         Args:
@@ -190,7 +195,7 @@ class DeveloperJoe(commands.Bot):
         """
         del self.chats[member.id][conversation_name]
 
-    def add_conversation(self, member: discord.Member, name: str, conversation: chat.DGChatType) -> None:
+    def add_conversation(self, member: discord.Member, name: str, conversation: dgtypes.DGChatType) -> None:
         """Adds a conversation to a users chat database.
 
         Args:
@@ -222,7 +227,7 @@ class DeveloperJoe(commands.Bot):
         """
         current_default = self.get_default_conversation(member)
         names_convo = self.get_user_conversation(member, name)
-        name_is_chat = isinstance(names_convo, chat.DGChatType)
+        name_is_chat = isinstance(names_convo, dgtypes.DGChatType)
 
         if name_is_chat:
             self.set_default_conversation(member, name)
@@ -267,7 +272,7 @@ class DeveloperJoe(commands.Bot):
         logging.error(exception)
 
         error_text = f"From error handler: {str(error)}"
-        error_traceback = utils.to_file(traceback.format_exc(), "traceback.txt")
+        error_traceback = commands_utils.to_file(traceback.format_exc(), "traceback.txt")
 
         return await send_with_file(error_text, error_traceback)
 
@@ -323,8 +328,8 @@ class DeveloperJoe(commands.Bot):
         if self.application:
             print(f"\n{self.application.name} Online (Version = {config.VERSION}, Can Use Voice = {self.is_voice_compatible})\n")
 
-            self.chats: dict[int, Union[dict[str, chat.DGChatType], dict]] = {}
-            self.default_chats: dict[str, Union[None, chat.DGChatType]] = {}
+            self.chats: dict[int, dict[str, dgtypes.DGChatType] | dict] = {}
+            self.default_chats: dict[str, None | dgtypes.DGChatType] = {}
 
             self.start_time = datetime.datetime.now(tz=config.DATETIME_TZ)
             
