@@ -15,7 +15,6 @@ from sources import (
     guildconfig
 )
 from sources.common import (
-    decorators,
     commands_utils,
     dgtypes
 )
@@ -92,25 +91,21 @@ class Communication(commands.Cog):
     async def ask_query(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: bool=False):
 
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-            channel: dgtypes.InteractableChannel = commands_utils.assure_class_is_value(interaction.channel, discord.TextChannel)
-            name = self.client.manage_defaults(member, name)
+            channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
+            conversation = self.client.manage_defaults(member, name)
+            
+            if self.client.get_user_has_permission(member, conversation.model): # If user has model permission
 
-            if channel and isinstance(channel.type, dgtypes.InteractableChannel): # Check if in right channel
-                if convo := self.client.get_user_conversation(member, name): # Check if user has a conversation 
-                    if self.client.get_user_has_permission(member, convo.model): # If user has model permission
-
-                        await interaction.response.send_message("Thinking..")
-                            
-                        if stream or convo.stream == True:
-                            await convo.ask_stream(message, channel)
-                        else:
-                            await convo.ask(message, channel)
-                            
-                        return await interaction.delete_original_response()
+                await interaction.response.send_message("Thinking..")
                     
-                    raise exceptions.ModelIsLockedError(commands_utils.get_modeltype_from_name(convo.model.model))
-                raise exceptions.UserDoesNotHaveChat(name)
-            raise exceptions.CannotTalkInChannel(channel.type)
+                if stream or conversation.stream == True:
+                    await conversation.ask_stream(message, channel)
+                else:
+                    await conversation.ask(message, channel)
+                    
+                return await interaction.delete_original_response()
+            
+            raise exceptions.ModelIsLockedError(commands_utils.get_modeltype_from_name(conversation.model.model))
 
     @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
     async def enabled_listening(self, interaction: discord.Interaction, listen: bool):
@@ -165,54 +160,46 @@ class Communication(commands.Cog):
     ]) 
     async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str, save_to: Union[None, str]=None):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        save_to = self.client.manage_defaults(member, save_to)
+        convo = self.client.manage_defaults(member, save_to)
 
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        if convo := self.client.get_user_conversation(member, save_to):
-            result = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
-        else:
-            result = errors.ConversationErrors.NO_CONVO
-
+        result = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
         return await interaction.followup.send(result, ephemeral=False)
 
     @discord.app_commands.command(name="info", description=f"Displays information about your current {config.BOT_NAME} Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
     async def get_info(self, interaction: discord.Interaction, name: Union[None, str]=None):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        name = self.client.manage_defaults(member, name)
+        convo = self.client.manage_defaults(member, name)
 
-        if convo := commands_utils.is_voice_conversation(self.client.get_user_conversation(member, name)):
+        uptime_delta = self.client.get_uptime()
+        returned_embed = discord.Embed(title=f'"{name}" Information')
 
-            uptime_delta = self.client.get_uptime()
-            returned_embed = discord.Embed(title=f'"{name}" Information')
+        embeds = (
+            {"name": "Started At", "value": str(convo.time), "inline": False},
+            {"name": "Used Tokens", "value": str(convo.tokens), "inline": False},
+            {"name": "Chat Length", "value": str(len(convo.chat_history)), "inline": False},
+            {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
+            {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
+            {"name": "Is Active", "value": str(convo.is_active), "inline": False},
+            {"name": "GPT Model", "value": str(convo.model.display_name), "inline": False},
+            {"name": "Is Voice", "value": f"Yes" if isinstance(convo, chat.DGVoiceChat) else "No", "inline": False},
+            {"name": f"{self.client.application.name} Version", "value": config.VERSION, "inline": False}, # type: ignore Client will be logged in by the time this is executed.
+            {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False} # type: ignore Client will be logged in by the time this is executed. 
+        )
+        for embed in embeds:
+            returned_embed.add_field(**embed)
+        returned_embed.color = discord.Colour.purple()
 
-            embeds = (
-                {"name": "Started At", "value": str(convo.time), "inline": False},
-                {"name": "Used Tokens", "value": str(convo.tokens), "inline": False},
-                {"name": "Chat Length", "value": str(len(convo.chat_history)), "inline": False},
-                {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
-                {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
-                {"name": "Is Active", "value": str(convo.is_active), "inline": False},
-                {"name": "GPT Model", "value": str(convo.model.display_name), "inline": False},
-                {"name": "Is Voice", "value": f"Yes" if isinstance(convo, chat.DGVoiceChat) else "No", "inline": False},
-                {"name": f"{self.client.application.name} Version", "value": config.VERSION, "inline": False}, # type: ignore Client will be logged in by the time this is executed.
-                {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False} # type: ignore Client will be logged in by the time this is executed. 
-            )
-            for embed in embeds:
-                returned_embed.add_field(**embed)
-            returned_embed.color = discord.Colour.purple()
-
-            return await interaction.response.send_message(embed=returned_embed, ephemeral=False)
-        
-        raise exceptions.UserDoesNotHaveChat(name)
+        return await interaction.response.send_message(embed=returned_embed, ephemeral=False)
     
     @discord.app_commands.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
     async def switch_default(self, interaction: discord.Interaction, name: Union[None, str]=None):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        name = self.client.manage_defaults(member, name)
-        await interaction.response.send_message(f"Switched default chat to: {name} (The name will not change or be set to default if the chat does not exist)" if name else f"You do not have any {config.BOT_NAME} conversations.")
+        convo = self.client.manage_defaults(member, name)
+        await interaction.response.send_message(f"Switched default chat to: {convo} (The name will not change or be set to default if the chat does not exist)" if convo else f"You do not have any {config.BOT_NAME} conversations.")
 
     @discord.app_commands.command(name="chats", description="List all chats you currently have.")
     async def list_user_chats(self, interaction: discord.Interaction):

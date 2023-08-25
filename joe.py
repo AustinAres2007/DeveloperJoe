@@ -108,6 +108,13 @@ class DeveloperJoe(commands.Bot):
         
         raise exceptions.UserDoesNotHaveChat(chat_name, member)
     
+    def get_conversation(self, member: discord.Member, chat_name: str) -> dgtypes.DGChatType:
+        
+        _chat = self.get_user_conversation(member, chat_name)
+        if _chat:
+            return _chat
+        raise exceptions.UserDoesNotHaveChat(chat_name, member)
+    
     def get_all_user_conversations(self, member: discord.Member) -> dict[str, dgtypes.DGChatType] | None:
         """Get all of a specified members conversation(s)
 
@@ -172,7 +179,7 @@ class DeveloperJoe(commands.Bot):
         _chat = self.get_default_conversation(member)
         return _chat if isinstance(_chat, chat.DGVoiceChat) else None
     
-    def get_user_voice_conversation(self, member: discord.Member, chat_name) -> Union[chat.DGVoiceChat, None]:
+    def get_user_voice_conversation(self, member: discord.Member, chat_name: str) -> Union[chat.DGVoiceChat, None]:
         # TODO: Add funcion that aquires all voice chats only
         """Get a users chat, only if it supports voice.
 
@@ -214,7 +221,7 @@ class DeveloperJoe(commands.Bot):
         """
         self.default_chats[f"{member.id}-latest"] = self.get_user_conversation(member, name)
     
-    def manage_defaults(self, member: discord.Member, name: Union[None, str], set_to_none: bool=False) -> Union[str, None]:
+    def manage_defaults(self, member: discord.Member, name: str | None) -> dgtypes.DGChatType:
         """Manages a users default chat depending on parameters given.
 
         Args:
@@ -231,11 +238,11 @@ class DeveloperJoe(commands.Bot):
 
         if name_is_chat:
             self.set_default_conversation(member, name)
-            return name
-        elif not name and set_to_none == True:
-            self.set_default_conversation(member, None)
+            return names_convo
         elif current_default:
-            return current_default.display_name
+            return current_default
+        else:
+            raise exceptions.UserDoesNotHaveChat(member.name)
 
     def get_member_conversation_bot_voice_instance(self, voice_channel: discord.VoiceChannel):
         return discord.utils.get(self.voice_clients, guild=voice_channel.guild)
@@ -378,8 +385,26 @@ class DeveloperJoe(commands.Bot):
 
         await self.tree.sync()
         return await super().setup_hook()
-    
 
+from discord.ext.commands import Cog
+
+class CommandDispatcher:
+    def __init__(self, cog: Cog) -> None:
+        self._cog = cog
+    
+    async def dispatch(self, interaction: discord.Interaction, *args, **kwargs):
+        if interaction.command: # Didn't know interactions couldn't have command    s
+            return await getattr(self, interaction.command.name)(self._cog, interaction, *args, **kwargs)
+
+class DeveloperJoeCog(Cog):
+    def __init__(self, client: DeveloperJoe) -> None:
+        self._client = client
+        super().__init__()
+    
+    @property
+    def client(self) -> DeveloperJoe:
+        return self._client
+        
 # Driver Code
 
 async def run_bot():

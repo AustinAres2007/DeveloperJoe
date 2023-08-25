@@ -451,8 +451,11 @@ class DGTextChat(DGChats):
         except _discord.Forbidden as e:
             raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.user} is_active={self.is_active}>"
+    
+    def __str__(self) -> str:
+        return self.display_name
     
 class DGVoiceChat(DGTextChat):
     """Represents a voice and text DG Chat."""
@@ -642,8 +645,11 @@ class DGVoiceChat(DGTextChat):
         
         return text
     
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.user}, voice={self.voice}, is_active={self.is_active}>"
+    
+    def __str__(self) -> str:
+        return self.display_name
     
 class DGChatTypesEnum(_Enum):
     """Enums for chat types (text or voice)"""

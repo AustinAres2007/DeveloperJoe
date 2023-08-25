@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 import discord, io, typing
+
 from .. import (
     chat,
     exceptions,
     config
 )
+from .dgtypes import (
+    DGChatType, 
+    GPTModelType,
+    AllChannels,
+    InteractableChannel
+)
 
 if typing.TYPE_CHECKING:
-    from .dgtypes import DGChatType, GPTModelType
+   ...
 
 __all__ = [
     "is_voice_conversation",
@@ -56,3 +63,8 @@ def get_modeltype_from_name(name: str) -> GPTModelType:
 
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
+
+def get_correct_channel(channel:  AllChannels | None) -> InteractableChannel:
+    if channel and isinstance(channel, InteractableChannel):
+        return channel
+    raise exceptions.CannotTalkInChannel(channel)

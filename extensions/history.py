@@ -48,17 +48,16 @@ class History(commands.Cog):
     async def export_chat_history(self, interaction: discord.Interaction, name: Union[None, str]):
 
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        name = self.client.manage_defaults(member, name)
-        if isinstance(convo := self.client.get_user_conversation(member, name), dgtypes.DGChatType):
-
-            formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else errors.HistoryErrors.HISTORY_EMPTY
-            file_like = io.BytesIO(formatted_history_string.encode())
-            file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
-
-            await interaction.user.send(f"{convo.user.name}'s {config.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
-            return await interaction.response.send_message("I have sent your conversation transcript to our direct messages.")
+        convo = self.client.manage_defaults(member, name)
     
-        await interaction.response.send_message(errors.ConversationErrors.NO_CONVO)
+        formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else errors.HistoryErrors.HISTORY_EMPTY
+        file_like = io.BytesIO(formatted_history_string.encode())
+        file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
+
+        await interaction.user.send(f"{convo.user.name}'s {config.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
+        await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
+    
+        
             
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
     async def get_chat_history(self, interaction: discord.Interaction, history_id: str):

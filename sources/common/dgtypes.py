@@ -17,11 +17,11 @@ __all__ = [
 # Channels
 
 InteractableChannel = discord.TextChannel | discord.Thread
-
+AllChannels = discord.TextChannel | discord.Thread | discord.interactions.InteractionChannel
 # Chats
 
 DGChatType = chat.DGTextChat | chat.DGVoiceChat
 
 # GPT Models
 
-GPTModelType = typing.Type[models.GPT3Turbo | models.GPT4]
+GPTModelType = typing.Type[models.GPT3Turbo | models.GPT4] 
