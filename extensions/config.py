@@ -25,7 +25,6 @@ class Configuration(_Cog):
             _config = guildconfig.get_guild_config(guild)
             embed = self.client.get_embed(f"{guild} Configuration Settings")
             
-            print(_config)
             for c_entry in _config.config_data.items():
                 embed.add_field(name=f'Config Option: "{c_entry[0]}"', value=c_entry[1], inline=False)
             
