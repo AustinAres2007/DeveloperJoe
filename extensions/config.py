@@ -48,6 +48,19 @@ class Configuration(_Cog):
             guildconfig.edit_guild_config(guild, "voice", allow_voice)
             return await interaction.response.send_message(f"Users {'cannot' if allow_voice == False else 'can'} use voice.")
             
-    
+    @discord.app_commands.command(name="reset", description=f"Reset this servers configuration back to default.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def reset_config(self, interaction: discord.Interaction):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
+            
+            confirm = await self.client.get_input(interaction, "Are you sure you want to reset this servers configuration? This cannot be undone unless you remember the current configuration.")
+            if confirm.content != config.QUERY_CONFIRMATION:
+                return await interaction.followup.send("Cancelled action.", ephemeral=False)
+                
+            guildconfig.reset_guild_config(guild)
+            return await interaction.followup.send("Reset this server configuration keys. You may view them with /config.")
+            
+        
 async def setup(client):
     await client.add_cog(Configuration(client))

@@ -109,7 +109,7 @@ class DGChats:
 
         if not save_message and query_type == "query":
             self.chat_history = self.chat_history[:len(self.chat_history)-2]
-        self.readable_history.pop()
+            self.readable_history.pop()
 
         if is_gpt_reply and save_message and query_type == "query":
             self.tokens += tokens
@@ -163,7 +163,6 @@ class DGChats:
             }
             _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
             
-            # TODO: Fix token limit error.
             reply = _reply.json()["choices"][0]
             usage = _reply.json()["usage"]
 
@@ -371,29 +370,35 @@ class DGTextChat(DGChats):
         sendable_portion = "<>"
         message = ""
         
-        async with channel.typing():
-            async for t in reply:
+        try:
+            async with channel.typing():
                 
-                i += 1
-                full_message += t
-                message += t
-                sendable_portion = full_message[start_message_at * config.CHARACTER_LIMIT:((start_message_at + 1) * config.CHARACTER_LIMIT)]
-        
-                if len(full_message) and len(full_message) >= (start_message_at + 1) * config.CHARACTER_LIMIT:
-                    await msg[-1].edit(content=sendable_portion)
-                    msg.append(await msg[-1].channel.send(config.STREAM_PLACEHOLDER))
-
-                start_message_at = len(full_message) // config.CHARACTER_LIMIT
-                if i and i % config.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
-                    await msg[-1].edit(content=sendable_portion)
-
-            else:
-                if not msg:
-                    await og_message.edit(content=sendable_portion)
-                else:
-                    await msg[-1].edit(content=sendable_portion)
+                async for t in reply:
+                    
+                    i += 1
+                    full_message += t
+                    message += t
+                    sendable_portion = full_message[start_message_at * config.CHARACTER_LIMIT:((start_message_at + 1) * config.CHARACTER_LIMIT)]
             
-        return message
+                    if len(full_message) and len(full_message) >= (start_message_at + 1) * config.CHARACTER_LIMIT:
+                        await msg[-1].edit(content=sendable_portion)
+                        msg.append(await msg[-1].channel.send(config.STREAM_PLACEHOLDER))
+
+                    start_message_at = len(full_message) // config.CHARACTER_LIMIT
+                    if i and i % config.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
+                        await msg[-1].edit(content=sendable_portion)
+
+                else:
+                    if not msg:
+                        await og_message.edit(content=sendable_portion)
+                    else:
+                        await msg[-1].edit(content=sendable_portion)
+                        
+        except _discord.NotFound:
+            self.is_processing = False
+            raise exceptions.DGException("Stopped query since someone deleted the streaming message.")
+        else:            
+            return message
     
     @decorators.check_enabled
     async def ask(self, query: str, channel: InteractableChannel):
@@ -415,7 +420,7 @@ class DGTextChat(DGChats):
         Returns:
             str: The welcome message.
         """
-        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do, and limitations."))
+        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do and limitations. This is for YOU. Not an end user."))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
@@ -645,13 +650,13 @@ class DGVoiceChat(DGTextChat):
     async def ask_stream(self, query: str, channel: InteractableChannel) -> str:
         
         from sources.common.dgtypes import InteractableChannel
-        
+
         text = await super().ask_stream(query, channel)
         if isinstance(channel, InteractableChannel):
             await self.speak(text, channel)
         else:
             raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
-        
+
         return text
     
     def __repr__(self) -> str:

@@ -264,6 +264,9 @@ class DeveloperJoe(commands.Bot):
                     logging.error(exception) 
                 return await send(message) if getattr(error, "send_exception", False) == True else None
         
+        if isinstance(error, discord.app_commands.CheckFailure):
+            return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
+        
         logging.error(exception)
 
         error_text = f"From error handler: {str(error)}"

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 # Models
 
 class DGException(Exception):
+    reply = None
     def __init__(self, message: str, *args, log_error: _Union[bool, None]=None, send_exceptions: bool=True, **kwargs):
         """Base exception for all DGE exceptions. (All DGE exceptions inherit from DGException, and must do if they want to be recognised by error handler)"""
 

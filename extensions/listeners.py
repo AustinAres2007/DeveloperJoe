@@ -48,8 +48,8 @@ class Listeners(commands.Cog):
                     else:
                         raise exceptions.ModelIsLockedError(convo.model)
 
-        except (exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
-            await message.channel.send(error.reply)
+        except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
+            await message.channel.send(error.message)
         except discord.Forbidden:
             raise exceptions.ChatChannelDoesntExist(message, convo) 
 
@@ -105,6 +105,6 @@ class Listeners(commands.Cog):
                                 
                         else: # No fucking clue what happened. Panic disconnect!
                             await _manage_bot_disconnect(convo)
-                                    
+            
 async def setup(client: DeveloperJoe):
     await client.add_cog(Listeners(client))

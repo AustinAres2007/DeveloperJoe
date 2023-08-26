@@ -69,6 +69,7 @@ GUILD_CONFIG_KEYS = {
     "speed": VOICE_SPEEDUP_MULTIPLIER,
     "timezone": TIMEZONE,
     "voice": True,
-    "voice-keyword": LISTENING_KEYWORD
+    "voice-keyword": LISTENING_KEYWORD,
+    "allow-voice": True
 } # Default values for guild configurations
 DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.

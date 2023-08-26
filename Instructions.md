@@ -38,6 +38,8 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 ## Release Notes 1.3.2
 
 1. Bot can now listen to your queries.
+2. General Type fixes and code cleanup
+3. New configuration commands
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
 [^op]: If you want details, use any Python version 3.9 and above, and execute `joe.py` within the root folder of DeveloperJoe.

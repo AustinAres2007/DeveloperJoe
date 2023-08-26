@@ -16,8 +16,10 @@ __all__ = [
     "DGGuildConfigSessionManager",
     "get_guild_config",
     "edit_guild_config",
-    "get_guild_config_attribute"
+    "get_guild_config_attribute",
+    "reset_guild_config"
 ]
+
 class GuildData:
     def __init__(self, data: list):
         try:
@@ -94,10 +96,15 @@ def get_guild_config(guild: _discord.Guild) -> GuildData:
     with DGGuildConfigSession(guild) as cs:
         return cs.get_guild()
 
-def edit_guild_config(guild: _discord.Guild, key: str, value: _Any) -> None:
+def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: _Any | None=None, **kwargs) -> None:
     with DGGuildConfigSession(guild) as cs:
-        return cs.edit_guild(**{key: value})
+        actual_data = {key: value} if key and value else kwargs
+        return cs.edit_guild(**actual_data)
 
+def reset_guild_config(guild: _discord.Guild) -> None:
+    return edit_guild_config(guild, **config.GUILD_CONFIG_KEYS)
+        
+    
 def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Union[_Any, None]:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
