@@ -395,7 +395,7 @@ async def _run_bot():
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
-        async with DeveloperJoe(command_prefix=None, intents=DeveloperJoe.INTENTS) as client:
+        async with DeveloperJoe(command_prefix="++_", intents=DeveloperJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
             
     except KeyboardInterrupt:

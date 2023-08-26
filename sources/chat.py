@@ -24,6 +24,7 @@ from .common import (
 )
 if TYPE_CHECKING:
     from common.dgtypes import GPTModelType, InteractableChannel
+    from joe import DeveloperJoe
 
 from .voice import voice_client, reader
 
@@ -33,7 +34,7 @@ __all__ = [
 ]
 class DGChats:
     def __init__(self, 
-                bot_instance: Bot,
+                bot_instance: DeveloperJoe,
                 _openai_token: str, 
                 user: _Union[_discord.User, _discord.Member], 
                 name: str,
@@ -59,7 +60,7 @@ class DGChats:
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): _description_. Defaults to None.
         """
         
-        self.bot: Bot = bot_instance
+        self.bot: DeveloperJoe = bot_instance
         self.user: _Union[_discord.User, _discord.Member] = user
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
@@ -82,7 +83,8 @@ class DGChats:
         
         self._voice = voice
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
-        self._is_speaking = False
+        self.proc_packet, self._is_speaking = False, False
+        
         self.voice_tss_queue: list[str] = []
         _openai.api_key = self.oapi
     
@@ -112,7 +114,6 @@ class DGChats:
         if is_gpt_reply and save_message and query_type == "query":
             self.tokens += tokens
     
-    @decorators.check_enabled
     async def __get_stream_parsed_data__(self, **kwargs) -> _AsyncGenerator:
         payload = {"model": self.model.model, "messages": self.chat_history, "stream": True} | kwargs
         reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
@@ -140,7 +141,6 @@ class DGChats:
 
             last_char = char
             
-    @decorators.check_enabled
     async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
             
         error, replied_content = None, None
@@ -197,7 +197,6 @@ class DGChats:
         self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
         return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
 
-    @decorators.check_enabled
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
         r_history = []
@@ -305,7 +304,7 @@ class DGChats:
 class DGTextChat(DGChats):
     """Represents a text-only DG Chat."""
     def __init__(self, 
-                bot_instance: Bot,
+                bot_instance: DeveloperJoe,
                 _openai_token: str, 
                 user: _Union[_discord.User, _discord.Member], 
                 name: str,
@@ -523,23 +522,27 @@ class DGVoiceChat(DGTextChat):
         self._client_voice_instance = _bot_vc 
     
     async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
-        recogniser = _speech_recognition.Recognizer()
         try:
-            with _speech_recognition.AudioFile(voice) as wav_file:
-                data = recogniser.record(wav_file)
-                text = recogniser.recognize_google(data, pfilter=0,)
-        except _speech_recognition.UnknownValueError:
-            return
-        
-        prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
-        if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
-            text = text.split(config.LISTENING_KEYWORD)[1].lstrip()
-            usr_voice_convo = self.bot.get_default_voice_conversation(member) # type: ignore hope that DeveloperJoe instance is self.bot
             
-            if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
-                if usr_voice_convo.stream != True:
-                    return await usr_voice_convo.ask(text, self.last_channel)
-                raise NotImplementedError # TODO
+            if self.proc_packet == False:
+                self.proc_packet = True
+                recogniser = _speech_recognition.Recognizer()
+                try:
+                    with _speech_recognition.AudioFile(voice) as wav_file:
+                        data = recogniser.record(wav_file)
+                        text = recogniser.recognize_google(data, pfilter=0)
+                except _speech_recognition.UnknownValueError:
+                    pass
+                else:
+                    prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
+                    if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
+                        text = text.split(config.LISTENING_KEYWORD)[1].lstrip()
+                        usr_voice_convo = self.bot.get_default_voice_conversation(member)
+                        
+                        if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
+                            await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
+        finally:
+            self.proc_packet = False
         
     async def manage_voice(self) -> _discord.VoiceClient:
         
