@@ -4,6 +4,7 @@ from typing import Union as _Union, Any as _Any
 from . import (
     database, 
     config, 
+    exceptions
 )
 from .common import (
     decorators
@@ -51,15 +52,18 @@ class DGGuildConfigSession:
             data: GuildData = self._manager.get_guild()
             data.config_data.update(keys)
             self._manager.edit_guild(data.config_data)
-    
+        else:
+            raise exceptions.DGException(f"Unknown configuration key(s): {list(keys)}")
+        
     @decorators.has_config
     def get_guild(self) -> GuildData:
         return self._manager.get_guild()
     
-    def get_config(self, attribute: str):
-        config = self.get_guild().config_data
+    async def get_config(self, attribute: str):
+        config: dict = self.get_guild().config_data
         if attribute in config:
             return config[attribute]
+        return config
         
 class DGGuildConfigSessionManager(database.DGDatabaseSession):
     def __init__(self, session) -> None:

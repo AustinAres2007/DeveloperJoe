@@ -11,8 +11,8 @@ from sources.common import (
 )
 
 class General(_Cog):
-    def __init__(self, client):
-        self.client: DeveloperJoe = client
+    def __init__(self, _client):
+        self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
     @discord.app_commands.command(name="help", description="Lists avalible commands")

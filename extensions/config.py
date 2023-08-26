@@ -13,8 +13,8 @@ from sources.common import (
 )
 
 class Configuration(_Cog):
-    def __init__(self, client):
-        self.client: DeveloperJoe = client
+    def __init__(self, _client: DeveloperJoe):
+        self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
     @discord.app_commands.command(name="config", description="View this discord servers configuration.")
@@ -22,11 +22,12 @@ class Configuration(_Cog):
     async def guild_config(self, interaction: discord.Interaction):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             
-            config = guildconfig.get_guild_config(guild)
+            _config = guildconfig.get_guild_config(guild)
             embed = self.client.get_embed(f"{guild} Configuration Settings")
             
-            for config in config.config_data.items():
-                embed.add_field(name=f'Config Option: "{config[0]}"', value=config[1], inline=False)
+            print(_config)
+            for c_entry in _config.config_data.items():
+                embed.add_field(name=f'Config Option: "{c_entry[0]}"', value=c_entry[1], inline=False)
             
             await interaction.response.send_message(embed=embed)
 
@@ -45,7 +46,7 @@ class Configuration(_Cog):
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def config_voice(self, interaction: discord.Interaction, allow_voice: bool):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            guildconfig.edit_guild_config(guild, "timezone", allow_voice)
+            guildconfig.edit_guild_config(guild, "voice", allow_voice)
             return await interaction.response.send_message(f"Users {'cannot' if allow_voice == False else 'can'} use voice.")
             
     

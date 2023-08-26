@@ -17,8 +17,8 @@ from sources.common import (
 )
 
 class Listeners(commands.Cog):
-    def __init__(self, client: DeveloperJoe):
-        self.client: DeveloperJoe = client
+    def __init__(self, _client: DeveloperJoe):
+        self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
     @commands.Cog.listener()
@@ -31,7 +31,7 @@ class Listeners(commands.Cog):
                 channel: dgtypes.InteractableChannel = commands_utils.assure_class_is_value(message.channel, discord.Thread)
                 
                 if isinstance(convo := self.client.get_default_conversation(member), dgtypes.DGChatType) and message.guild:
-                    if self.client.get_user_has_permission(message.guild.get_member(member.id), convo.model):
+                    if self.client.get_user_has_permission(member, convo.model):
 
                         thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
                         content: str = message.content
@@ -42,8 +42,6 @@ class Listeners(commands.Cog):
                                 await convo.ask_stream(content, channel)
                             else:
                                 await convo.ask(content, channel)
-
-                            # TODO REMEMBER: Add voice func to convo.ask (with parameter)
                             
                         elif has_private_thread and convo.is_processing == True:
                             raise exceptions.DGException(f"{config.BOT_NAME} is still processing your last request.")
@@ -80,7 +78,7 @@ class Listeners(commands.Cog):
                 async def _manage_bot_disconnect(convo: chat.DGVoiceChat):
                     if bot_voice:
                         try:
-                            convo.stop_listening()
+                            await convo.stop_listening()
                             convo.voice_tss_queue.clear() 
                         except exceptions.DGNotListening:
                             pass

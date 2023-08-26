@@ -64,8 +64,8 @@ try:
 except FileNotFoundError:
     print(f"Missing server join files. ({config.WELCOME_FILE} and {config.ADMIN_FILE})")
 
-# Main Bot Class
-
+# Main Bot Class    
+    
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
@@ -85,8 +85,8 @@ class DeveloperJoe(commands.Bot):
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=config.DATETIME_TZ) - self.start_time)
     
-    
-    def get_user_conversation(self, member: discord.Member, chat_name: Union[str, None]=None) -> dgtypes.DGChatType | None:
+    @decorators.user_has_chat
+    def get_user_conversation(self, member: discord.Member, chat_name: str) -> dgtypes.DGChatType | None:
         """ Get the specified members current chat.
 
         Args:
@@ -99,23 +99,10 @@ class DeveloperJoe(commands.Bot):
         Returns:
             Union[Union[DGTextChat, DGVoiceChat], None]: The chat, or None if chat_name is not specified.
         """
-        
-        if int(member.id) in list(self.chats):
-            if not chat_name:
-                return
-            elif chat_name and chat_name in self.chats[member.id]:
-                return self.chats[member.id][chat_name]
-        
-        raise exceptions.UserDoesNotHaveChat(chat_name, member)
+        return self.chats[member.id][chat_name]
     
-    def get_conversation(self, member: discord.Member, chat_name: str) -> dgtypes.DGChatType:
-        
-        _chat = self.get_user_conversation(member, chat_name)
-        if _chat:
-            return _chat
-        raise exceptions.UserDoesNotHaveChat(chat_name, member)
-    
-    def get_all_user_conversations(self, member: discord.Member) -> dict[str, dgtypes.DGChatType] | None:
+    @decorators.user_exists
+    def get_all_user_conversations(self, member: discord.Member) -> dict[str, dgtypes.DGChatType]:
         """Get all of a specified members conversation(s)
 
         Args:
@@ -124,23 +111,9 @@ class DeveloperJoe(commands.Bot):
         Returns:
             Union[dict[str, DGChatType], None]: A dictionary containing the name of the chat as the key, and the chat instance as the value.
         """
-        if member.id in list(self.chats) and self.chats[member.id]:
-            return self.chats[member.id]
+        return self.chats[member.id]
     
-    def get_all_user_conversations_with_exceptions(self, member: discord.Member) -> dict[str, dgtypes.DGChatType]:
-        """Get all of a specified members conversation(s) but if the user has None, then `UserDoesNotHaveAnyChats` is raised.
-
-        Args:
-            member (discord.Member): _description_
-
-        Returns:
-            dict[str, chat.DGChatType]: _description_
-        """
-        if convos := self.get_all_user_conversations(member):
-            return convos
-        raise exceptions.UserDoesNotHaveAnyChats()
-    
-    def get_user_has_permission(self, member: Union[discord.Member, None], model: dgtypes.GPTModelType) -> bool:
+    def get_user_has_permission(self, member: discord.Member, model: dgtypes.GPTModelType) -> bool:
         """Return if the user has permission to user a model
 
         Args:
@@ -156,7 +129,8 @@ class DeveloperJoe(commands.Bot):
         else:
             raise TypeError("member must be discord.Member, not {}".format(member.__class__))
     
-    def get_default_conversation(self, member: discord.Member) -> Union[dgtypes.DGChatType, None]:
+    @decorators.user_exists
+    def get_default_conversation(self, member: discord.Member | discord.User) -> Union[dgtypes.DGChatType, None]:
         """Get a users default conversation
 
         Args:
@@ -167,6 +141,7 @@ class DeveloperJoe(commands.Bot):
         """
         return self.default_chats[f"{member.id}-latest"]
     
+    @decorators.user_exists
     def get_default_voice_conversation(self, member: discord.Member) -> chat.DGVoiceChat | None:
         """Returns a users default conversation only if it supports voice.
 
@@ -179,6 +154,7 @@ class DeveloperJoe(commands.Bot):
         _chat = self.get_default_conversation(member)
         return _chat if isinstance(_chat, chat.DGVoiceChat) else None
     
+    @decorators.user_has_chat
     def get_user_voice_conversation(self, member: discord.Member, chat_name: str) -> Union[chat.DGVoiceChat, None]:
         # TODO: Add funcion that aquires all voice chats only
         """Get a users chat, only if it supports voice.
@@ -193,6 +169,7 @@ class DeveloperJoe(commands.Bot):
         __chat__ = self.get_user_conversation(member, chat_name=chat_name)
         return __chat__ if isinstance(__chat__, chat.DGVoiceChat) else None
     
+    @decorators.user_has_chat
     def delete_conversation(self, member: discord.Member, conversation_name: str) -> None:
         """Deletes a members chat.
 
@@ -202,6 +179,7 @@ class DeveloperJoe(commands.Bot):
         """
         del self.chats[member.id][conversation_name]
 
+    @decorators.chat_not_exist
     def add_conversation(self, member: discord.Member, name: str, conversation: dgtypes.DGChatType) -> None:
         """Adds a conversation to a users chat database.
 
@@ -212,7 +190,8 @@ class DeveloperJoe(commands.Bot):
         """
         self.chats[member.id][name] = conversation
 
-    def set_default_conversation(self, member: discord.Member, name: Union[None, str]) -> None:
+    @decorators.user_has_chat
+    def set_default_conversation(self, member: discord.Member, name: str) -> None:
         """Sets a users default chat.
 
         Args:
@@ -221,7 +200,16 @@ class DeveloperJoe(commands.Bot):
         """
         self.default_chats[f"{member.id}-latest"] = self.get_user_conversation(member, name)
     
-    def manage_defaults(self, member: discord.Member, name: str | None) -> dgtypes.DGChatType:
+    def reset_default_conversation(self, member: discord.Member):
+        """Sets a users default chat no `None`.
+
+        Args:
+            member (discord.Member): The member who's default chat will be set.
+        """
+        self.default_chats[f"{member.id}-lastest"] = None
+        
+    @decorators.user_has_chat
+    def manage_defaults(self, member: discord.Member, name: str="") -> dgtypes.DGChatType:
         """Manages a users default chat depending on parameters given.
 
         Args:
@@ -333,7 +321,14 @@ class DeveloperJoe(commands.Bot):
     
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} Online (Version = {config.VERSION}, Can Use Voice = {self.is_voice_compatible})\n")
+            print(f"\n{self.application.name} / {config.BOT_NAME} Online.")
+            
+            print(f"""
+            Version = {config.VERSION}
+            Voice Installed = {self.is_voice_compatible}
+            Voice Enabled = {config.ALLOW_VOICE}
+            Users Can Use Voice = {self.is_voice_compatible and config.ALLOW_VOICE}
+            """)
 
             self.chats: dict[int, dict[str, dgtypes.DGChatType] | dict] = {}
             self.default_chats: dict[str, None | dgtypes.DGChatType] = {}
@@ -351,7 +346,7 @@ class DeveloperJoe(commands.Bot):
                         if guild.id not in g_ids:
                             _guild_handler._add_raw_guild(guild.id)
                             print(f"Added new guild: {guild.id}")
-                    print()
+                    print("Guilds all added\n")
 
                 async def _check_integrity(i: int):
                     print("Performing database check..")
@@ -361,18 +356,19 @@ class DeveloperJoe(commands.Bot):
                             database_session.init()
                             return await _check_integrity(i+1)
                             
-                        return print("Database all set.")
+                        return print("Database all set.\n")
                     print("Database could not be rebuilt. Aborting. Check database files.")
                     return await self.close()
-            
+                
+                print("Checks\n")
+                
                 await _check_integrity(0)
                 check_servers()
                 
-                print("Done! Running.")
+                print("Running.")
             
             
             self.chats = {user.id: {} for user in self.users}
-            self.chats = self.chats
             self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
 
             self.tree.on_error = self.handle_error
@@ -382,32 +378,15 @@ class DeveloperJoe(commands.Bot):
         for file in os.listdir(f"extensions"):
             if file.endswith(".py"):
                 await self.load_extension(f"extensions.{file[:-3]}")
-
+        
         await self.tree.sync()
         return await super().setup_hook()
 
 from discord.ext.commands import Cog
-
-class CommandDispatcher:
-    def __init__(self, cog: Cog) -> None:
-        self._cog = cog
-    
-    async def dispatch(self, interaction: discord.Interaction, *args, **kwargs):
-        if interaction.command: # Didn't know interactions couldn't have command    s
-            return await getattr(self, interaction.command.name)(self._cog, interaction, *args, **kwargs)
-
-class DeveloperJoeCog(Cog):
-    def __init__(self, client: DeveloperJoe) -> None:
-        self._client = client
-        super().__init__()
-    
-    @property
-    def client(self) -> DeveloperJoe:
-        return self._client
         
 # Driver Code
 
-async def run_bot():
+async def _run_bot():
     """Runs the bot."""
     client = None
     try:
@@ -416,7 +395,7 @@ async def run_bot():
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
-        async with DeveloperJoe(command_prefix=commands.when_mentioned_or("?"), intents=DeveloperJoe.INTENTS) as client:
+        async with DeveloperJoe(command_prefix=None, intents=DeveloperJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
             
     except KeyboardInterrupt:
@@ -432,8 +411,11 @@ async def run_bot():
         print("You are not connected to WiFi.")
         exit(1)
 
-if __name__ == "__main__":
+def main():
     try:
-        asyncio.run(run_bot())
+        asyncio.run(_run_bot())
     except KeyboardInterrupt:
         pass
+
+if __name__ == "__main__":
+    print(f"Please use main.py to run {config.BOT_NAME}.")

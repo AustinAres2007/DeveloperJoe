@@ -16,8 +16,8 @@ from sources.common import (
 )
 
 class History(commands.Cog):
-    def __init__(self, client):
-        self.client: DeveloperJoe = client
+    def __init__(self, _client: DeveloperJoe):
+        self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
     def format(self, data: list, username: str) -> str:
@@ -45,7 +45,7 @@ class History(commands.Cog):
             return
 
     @discord.app_commands.command(name="export", description="Export current chat history.")
-    async def export_chat_history(self, interaction: discord.Interaction, name: Union[None, str]):
+    async def export_chat_history(self, interaction: discord.Interaction, name: str=""):
 
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)

@@ -11,7 +11,6 @@ from .. import (
 from .dgtypes import (
     DGChatType, 
     GPTModelType,
-    AllChannels,
     InteractableChannel
 )
 
@@ -24,7 +23,8 @@ __all__ = [
     "to_file_fp",
     "assure_class_is_value",
     "get_modeltype_from_name",
-    "in_correct_channel"
+    "in_correct_channel",
+    "get_correct_channel"
 ]
 
 def to_file_fp(fp: str) -> discord.File:
@@ -55,6 +55,11 @@ def assure_class_is_value(object, __type: type):
         return object
     raise exceptions.IncorrectInteractionSetting(object, type)
 
+def is_correct_channel(channel: typing.Any) -> InteractableChannel:
+    if isinstance(channel, InteractableChannel):
+        return channel
+    raise exceptions.IncorrectInteractionSetting(channel, InteractableChannel)
+
 def get_modeltype_from_name(name: str) -> GPTModelType:
         """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
         if name in list(config.REGISTERED_MODELS):
@@ -64,7 +69,8 @@ def get_modeltype_from_name(name: str) -> GPTModelType:
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
 
-def get_correct_channel(channel:  AllChannels | None) -> InteractableChannel:
+
+def get_correct_channel(channel: typing.Any | None) -> InteractableChannel:
     if channel and isinstance(channel, InteractableChannel):
         return channel
     raise exceptions.CannotTalkInChannel(channel)

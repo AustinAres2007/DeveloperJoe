@@ -21,8 +21,8 @@ from sources.common import (
 
 class Communication(commands.Cog):
 
-    def __init__(self, client):
-        self.client: DeveloperJoe = client
+    def __init__(self, _client: DeveloperJoe):
+        self.client = _client
         print(f"{self.__cog_name__} Loaded") 
 
     @discord.app_commands.command(name="start", description=f"Start a {config.BOT_NAME} Session")
@@ -37,7 +37,7 @@ class Communication(commands.Cog):
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, gpt_model: Union[str, None]=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        channel: dgtypes.InteractableChannel = commands_utils.assure_class_is_value(interaction.channel, discord.TextChannel)
+        channel: dgtypes.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
         actual_model = commands_utils.get_modeltype_from_name(str(gpt_model if isinstance(gpt_model, str) else config.DEFAULT_GPT_MODEL.model))
         
         async def command():
@@ -45,8 +45,8 @@ class Communication(commands.Cog):
             actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{member.display_name}"
             chats = self.client.get_all_user_conversations(member)
             name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
-            chat_thread: Union[discord.Thread, None] = None
-
+            chat_thread: discord.Thread | None = None
+            
             # Error Checking
 
             if len(actual_name) > 39:
@@ -59,10 +59,11 @@ class Communication(commands.Cog):
             # Actual Code
             
             if in_thread:
-                chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
-                await chat_thread.add_user(member)
-                await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
-
+                if type(channel) == discord.TextChannel:
+                    chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
+                    await chat_thread.add_user(member)
+                    await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
+                    
             chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, stream_conversation, name, actual_model, chat_thread, is_private)
             
             if speak_reply == False:
@@ -77,7 +78,7 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
-            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*", ephemeral=False)
+            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*", ephemeral=False)
 
             self.client.add_conversation(member, name, convo)
             self.client.set_default_conversation(member, name)
@@ -88,7 +89,7 @@ class Communication(commands.Cog):
         
     @discord.app_commands.command(name="ask", description=f"Ask {config.BOT_NAME} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {config.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    async def ask_query(self, interaction: discord.Interaction, message: str, name: Union[None, str]=None, stream: bool=False):
+    async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool=False):
 
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
@@ -112,10 +113,10 @@ class Communication(commands.Cog):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         if vc_chat := self.client.get_default_voice_conversation(member):
             if listen == True:
-                vc_chat.listen()
+                await vc_chat.listen()
                 await interaction.response.send_message("Listening to voice..")
             else:
-                vc_chat.stop_listening()
+                await vc_chat.stop_listening()
                 await interaction.response.send_message("Stopped listening to voice.")
         else:
             raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
@@ -140,7 +141,7 @@ class Communication(commands.Cog):
                     farewell = await gpt.stop(interaction, history_session, save.value)
                     
                     self.client.delete_conversation(member, name)
-                    self.client.set_default_conversation(member, None)
+                    self.client.reset_default_conversation(member)
                     await interaction.followup.send(farewell, ephemeral=False)
                 else:
                     await interaction.followup.send(errors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
@@ -158,7 +159,7 @@ class Communication(commands.Cog):
         discord.app_commands.Choice(name="512x512", value="512x512"),
         discord.app_commands.Choice(name="1024x1024", value="1024x1024")
     ]) 
-    async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str, save_to: Union[None, str]=None):
+    async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str, save_to: str=""):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, save_to)
 
@@ -169,12 +170,12 @@ class Communication(commands.Cog):
 
     @discord.app_commands.command(name="info", description=f"Displays information about your current {config.BOT_NAME} Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
-    async def get_info(self, interaction: discord.Interaction, name: Union[None, str]=None):
+    async def get_info(self, interaction: discord.Interaction, name: str=""):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
 
         uptime_delta = self.client.get_uptime()
-        returned_embed = discord.Embed(title=f'"{name}" Information')
+        returned_embed = discord.Embed(title=f'"{convo.display_name}" Information')
 
         embeds = (
             {"name": "Started At", "value": str(convo.time), "inline": False},
@@ -196,7 +197,7 @@ class Communication(commands.Cog):
     
     @discord.app_commands.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
-    async def switch_default(self, interaction: discord.Interaction, name: Union[None, str]=None):
+    async def switch_default(self, interaction: discord.Interaction, name: str):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
         await interaction.response.send_message(f"Switched default chat to: {convo} (The name will not change or be set to default if the chat does not exist)" if convo else f"You do not have any {config.BOT_NAME} conversations.")
@@ -205,7 +206,7 @@ class Communication(commands.Cog):
     async def list_user_chats(self, interaction: discord.Interaction):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         embed = self.client.get_embed(f"{member} Conversations")
-        for chat in self.client.get_all_user_conversations_with_exceptions(member).values():
+        for chat in self.client.get_all_user_conversations(member).values():
             embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private}", inline=False)
              
         await interaction.response.send_message(embed=embed)

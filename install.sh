@@ -44,7 +44,7 @@ then
             echo "\n\nFinished!"
         else
             echo Performing first bot startup..
-            $PYTHON_COMMAND "$DIR/joe.py"
+            $PYTHON_COMMAND "$DIR/main.py"
         fi
 
     fi

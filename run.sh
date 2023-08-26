@@ -9,10 +9,10 @@ if [ "$IN_VE" = "True" ]
 then
     if [ "$1" != "1" ]; then 
         echo "Running normally."
-        $PYTHON_COMMAND joe.py
+        $PYTHON_COMMAND main.py
     else
         echo "Running indefinitly. Use the '/shutdown' bot command to halt execution."
-        $PYTHON_COMMAND joe.py &
+        $PYTHON_COMMAND main.py &
     fi
 else
     echo "Incorrect / missing virtual enviroment."

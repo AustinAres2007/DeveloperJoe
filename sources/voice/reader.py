@@ -116,7 +116,6 @@ class SentenceSink(AudioSink):
 
     def _get_packets_for_member(self, member: Member, packet: rtp.RTPPacket) -> None:
         if isinstance(member, Member):
-            print("PKT", packet.sequence)
             if not member in self._member_packets:
                 self._member_packets[member] = [packet]
             else:
@@ -126,7 +125,6 @@ class SentenceSink(AudioSink):
     async def _check_if_expired(self):
         while self._check_time:
             await asyncio.sleep(1)
-            print(self._member_packets, random.randint(0, 20))
             for speaking_user, packets in self._member_packets.items():
                 if (isinstance(speaking_user, Member) and packets) and (time.time() - packets[-1].unix > self.wait_for_duration):
                     await self._process_member_chunks(speaking_user)
@@ -141,7 +139,6 @@ class SentenceSink(AudioSink):
         vcb = b''.join(self._decoder.decode(pk.decrypted_data if pk.decrypted_data else b'', fec=True) for pk in self._member_packets[member])
         io_bytes_obj = io.BytesIO()    
         
-        print("Got mem", member)
         with wave.open(io_bytes_obj, 'wb') as wav:
             wav.setnchannels(self._decoder.CHANNELS)
             wav.setsampwidth(self._decoder.SAMPLE_SIZE // self._decoder.CHANNELS)
@@ -152,7 +149,6 @@ class SentenceSink(AudioSink):
         
 
         await self.voice_callback(member, io_bytes_obj)
-        print(self._member_packets)
     
     def cleanup(self):
         """Stops checking task and performs cleanup."""

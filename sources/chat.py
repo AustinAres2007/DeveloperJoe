@@ -296,8 +296,11 @@ class DGChats:
     def listen(self):
         raise NotImplementedError
     
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>"
+    
+    def __str__(self) -> str:
+        return self.display_name
     
 class DGTextChat(DGChats):
     """Represents a text-only DG Chat."""
@@ -524,13 +527,11 @@ class DGVoiceChat(DGTextChat):
         try:
             with _speech_recognition.AudioFile(voice) as wav_file:
                 data = recogniser.record(wav_file)
-                text = recogniser.recognize_google(data, pfilter=0)
+                text = recogniser.recognize_google(data, pfilter=0,)
         except _speech_recognition.UnknownValueError:
             return
         
         prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
-        print("GUILD PREFIX: ",prefix)
-        print(text)
         if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
             text = text.split(config.LISTENING_KEYWORD)[1].lstrip()
             usr_voice_convo = self.bot.get_default_voice_conversation(member) # type: ignore hope that DeveloperJoe instance is self.bot
@@ -557,7 +558,6 @@ class DGVoiceChat(DGTextChat):
         
         return voice
     
-    @decorators.check_enabled
     @decorators.has_voice
     async def speak(self, text: str, channel: InteractableChannel): 
         try:
@@ -587,7 +587,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel
     @decorators.dg_is_speaking
-    def stop_speaking(self):
+    async def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
         self.client_voice.stop() # type: ignore Checks done with decorators.
     
@@ -595,7 +595,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel
     @decorators.dg_is_speaking
-    def pause_speaking(self):
+    async def pause_speaking(self):
         """Pauses the bots voice reply for a user."""
         self.client_voice.pause() # type: ignore Checks done with decorators.
     
@@ -603,7 +603,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel
     @decorators.dg_isnt_speaking
-    def resume_speaking(self):
+    async def resume_speaking(self):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
     
@@ -612,7 +612,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_in_voice_channel
     @decorators.dg_isnt_speaking
     @decorators.dg_isnt_listening
-    def listen(self):
+    async def listen(self):
         """Starts the listening events for a users voice conversation."""
         self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 2.5)) # type: ignore Checks done with decorators.
     
@@ -621,13 +621,16 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_in_voice_channel
     @decorators.dg_isnt_speaking
     @decorators.dg_is_listening
-    def stop_listening(self):
+    async def stop_listening(self):
         """Stops the listening events for a users voice conversation"""
         self.client_voice._reader.sink.cleanup() # type: ignore Checks done with decorators.
         self.client_voice.stop_listening() # type: ignore Checks done with decorators.
         
         
     async def ask(self, query: str, channel: InteractableChannel) -> str:
+        
+        from sources.common.dgtypes import InteractableChannel
+        
         text = await super().ask(query, channel)
         if isinstance(channel, InteractableChannel):
             await self.speak(text, channel)
@@ -637,6 +640,9 @@ class DGVoiceChat(DGTextChat):
         return text
 
     async def ask_stream(self, query: str, channel: InteractableChannel) -> str:
+        
+        from sources.common.dgtypes import InteractableChannel
+        
         text = await super().ask_stream(query, channel)
         if isinstance(channel, InteractableChannel):
             await self.speak(text, channel)

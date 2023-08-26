@@ -11,8 +11,8 @@ from sources.common import (
 )
 
 class Administration(_Cog):
-    def __init__(self, client):
-        self.client: DeveloperJoe = client
+    def __init__(self, _client: DeveloperJoe):
+        self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
     @_discord.app_commands.command(name="shutdown", description="Shuts down bot client")
