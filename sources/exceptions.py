@@ -110,7 +110,7 @@ class ModelIsLockedError(DGException):
     reply = errors.ModelErrors.MODEL_LOCKED
     def __init__(self, model: dgtypes.GPTModelType, *args):
         """Will be raised if a user does not have access to a model they want to use."""
-        super().__init__(self.reply, model.model, log_error=True, send_exceptions=True, *args)
+        super().__init__(self.reply, model, log_error=True, send_exceptions=True, *args)
 
 class VoiceIsLockedError(DGException):
     reply = errors.VoiceConversationErrors.VOICE_IS_LOCKED

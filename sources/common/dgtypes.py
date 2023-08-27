@@ -24,7 +24,7 @@ InteractableChannel = discord.TextChannel | discord.Thread
 
 # Chats
 
-DGChatType = chat.DGChats | chat.DGTextChat | chat.DGVoiceChat
+DGChatType = chat.DGTextChat | chat.DGVoiceChat
 
 # GPT Models
 

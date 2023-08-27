@@ -1,11 +1,4 @@
-import tiktoken as _tiktoken, openai_async as _openai_async
-
-from . import (
-    config
-)
-from .common import (
-    dgtypes
-)
+import tiktoken as _tiktoken
 
 __all__ = [
     "GPTModel",
@@ -18,9 +11,6 @@ class GPTModel:
     _display_name: str = ""
     _description: str = ""
     
-    def __init__(self, chat: dgtypes.DGChatType) -> None:
-        self._conversation = chat
-        
     @classmethod
     @property
     def model(cls) -> str:
@@ -45,10 +35,6 @@ class GPTModel:
         """User-readable display name for the model."""
         return cls._display_name
     
-    @property
-    def conversation(self) -> dgtypes.DGChatType:
-        return self._conversation
-    
     @classmethod
     def __repr__(cls):
         # repr and str don't work because of @classmethod.
@@ -58,13 +44,6 @@ class GPTModel:
     def __str__(cls) -> str:
         return cls._model
     
-    async def ask_query(self, query: str):
-        payload = {
-                        "model": self.model,
-                        "messages": self.conversation.chat_history    
-            }
-        return await _openai_async.chat_complete(api_key=self.conversation.oapi, timeout=config.GPT_REQUEST_TIMEOUT, payload=payload)
-        
 class GPT3Turbo(GPTModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 

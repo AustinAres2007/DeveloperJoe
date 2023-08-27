@@ -72,7 +72,7 @@ class DGChats:
         self.display_name = display_name
         self.stream = stream
 
-        self.model = model(self)
+        self.model = model
         self.tokens = 0
 
         self._private, self._is_active, self.is_processing = is_private, True, False

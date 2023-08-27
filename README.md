@@ -7,7 +7,6 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 - Long-term chat storage
 - Image Generation
 - Streaming chat replies
-- Voice replies
 
 ## Setup
 
@@ -30,7 +29,7 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 ## Optional
 
-* In the file `sources/config.py` you can change any variables to suit your needs. *Note; it is recommended to set `BOT_NAME` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
+* In the file `objects/GPTConfig.py` you can change any variables to suit your needs. *Note; it is recommended to set `BOT_NAME` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
 
 ## Errors
 
@@ -43,5 +42,5 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 3. New configuration commands
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
-[^op]: If you want details, use any Python version 3.9 and above, and execute `main.py` within the root folder of DeveloperJoe.
+[^op]: If you want details, use any Python version 3.9 and above, and execute `joe.py` within the root folder of DeveloperJoe.
         If you do not do this, you will most likely run into errors regarding importing modules and other dependencies that require reletive paths.
