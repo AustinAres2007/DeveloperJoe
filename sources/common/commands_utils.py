@@ -6,16 +6,11 @@ import discord, io, typing
 from .. import (
     chat,
     exceptions,
-    config
+    models
 )
-from .dgtypes import (
-    DGChatType, 
-    GPTModelType,
-    InteractableChannel
+from . import (
+    developerconfig
 )
-
-if typing.TYPE_CHECKING:
-   ...
 
 __all__ = [
     "is_voice_conversation",
@@ -44,7 +39,7 @@ def to_file(content: str, name: str) -> discord.File:
     f.name = name
     return discord.File(f)
 
-def is_voice_conversation(conversation: DGChatType | None) -> chat.DGVoiceChat:
+def is_voice_conversation(conversation: chat.DGChatType | None) -> chat.DGVoiceChat:
     if isinstance(conversation, chat.DGVoiceChat):
         return conversation
     raise exceptions.UserDoesNotHaveChat(str(conversation))
@@ -55,22 +50,22 @@ def assure_class_is_value(object, __type: type):
         return object
     raise exceptions.IncorrectInteractionSetting(object, type)
 
-def is_correct_channel(channel: typing.Any) -> InteractableChannel:
-    if isinstance(channel, InteractableChannel):
+def is_correct_channel(channel: typing.Any) -> developerconfig.InteractableChannel:
+    if isinstance(channel, developerconfig.InteractableChannel):
         return channel
-    raise exceptions.IncorrectInteractionSetting(channel, InteractableChannel)
+    raise exceptions.IncorrectInteractionSetting(channel, developerconfig.InteractableChannel)
 
-def get_modeltype_from_name(name: str) -> GPTModelType:
+def get_modeltype_from_name(name: str) -> models.GPTModelType:
         """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
-        if name in list(config.REGISTERED_MODELS):
-            return config.REGISTERED_MODELS[name]
+        if name in list(models.registered_models):
+            return models.registered_models[name]
         raise exceptions.ModelNotExist(None, name)
 
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
 
 
-def get_correct_channel(channel: typing.Any | None) -> InteractableChannel:
-    if channel and isinstance(channel, InteractableChannel):
+def get_correct_channel(channel: typing.Any | None) -> developerconfig.InteractableChannel:
+    if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel
     raise exceptions.CannotTalkInChannel(channel)

@@ -6,13 +6,12 @@ from joe import DeveloperJoe
 
 from sources import (
     history, 
-    config, 
     exceptions, 
     errors
 )
 from sources.common import (
     commands_utils,
-    dgtypes
+    developerconfig
 )
 
 class History(commands.Cog):
@@ -34,8 +33,8 @@ class History(commands.Cog):
         try:
             await interaction.response.defer(thinking=False, ephemeral=True)
             with history.DGHistorySession() as history_session:
-                reply: discord.Message = await self.client.get_input(interaction, f'Are you sure? \n(Send reply within {config.QUERY_TIMEOUT} seconds, \nand "{config.QUERY_CONFIRMATION}" to confirm, anything else to cancel.)')
-                if reply.content == config.QUERY_CONFIRMATION:
+                reply: discord.Message = await self.client.get_input(interaction, f'Are you sure? \n(Send reply within {developerconfig.QUERY_TIMEOUT} seconds, \nand "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.)')
+                if reply.content == developerconfig.QUERY_CONFIRMATION:
                     return await interaction.followup.send(history_session.delete_chat_history(history_id))
                 return await interaction.followup.send("Cancelled action.")
 
@@ -56,7 +55,7 @@ class History(commands.Cog):
         file_like = io.BytesIO(formatted_history_string.encode())
         file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
-        await interaction.user.send(f"{convo.user.name}'s {config.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
+        await interaction.user.send(f"{convo.user.name}'s {developerconfig.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
         await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
     
         

@@ -25,8 +25,7 @@ except ImportError as e:
 
 try:
     from sources import (
-        chat, 
-        config, 
+        chat,  
         database, 
         errors, 
         exceptions, 
@@ -37,9 +36,9 @@ try:
         ttsmodels, 
     )
     from sources.common import (
-        dgtypes,
         commands_utils,
-        decorators
+        decorators,
+        developerconfig
     )
 except IndexError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
@@ -48,7 +47,7 @@ except IndexError as err:
 # Configuration
 
 try:
-    with open(config.TOKEN_FILE, 'r') as tk_file:
+    with open(developerconfig.TOKEN_FILE, 'r') as tk_file:
         DISCORD_TOKEN, OPENAI_TOKEN = tk_file.readlines()[0:2]
         DISCORD_TOKEN = DISCORD_TOKEN.strip()
         OPENAI_TOKEN = OPENAI_TOKEN.strip()
@@ -57,36 +56,36 @@ except (FileNotFoundError, ValueError, IndexError):
     print("Missing token file / Missing tokens within token file"); exit(1)
 
 try:
-    with open(config.WELCOME_FILE) as welcome_file, open(config.ADMIN_FILE) as admin_file:
+    with open(developerconfig.WELCOME_FILE) as welcome_file, open(developerconfig.ADMIN_FILE) as admin_file:
         WELCOME_TEXT = welcome_file.read()
         ADMIN_TEXT = admin_file.read()
 
 except FileNotFoundError:
-    print(f"Missing server join files. ({config.WELCOME_FILE} and {config.ADMIN_FILE})")
+    print(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
 
 # Main Bot Class    
-    
+
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
 
     INTENTS = discord.Intents.all()
-
+    
     def __init__(self, *args, **kwargs):
         self._DISCORD_TOKEN = DISCORD_TOKEN
         self._OPENAI_TOKEN = OPENAI_TOKEN
 
-        self.WELCOME_TEXT = WELCOME_TEXT.format(config.BOT_NAME)
-        self.ADMIN_TEXT = ADMIN_TEXT.format(config.BOT_NAME)
+        self.WELCOME_TEXT = WELCOME_TEXT.format(developerconfig.BOT_NAME)
+        self.ADMIN_TEXT = ADMIN_TEXT.format(developerconfig.BOT_NAME)
         self.__tzs__ = pytz.all_timezones
         
         super().__init__(*args, **kwargs)
     
     def get_uptime(self) -> datetime.timedelta:
-        return (datetime.datetime.now(tz=config.DATETIME_TZ) - self.start_time)
+        return (datetime.datetime.now(tz=developerconfig.DATETIME_TZ) - self.start_time)
     
     @decorators.user_has_chat
-    def get_user_conversation(self, member: discord.Member, chat_name: str) -> dgtypes.DGChatType | None:
+    def get_user_conversation(self, member: discord.Member, chat_name: str) -> chat.DGChatType | None:
         """ Get the specified members current chat.
 
         Args:
@@ -102,7 +101,7 @@ class DeveloperJoe(commands.Bot):
         return self.chats[member.id][chat_name]
     
     @decorators.user_exists
-    def get_all_user_conversations(self, member: discord.Member) -> dict[str, dgtypes.DGChatType]:
+    def get_all_user_conversations(self, member: discord.Member) -> dict[str, chat.DGChatType]:
         """Get all of a specified members conversation(s)
 
         Args:
@@ -113,7 +112,7 @@ class DeveloperJoe(commands.Bot):
         """
         return self.chats[member.id]
     
-    def get_user_has_permission(self, member: discord.Member, model: dgtypes.GPTModelType) -> bool:
+    def get_user_has_permission(self, member: discord.Member, model: models.GPTModelType) -> bool:
         """Return if the user has permission to user a model
 
         Args:
@@ -130,7 +129,7 @@ class DeveloperJoe(commands.Bot):
             raise TypeError("member must be discord.Member, not {}".format(member.__class__))
     
     @decorators.user_exists
-    def get_default_conversation(self, member: discord.Member | discord.User) -> Union[dgtypes.DGChatType, None]:
+    def get_default_conversation(self, member: discord.Member | discord.User) -> Union[chat.DGChatType, None]:
         """Get a users default conversation
 
         Args:
@@ -180,7 +179,7 @@ class DeveloperJoe(commands.Bot):
         del self.chats[member.id][conversation_name]
 
     @decorators.chat_not_exist
-    def add_conversation(self, member: discord.Member, name: str, conversation: dgtypes.DGChatType) -> None:
+    def add_conversation(self, member: discord.Member, name: str, conversation: chat.DGChatType) -> None:
         """Adds a conversation to a users chat database.
 
         Args:
@@ -209,7 +208,7 @@ class DeveloperJoe(commands.Bot):
         self.default_chats[f"{member.id}-lastest"] = None
         
     @decorators.user_has_chat
-    def manage_defaults(self, member: discord.Member, name: str="") -> dgtypes.DGChatType:
+    def manage_defaults(self, member: discord.Member, name: str="") -> chat.DGChatType:
         """Manages a users default chat depending on parameters given.
 
         Args:
@@ -222,7 +221,7 @@ class DeveloperJoe(commands.Bot):
         """
         current_default = self.get_default_conversation(member)
         names_convo = self.get_user_conversation(member, name)
-        name_is_chat = isinstance(names_convo, dgtypes.DGChatType)
+        name_is_chat = isinstance(names_convo, chat.DGChatType)
 
         if name_is_chat:
             self.set_default_conversation(member, name)
@@ -279,7 +278,7 @@ class DeveloperJoe(commands.Bot):
         uptime = self.get_uptime()
         embed = discord.Embed(title=title)
         embed.color = discord.Colour.lighter_grey()
-        embed.set_footer(text=f"Uptime — {uptime.days} Days ({uptime}) | Version — {config.VERSION}")
+        embed.set_footer(text=f"Uptime — {uptime.days} Days ({uptime}) | Version — {developerconfig.VERSION}")
         
         return embed
     
@@ -297,7 +296,7 @@ class DeveloperJoe(commands.Bot):
             return message.author.id == interaction.user.id and message.channel == interaction.channel
         
         await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
-        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=config.QUERY_TIMEOUT)
+        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=developerconfig.QUERY_TIMEOUT)
         return message
     
     async def send_debug_message(self, interaction: discord.Interaction, error: BaseException, cog: str) -> None:
@@ -311,34 +310,34 @@ class DeveloperJoe(commands.Bot):
         Raises:
             error: the error given.
         """
-        if config.DEBUG == True:
+        if developerconfig.DEBUG == True:
             exception_text = f"From main class error handler \n\nError Class: {str(Exception)}\nError Arguments: {str(Exception.args)}\nFrom cog: {cog} "
             await interaction.followup.send(exception_text) if interaction.response.is_done() else await interaction.response.send_message(exception_text) 
             raise error
     
     @property
     def is_voice_compatible(self) -> bool:
-        self.__ffmpeg__ = find_executable(config.FFMPEG)
-        self.__ffprobe__ = find_executable(config.FFMPEG)
+        self.__ffmpeg__ = find_executable(developerconfig.FFMPEG)
+        self.__ffprobe__ = find_executable(developerconfig.FFMPEG)
         return bool(find_library('opus') and self.__ffmpeg__ and self.__ffprobe__)
     
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} / {config.BOT_NAME} Online.")
+            print(f"\n{self.application.name} / {developerconfig.BOT_NAME} Online.")
             
             print(f"""
-            Version = {config.VERSION}
+            Version = {developerconfig.VERSION}
             Voice Installed = {self.is_voice_compatible}
-            Voice Enabled = {config.ALLOW_VOICE}
-            Users Can Use Voice = {self.is_voice_compatible and config.ALLOW_VOICE}
+            Voice Enabled = {developerconfig.ALLOW_VOICE}
+            Users Can Use Voice = {self.is_voice_compatible and developerconfig.ALLOW_VOICE}
             """)
 
-            self.chats: dict[int, dict[str, dgtypes.DGChatType] | dict] = {}
-            self.default_chats: dict[str, None | dgtypes.DGChatType] = {}
+            self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
+            self.default_chats: dict[str, None | chat.DGChatType] = {}
 
-            self.start_time = datetime.datetime.now(tz=config.DATETIME_TZ)
+            self.start_time = datetime.datetime.now(tz=developerconfig.DATETIME_TZ)
             
-            await self.change_presence(activity=discord.Activity(type=config.STATUS_TYPE, name=config.STATUS_TEXT))
+            await self.change_presence(activity=discord.Activity(type=developerconfig.STATUS_TYPE, name=developerconfig.STATUS_TEXT))
             with (database.DGDatabaseSession() as database_session, modelhandler.DGRulesManager() as _guild_handler):
                 
                 
@@ -407,7 +406,7 @@ async def _run_bot():
             exit(0)
             
     except discord.errors.LoginFailure:
-        print(f"Improper Discord API Token given in {config.TOKEN_FILE}, please make sure the API token is still valid.")
+        print(f"Improper Discord API Token given in {developerconfig.TOKEN_FILE}, please make sure the API token is still valid.")
         exit(1)
         
     except aiohttp.ClientConnectionError:
@@ -421,4 +420,4 @@ def main():
         pass
 
 if __name__ == "__main__":
-    print(f"Please use main.py to run {config.BOT_NAME}.")
+    print(f"Please use main.py to run {developerconfig.BOT_NAME}.")

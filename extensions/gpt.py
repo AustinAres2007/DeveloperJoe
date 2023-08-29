@@ -6,8 +6,8 @@ from typing import Union
 # Local dependencies
 
 from joe import DeveloperJoe
+
 from sources import (
-    config, 
     exceptions, 
     chat,
     errors,
@@ -16,7 +16,7 @@ from sources import (
 )
 from sources.common import (
     commands_utils,
-    dgtypes
+    developerconfig
 )
 
 class Communication(commands.Cog):
@@ -25,20 +25,20 @@ class Communication(commands.Cog):
         self.client = _client
         print(f"{self.__cog_name__} Loaded") 
 
-    @discord.app_commands.command(name="start", description=f"Start a {config.BOT_NAME} Session")
+    @discord.app_commands.command(name="start", description=f"Start a {developerconfig.BOT_NAME} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    gpt_model="The model being used for the AI (GPT 3 or GPT 4)",
-                                   in_thread=f"If you want a dedicated private thread to talk with {config.BOT_NAME} in.",
-                                   speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {config.BOT_NAME} will join and speak your replies.",
+                                   in_thread=f"If you want a dedicated private thread to talk with {developerconfig.BOT_NAME} in.",
+                                   speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {developerconfig.BOT_NAME} will join and speak your replies.",
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
     )
-    @discord.app_commands.choices(gpt_model=config.MODEL_CHOICES)
+    @discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, gpt_model: Union[str, None]=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        channel: dgtypes.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
-        actual_model = commands_utils.get_modeltype_from_name(str(gpt_model if isinstance(gpt_model, str) else config.DEFAULT_GPT_MODEL.model))
+        channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
+        actual_model = commands_utils.get_modeltype_from_name(str(gpt_model if isinstance(gpt_model, str) else developerconfig.DEFAULT_GPT_MODEL))
         
         async def command():
         
@@ -53,7 +53,7 @@ class Communication(commands.Cog):
                 raise exceptions.DGException("The name of your chat must be less than 40 characters.", len(actual_name))
             elif isinstance(chats, dict) and name in list(chats):
                 raise exceptions.DGException(errors.ConversationErrors.HAS_CONVO)
-            elif isinstance(chats, dict) and len(chats) > config.CHATS_LIMIT:
+            elif isinstance(chats, dict) and len(chats) > developerconfig.CHATS_LIMIT:
                 raise exceptions.DGException(errors.ConversationErrors.CONVO_LIMIT)
             
             # Actual Code
@@ -85,10 +85,10 @@ class Communication(commands.Cog):
     
         if self.client.get_user_has_permission(member, actual_model):
             return await command()
-        raise exceptions.ModelIsLockedError(actual_model)
+        raise exceptions.ModelIsLockedError(actual_model.model)
         
-    @discord.app_commands.command(name="ask", description=f"Ask {config.BOT_NAME} a question.")
-    @discord.app_commands.describe(message=f"The query you want to send {config.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
+    @discord.app_commands.command(name="ask", description=f"Ask {developerconfig.BOT_NAME} a question.")
+    @discord.app_commands.describe(message=f"The query you want to send {developerconfig.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
     async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool=False):
 
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
@@ -106,7 +106,7 @@ class Communication(commands.Cog):
                     
                 return await interaction.delete_original_response()
             
-            raise exceptions.ModelIsLockedError(commands_utils.get_modeltype_from_name(conversation.model.model))
+            raise exceptions.ModelIsLockedError(conversation.model.model)
 
     @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
     async def enabled_listening(self, interaction: discord.Interaction, listen: bool):
@@ -121,7 +121,7 @@ class Communication(commands.Cog):
         else:
             raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
             
-    @discord.app_commands.command(name="stop", description=f"Stop a {config.BOT_NAME} session.")
+    @discord.app_commands.command(name="stop", description=f"Stop a {developerconfig.BOT_NAME} session.")
     @discord.app_commands.describe(save="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     @discord.app_commands.choices(save=[
         discord.app_commands.Choice(name="No, do not save my transcript save.", value="n"),
@@ -134,8 +134,8 @@ class Communication(commands.Cog):
             with history.DGHistorySession() as history_session:
     
                 if self.client.get_all_user_conversations(member):
-                    reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {config.QUERY_TIMEOUT} seconds, and "{config.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
-                    if reply.content != config.QUERY_CONFIRMATION:
+                    reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {developerconfig.QUERY_TIMEOUT} seconds, and "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+                    if reply.content != developerconfig.QUERY_CONFIRMATION:
                         return await interaction.followup.send("Cancelled action.", ephemeral=False)
                     
                     farewell = await gpt.stop(interaction, history_session, save.value)
@@ -153,7 +153,7 @@ class Communication(commands.Cog):
             raise exceptions.UserDoesNotHaveChat(name)
 
     @discord.app_commands.command(name="generate", description="Create an image with specified parameters.")
-    @discord.app_commands.describe(prompt=f"The keyword you want {config.BOT_NAME} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
+    @discord.app_commands.describe(prompt=f"The keyword you want {developerconfig.BOT_NAME} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
     @discord.app_commands.choices(resolution=[
         discord.app_commands.Choice(name="256x256", value="256x256"),
         discord.app_commands.Choice(name="512x512", value="512x512"),
@@ -168,7 +168,7 @@ class Communication(commands.Cog):
         result = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
         return await interaction.followup.send(result, ephemeral=False)
 
-    @discord.app_commands.command(name="info", description=f"Displays information about your current {config.BOT_NAME} Chat.")
+    @discord.app_commands.command(name="info", description=f"Displays information about your current {developerconfig.BOT_NAME} Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
     async def get_info(self, interaction: discord.Interaction, name: str=""):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
@@ -186,7 +186,7 @@ class Communication(commands.Cog):
             {"name": "Is Active", "value": str(convo.is_active), "inline": False},
             {"name": "GPT Model", "value": str(convo.model.display_name), "inline": False},
             {"name": "Is Voice", "value": f"Yes" if isinstance(convo, chat.DGVoiceChat) else "No", "inline": False},
-            {"name": f"{self.client.application.name} Version", "value": config.VERSION, "inline": False}, # type: ignore Client will be logged in by the time this is executed.
+            {"name": f"{self.client.application.name} Version", "value": developerconfig.VERSION, "inline": False}, # type: ignore Client will be logged in by the time this is executed.
             {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False} # type: ignore Client will be logged in by the time this is executed. 
         )
         for embed in embeds:
@@ -200,7 +200,7 @@ class Communication(commands.Cog):
     async def switch_default(self, interaction: discord.Interaction, name: str):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
-        await interaction.response.send_message(f"Switched default chat to: {convo} (The name will not change or be set to default if the chat does not exist)" if convo else f"You do not have any {config.BOT_NAME} conversations.")
+        await interaction.response.send_message(f"Switched default chat to: {convo} (The name will not change or be set to default if the chat does not exist)" if convo else f"You do not have any {developerconfig.BOT_NAME} conversations.")
 
     @discord.app_commands.command(name="chats", description="List all chats you currently have.")
     async def list_user_chats(self, interaction: discord.Interaction):

@@ -1,9 +1,9 @@
 import sqlite3 as _sqlite3, json as _json
 from typing import Union as _Union, Any as _Any
 
-from . import config
+from .common.developerconfig import DATABASE_FILE
 
-database_file = config.DATABASE_FILE
+database_file = DATABASE_FILE
 
 __all__ = [
     "DGDatabaseSession"

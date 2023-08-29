@@ -4,11 +4,11 @@ from discord.ext.commands import Cog as _Cog
 from joe import DeveloperJoe
 
 from sources import (
-    guildconfig,
-    config
+    guildconfig
 )
 from sources.common import (
     commands_utils,
+    developerconfig
     
 )
 
@@ -40,7 +40,7 @@ class Configuration(_Cog):
                 return await interaction.response.send_message(f"Changed bots timezone to {timezone}.")
             await interaction.response.send_message(f"Unknown timezone: {timezone}")
     
-    @discord.app_commands.command(name="voice", description=f"Configure if users can have spoken {config.BOT_NAME} chats.")
+    @discord.app_commands.command(name="voice", description=f"Configure if users can have spoken {developerconfig.BOT_NAME} chats.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def config_voice(self, interaction: discord.Interaction, allow_voice: bool):
@@ -55,7 +55,7 @@ class Configuration(_Cog):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             
             confirm = await self.client.get_input(interaction, "Are you sure you want to reset this servers configuration? This cannot be undone unless you remember the current configuration.")
-            if confirm.content != config.QUERY_CONFIRMATION:
+            if confirm.content != developerconfig.QUERY_CONFIRMATION:
                 return await interaction.followup.send("Cancelled action.", ephemeral=False)
                 
             guildconfig.reset_guild_config(guild)

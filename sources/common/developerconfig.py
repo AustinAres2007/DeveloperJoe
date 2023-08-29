@@ -1,24 +1,18 @@
 from __future__ import annotations
 
 import pytz as _pytz
-from discord import ChannelType as _ChannelType
-from discord import ActivityType as _ActivityType
+
+from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
-from discord import TextChannel as _TextChannel
-from typing import TYPE_CHECKING
 
-from . import models
-
-if TYPE_CHECKING:
-    from .common.dgtypes import GPTModelType
 """END-USER CONFIGURATION"""
 
 # General
 
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
-STATUS_TYPE = _ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
+STATUS_TYPE = ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
-DEFAULT_GPT_MODEL = models.GPT3Turbo # gpt-4, or gpt-3.5-turbo (GPT4 or GPT3Turbo)
+DEFAULT_GPT_MODEL = "gpt-3.5-turbo" # gpt-4, or gpt-3.5-turbo (GPT4 or GPT3Turbo)
 
 # Voice
 
@@ -43,7 +37,7 @@ CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot
 
 FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 DEBUG = True # Debug is ALWAYS True, if set to false, errors will not be logged to misc/bot_log.log
-VERSION = "1.3.2" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.3.3-L" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
@@ -54,16 +48,15 @@ MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
-REGISTERED_MODELS: dict[str, GPTModelType] = {
-    "gpt-4": models.GPT4,
-    "gpt-3.5-turbo": models.GPT3Turbo
-} # These keys MUST corrolate with the value parameter of MODEL_CHOICES, and the value MUST inherit from models.GPTModel
+
+# BUG:TODO: Need to change configuration
+
 FFMPEG = "ffmpeg" # FFMPEG executable. Defaults to what is found in $PATH. Can be an absolute or relative file path.
 STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This is needed as a placeholder text so that the initial streaming message is not empty. This can be anything as long as it is not empty, and not more than 2000 characters. It usually doesn't appear for more than half a second.
 
 """VERY ADVANCED. IGNORE IF NOT CONCERNED."""
 
-ALLOWED_INTERACTIONS = [_ChannelType.private_thread, _ChannelType.text, _TextChannel, _ChannelType.private_thread] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
+ALLOWED_INTERACTIONS = [ChannelType.private_thread, ChannelType.text, TextChannel, ChannelType.private_thread] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
 ALLOW_TRACEBACK = False # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
 GUILD_CONFIG_KEYS = {
     "speed": VOICE_SPEEDUP_MULTIPLIER,
@@ -73,3 +66,8 @@ GUILD_CONFIG_KEYS = {
     "allow-voice": True
 } # Default values for guild configurations
 DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.
+
+"""Generic Types (Do not edit, no matter what. Unless you foundationally change how this bot work. Which, I think you wouldn't do!)"""
+
+InteractableChannel = TextChannel | Thread
+

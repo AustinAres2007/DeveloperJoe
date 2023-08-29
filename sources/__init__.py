@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 # This directory
+
 from .errors import *
 from .exceptions import *
-from .config import *
 from .modelhandler import *
 from .chat import *
 from .database import *
@@ -16,7 +16,7 @@ from .guildconfig import *
 
 from .common.commands_utils import *
 from .common.decorators import *
-from .common.dgtypes import *
+from .common.developerconfig import *
 
 # Voice
 

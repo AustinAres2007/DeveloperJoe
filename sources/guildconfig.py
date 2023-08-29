@@ -3,11 +3,11 @@ from typing import Union as _Union, Any as _Any
 
 from . import (
     database, 
-    config, 
     exceptions
 )
 from .common import (
-    decorators
+    decorators,
+    developerconfig
 )
 
 __all__ = [
@@ -50,7 +50,7 @@ class DGGuildConfigSession:
     @decorators.has_config
     def edit_guild(self, **keys):
         
-        if set(keys.keys()).issubset(set(config.GUILD_CONFIG_KEYS.keys())):
+        if set(keys.keys()).issubset(set(developerconfig.GUILD_CONFIG_KEYS.keys())):
             data: GuildData = self._manager.get_guild()
             data.config_data.update(keys)
             self._manager.edit_guild(data.config_data)
@@ -79,13 +79,13 @@ class DGGuildConfigSessionManager(database.DGDatabaseSession):
         return bool(self.get_guild(gid if isinstance(gid, int) else self._session.guild.id).guild_id)
     
     def add_guild(self):
-        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self._session.guild.id, self._session.guild.owner_id, _json.dumps(config.GUILD_CONFIG_KEYS),))
+        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self._session.guild.id, self._session.guild.owner_id, _json.dumps(developerconfig.GUILD_CONFIG_KEYS),))
     
     def edit_guild(self, data: dict):
         self._exec_db_command("UPDATE guild_configs SET json=? WHERE gid=?", (_json.dumps(data), self._session.guild.id))
 
 def get_guild_config(guild: _discord.Guild) -> GuildData:
-    """Returns a guilds full config.
+    """Returns a guilds full developerconfig.
 
     Args:
         guild (_discord.Guild): The guild.
@@ -102,10 +102,10 @@ def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: _Any |
         return cs.edit_guild(**actual_data)
 
 def reset_guild_config(guild: _discord.Guild) -> None:
-    return edit_guild_config(guild, **config.GUILD_CONFIG_KEYS)
+    return edit_guild_config(guild, **developerconfig.GUILD_CONFIG_KEYS)
         
     
-def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Union[_Any, None]:
+def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Any:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
     Args:
@@ -119,8 +119,10 @@ def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Union[
         cf = cs.get_guild().config_data
         if attribute in cf:
             return cf[attribute]
-        elif attribute in config.GUILD_CONFIG_KEYS:
-            return config.GUILD_CONFIG_KEYS.get(attribute)
+        elif attribute in developerconfig.GUILD_CONFIG_KEYS:
+            return developerconfig.GUILD_CONFIG_KEYS.get(attribute)
+        else:
+            raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
         
         
         

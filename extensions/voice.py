@@ -5,11 +5,11 @@ from joe import DeveloperJoe
 from sources import (
     guildconfig, 
     chat, 
-    config, 
     exceptions
 )
 from sources.common import (
-    commands_utils
+    commands_utils,
+    developerconfig
 )
 
 class Voice(Cog):
@@ -27,7 +27,7 @@ class Voice(Cog):
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0 or more than 4.0.")
     
-    @discord.app_commands.command(name="shutup", description=f"If you have a {config.BOT_NAME} voice chat and you want it to stop talking a reply, execute this command.")
+    @discord.app_commands.command(name="shutup", description=f"If you have a {developerconfig.BOT_NAME} voice chat and you want it to stop talking a reply, execute this command.")
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)
@@ -35,7 +35,7 @@ class Voice(Cog):
             await default_chat.stop_speaking()
             return await interaction.response.send_message(f"I have shut up.")
         elif default_chat:
-            raise exceptions.ChatIsTextOnly(default_chat)
+            raise exceptions.ChatIsTextOnly(default_chat.model.model)
         else:
             raise exceptions.UserDoesNotHaveChat(str(default_chat))
 
@@ -48,7 +48,7 @@ class Voice(Cog):
             await default_chat.pause_speaking()
             return await interaction.response.send_message(f"I have paused my reply.")
         elif default_chat:
-            raise exceptions.ChatIsTextOnly(default_chat)
+            raise exceptions.ChatIsTextOnly(default_chat.model.model)
         else:
             raise exceptions.UserDoesNotHaveChat(str(default_chat))
     
@@ -61,7 +61,7 @@ class Voice(Cog):
             await default_chat.resume_speaking()
             return await interaction.response.send_message("Speaking...")
         elif default_chat:
-            raise exceptions.ChatIsTextOnly(default_chat)
+            raise exceptions.ChatIsTextOnly(default_chat.model.model)
         else:
             raise exceptions.UserDoesNotHaveChat(str(default_chat))
         

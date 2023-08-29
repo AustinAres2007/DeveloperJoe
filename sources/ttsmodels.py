@@ -46,7 +46,7 @@ class TTSModel:
         Returns:
             _io.BytesIO: The spoken response.
         """
-        ...
+        raise NotImplementedError
 
 class GTTSModel(TTSModel):
     """Google Text-to-Speach model."""

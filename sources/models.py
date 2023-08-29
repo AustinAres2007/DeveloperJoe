@@ -1,15 +1,28 @@
-import tiktoken as _tiktoken
+import tiktoken as _tiktoken, typing
+from .chat import DGChatType
 
 __all__ = [
     "GPTModel",
     "GPT3Turbo",
-    "GPT4"
+    "GPT4",
+    "GPTModelType",
+    "registered_models"
 ]
+
 class GPTModel:
 
     _model: str = ""
     _display_name: str = ""
     _description: str = ""
+    
+    def __init__(self, conversation: DGChatType) -> None:
+        self._conversation = conversation
+
+    @property
+    def conversation(self):
+        return self._conversation
+    
+    # Classmethods
     
     @classmethod
     @property
@@ -44,6 +57,11 @@ class GPTModel:
     def __str__(cls) -> str:
         return cls._model
     
+    # Methods
+    
+    def __askmodel__(self):
+        ...
+        
 class GPT3Turbo(GPTModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 
@@ -65,3 +83,11 @@ class GPT4(GPTModel):
     @classmethod
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
+    
+    
+
+GPTModelType = GPT3Turbo | GPT4
+registered_models = {
+    "gpt-4": GPT4,
+    "gpt-3.5-turbo": GPT3Turbo
+}

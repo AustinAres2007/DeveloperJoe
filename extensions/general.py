@@ -2,12 +2,12 @@ import discord
 
 from discord.ext.commands import Cog as _Cog
 
-from joe import DeveloperJoe
 from sources import (
-    config
+    models
 )
 from sources.common import (
-    commands_utils
+    commands_utils,
+    developerconfig
 )
 
 class General(_Cog):
@@ -17,7 +17,7 @@ class General(_Cog):
 
     @discord.app_commands.command(name="help", description="Lists avalible commands")
     async def help_command(self, interaction: discord.Interaction):    
-        embed = self.client.get_embed(f"{config.BOT_NAME} Commands")
+        embed = self.client.get_embed(f"{developerconfig.BOT_NAME} Commands")
         get_name = lambda cmd: cmd.name
 
         for name, cog in self.client.cogs.items():
@@ -41,7 +41,7 @@ class General(_Cog):
     @discord.app_commands.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
     async def get_models(self, interaction: discord.Interaction):
         embed = self.client.get_embed("GPT Models")
-        [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in config.REGISTERED_MODELS.values()]
+        [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
         await interaction.response.send_message(embed=embed)
         
 async def setup(client):

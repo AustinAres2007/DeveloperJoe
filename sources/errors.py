@@ -31,6 +31,7 @@ class ConversationErrors:
     CANNOT_STOP_IN_CHANNEL = "You cannot do /stop in the thread created by your conversation ({})"
     CHANNEL_DOESNT_EXIST = 'Channel: "{}" pertaining to "{}" from conversation "{}" belonging to user "{}" no longer exists.'
     TEXT_ONLY_CONVO_TYPE = "You only have a text chat."
+    
 class VoiceConversationErrors:
     """Errors pertaining to spoken conversation."""
     

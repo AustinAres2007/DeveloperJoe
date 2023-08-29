@@ -3,11 +3,11 @@ from discord.ext.commands import Cog as _Cog
 
 from joe import DeveloperJoe
 from sources import (
-    config, 
     modelhandler
 )
 from sources.common import (
-    commands_utils
+    commands_utils,
+    developerconfig
 )
 
 class Administration(_Cog):
@@ -25,7 +25,7 @@ class Administration(_Cog):
 
     @_discord.app_commands.command(name="lock", description="Locks a select GPT Model behind a role or permission.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.choices(gpt_model=config.MODEL_CHOICES)
+    @_discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
     @_discord.app_commands.describe(gpt_model="The GPT model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def lock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
@@ -36,7 +36,7 @@ class Administration(_Cog):
 
     @_discord.app_commands.command(name="unlock", description="Unlocks a previously locked GPT Model.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.choices(gpt_model=config.MODEL_CHOICES)
+    @_discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
     @_discord.app_commands.describe(gpt_model="The GPT model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
     @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def unlock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):

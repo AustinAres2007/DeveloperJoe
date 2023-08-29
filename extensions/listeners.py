@@ -4,8 +4,8 @@ from discord.ext import commands
 from typing import Union
 
 from joe import DeveloperJoe
+
 from sources import (
-    config,
     chat,
     exceptions,
     modelhandler,
@@ -13,7 +13,7 @@ from sources import (
 )
 from sources.common import (
     commands_utils,
-    dgtypes
+    developerconfig
 )
 
 class Listeners(commands.Cog):
@@ -26,11 +26,11 @@ class Listeners(commands.Cog):
         convo = None
         try:
             # TODO: Fix > 2000 characters bug non-streaming
-            if self.client.application and message.author.id != self.client.application.id and message.content != config.QUERY_CONFIRMATION:
+            if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
-                channel: dgtypes.InteractableChannel = commands_utils.assure_class_is_value(message.channel, discord.Thread)
+                channel: developerconfig.InteractableChannel = commands_utils.assure_class_is_value(message.channel, discord.Thread)
                 
-                if isinstance(convo := self.client.get_default_conversation(member), dgtypes.DGChatType) and message.guild:
+                if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if self.client.get_user_has_permission(member, convo.model):
 
                         thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
@@ -44,14 +44,14 @@ class Listeners(commands.Cog):
                                 await convo.ask(content, channel)
                             
                         elif has_private_thread and convo.is_processing == True:
-                            raise exceptions.DGException(f"{config.BOT_NAME} is still processing your last request.")
+                            raise exceptions.DGException(f"{developerconfig.BOT_NAME} is still processing your last request.")
                     else:
-                        raise exceptions.ModelIsLockedError(convo.model)
+                        raise exceptions.ModelIsLockedError(convo.model.model)
 
         except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
             await message.channel.send(error.message)
         except discord.Forbidden:
-            raise exceptions.ChatChannelDoesntExist(message, convo) 
+            raise exceptions.ChatChannelDoesntExist(message, str(convo)) 
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
