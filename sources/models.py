@@ -77,6 +77,7 @@ class GPT3Turbo(GPTModel):
             "messages": list(context._context)
         }
         ...
+        
 class GPT4(GPTModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
 

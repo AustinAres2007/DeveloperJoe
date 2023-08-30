@@ -36,8 +36,9 @@ class ConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
         """Class that should contain a users conversation history / context with a GPT Model."""
-        self._context = []==-
+        self._context = []
     
+    def add_message
         
 class DGChats:
     def __init__(self, 
