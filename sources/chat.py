@@ -29,16 +29,38 @@ if TYPE_CHECKING:
 from .voice import voice_client, reader
 
 __all__ = [
+    "GPTConversationContext",
     "DGTextChat",
     "DGVoiceChat"
 ]
-class ConversationContext:
+
+class GPTConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
         """Class that should contain a users conversation history / context with a GPT Model."""
         self._context = []
     
-    def add_message
+    @property
+    def context(self) -> list:
+        return self._context
+    
+    def add_user_query(self, query: str, user_type: str="user") -> list:
+        """Adds a users question (query) to the conversation context.
+
+        Args:
+            query (str): The query.
+            user_type (str, optional): The role the user is playing to the AI. Defaults to "user".
+
+        Returns:
+            list: The updated context.
+        """
+        self._context.append({"content": query, "role": user_type})
+        return self._context
+    
+    def add_ai_reply(self):
+        ...
+        
+        
         
 class DGChats:
     def __init__(self, 
@@ -87,7 +109,7 @@ class DGChats:
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.chat_history, self.readable_history = [], []
         self.header = f'{self.display_name} | {self.model.display_name}'
-        self.context = ConversationContext()
+        self.context = GPTConversationContext()
         # Voice attributes
         
         self._voice = voice
@@ -165,32 +187,11 @@ class DGChats:
             # Put necessary variables here (Doesn't matter weather streaming or not)
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
-            payload = {
-                        "model": self.model.model,
-                        "messages": self.chat_history    
-            }
-            self.model.__askmodel__(kwargs["content"], self.context)
-            
-            _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=developerconfig.GPT_REQUEST_TIMEOUT, payload=payload)
-            
-            print(_reply.json())
             try:
-                reply = _reply.json()["choices"][0]
-                usage = _reply.json()["usage"]
-
-                if isinstance(reply, dict):
-                    actual_reply = reply["message"]  
-                    replied_content = actual_reply["content"]
-
-                    self.chat_history.append(dict(actual_reply))
-                    r_history.extend([kwargs, dict(actual_reply)])
-                    self.readable_history.append(r_history)
-                else:
-                    raise exceptions.GPTReplyError(reply, type(reply))
+                await self.model.__askmodel__(kwargs["content"], self.context, self.oapi)
             except KeyError:
                 print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
                 await self.bot.close()
-            
             
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)

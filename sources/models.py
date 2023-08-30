@@ -1,5 +1,8 @@
-import tiktoken as _tiktoken, typing
-from .chat import DGChatType, ConversationContext
+import tiktoken, typing, openai_async
+
+from .chat import GPTConversationContext
+from .common.developerconfig import GPT_REQUEST_TIMEOUT
+from .exceptions import GPTReplyError
 
 __all__ = [
     "GPTModel",
@@ -15,7 +18,7 @@ class AIReply:
         self._tokens = _tokens
         self._error_code = _error_code
         self._error = _error
-        
+    
 class GPTModel:
 
     _model: str = ""
@@ -30,9 +33,9 @@ class GPTModel:
     
     @classmethod
     @property
-    def tokeniser(cls) -> _tiktoken.Encoding:
+    def tokeniser(cls) -> tiktoken.Encoding:
         """The encoding used to calculate the amount of tokens used."""
-        return _tiktoken.encoding_for_model(cls.model)
+        return tiktoken.encoding_for_model(cls.model)
     
     @classmethod
     @property
@@ -55,7 +58,7 @@ class GPTModel:
         return cls._model
     
     @classmethod
-    def __askmodel__(cls, query: str, context: ConversationContext, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, **kwargs) -> AIReply:
         raise NotImplementedError
     
         
@@ -71,12 +74,33 @@ class GPT3Turbo(GPTModel):
         return cls.model == __value.model
     
     @classmethod
-    def __askmodel__(cls, query: str, context: ConversationContext, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", **kwargs) -> AIReply:
+        
+        context.add_user_query(query, role)
+        
         payload = {
             "model": cls.model,
-            "messages": list(context._context)
+            "messages": context.context
         }
-        ...
+        _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+            
+        print(_reply.json())
+
+        reply = _reply.json()["choices"][0]
+        usage = _reply.json()["usage"]
+
+        if isinstance(reply, dict):
+            actual_reply = reply["message"]  
+            replied_content = actual_reply["content"]
+
+            self.chat_history.append(dict(actual_reply))
+            r_history.extend([kwargs, dict(actual_reply)])
+            self.readable_history.append(r_history)
+ 
+            return AIReply(replied_content, usage["total_tokens"], 0, "No error")
+        else:
+            raise GPTReplyError(reply, type(reply))
+            
         
 class GPT4(GPTModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
