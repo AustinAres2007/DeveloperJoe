@@ -9,6 +9,13 @@ __all__ = [
     "registered_models"
 ]
 
+class AIReply:
+    def __init__(self, _reply: str, _tokens: int, _error_code: int, _error: str) -> None:
+        self._reply = _reply
+        self._tokens = _tokens
+        self._error_code = _error_code
+        self._error = _error
+        
 class GPTModel:
 
     _model: str = ""
@@ -41,7 +48,6 @@ class GPTModel:
     
     @classmethod
     def __repr__(cls):
-        # repr and str don't work because of @classmethod.
         return f"<{cls.__name__} display_name={cls.display_name}, model={cls.model}>"
     
     @classmethod
@@ -49,7 +55,7 @@ class GPTModel:
         return cls._model
     
     @classmethod
-    def __askmodel__(cls, context: ConversationContext) -> str:
+    def __askmodel__(cls, query: str, context: ConversationContext, **kwargs) -> AIReply:
         raise NotImplementedError
     
         
@@ -64,6 +70,13 @@ class GPT3Turbo(GPTModel):
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
     
+    @classmethod
+    def __askmodel__(cls, query: str, context: ConversationContext, **kwargs) -> AIReply:
+        payload = {
+            "model": cls.model,
+            "messages": list(context._context)
+        }
+        ...
 class GPT4(GPTModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
 

@@ -1,6 +1,7 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 from __future__ import annotations
+from collections.abc import Iterator
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
 from enum import Enum as _Enum
@@ -31,9 +32,12 @@ __all__ = [
     "DGTextChat",
     "DGVoiceChat"
 ]
-class ConversationContext(list):
+class ConversationContext:
+    """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
-        super().__init__()
+        """Class that should contain a users conversation history / context with a GPT Model."""
+        self._context = []==-
+    
         
 class DGChats:
     def __init__(self, 
@@ -82,7 +86,7 @@ class DGChats:
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.chat_history, self.readable_history = [], []
         self.header = f'{self.display_name} | {self.model.display_name}'
-        
+        self.context = ConversationContext()
         # Voice attributes
         
         self._voice = voice
@@ -158,13 +162,14 @@ class DGChats:
         if query_type == "query":
             
             # Put necessary variables here (Doesn't matter weather streaming or not)
-            self.chat_history.append(kwargs)
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             payload = {
                         "model": self.model.model,
                         "messages": self.chat_history    
             }
+            self.model.__askmodel__(kwargs["content"], self.context)
+            
             _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=developerconfig.GPT_REQUEST_TIMEOUT, payload=payload)
             
             print(_reply.json())
