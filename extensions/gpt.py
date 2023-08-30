@@ -34,11 +34,12 @@ class Communication(commands.Cog):
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
     )
     @discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, gpt_model: Union[str, None]=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, gpt_model: str=developerconfig.DEFAULT_GPT_MODEL, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
-        actual_model = commands_utils.get_modeltype_from_name(str(gpt_model if isinstance(gpt_model, str) else developerconfig.DEFAULT_GPT_MODEL))
+        
+        print("Pass")
         
         async def command():
         
@@ -64,7 +65,7 @@ class Communication(commands.Cog):
                     await chat_thread.add_user(member)
                     await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
                     
-            chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, stream_conversation, name, actual_model, chat_thread, is_private)
+            chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, stream_conversation, name, gpt_model, chat_thread, is_private)
             
             if speak_reply == False:
                 convo = chat.DGTextChat(*chat_args)
@@ -83,9 +84,9 @@ class Communication(commands.Cog):
             self.client.add_conversation(member, name, convo)
             self.client.set_default_conversation(member, name)
     
-        if self.client.get_user_has_permission(member, actual_model):
+        if self.client.get_user_has_permission(member, gpt_model):
             return await command()
-        raise exceptions.ModelIsLockedError(actual_model.model)
+        raise exceptions.ModelIsLockedError(gpt_model)
         
     @discord.app_commands.command(name="ask", description=f"Ask {developerconfig.BOT_NAME} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {developerconfig.BOT_NAME}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")

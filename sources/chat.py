@@ -31,6 +31,10 @@ __all__ = [
     "DGTextChat",
     "DGVoiceChat"
 ]
+class ConversationContext(list):
+    def __init__(self) -> None:
+        super().__init__()
+        
 class DGChats:
     def __init__(self, 
                 bot_instance: DeveloperJoe,
@@ -71,6 +75,7 @@ class DGChats:
         self.display_name = display_name
         self.stream = stream
 
+        print(model)
         self.model = model if isinstance(model, models.GPTModelType) else commands_utils.get_modeltype_from_name(model)
         self.tokens = 0
 
@@ -154,7 +159,6 @@ class DGChats:
             
             # Put necessary variables here (Doesn't matter weather streaming or not)
             self.chat_history.append(kwargs)
-
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             payload = {
@@ -163,6 +167,7 @@ class DGChats:
             }
             _reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=developerconfig.GPT_REQUEST_TIMEOUT, payload=payload)
             
+            print(_reply.json())
             try:
                 reply = _reply.json()["choices"][0]
                 usage = _reply.json()["usage"]

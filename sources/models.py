@@ -1,5 +1,5 @@
 import tiktoken as _tiktoken, typing
-from .chat import DGChatType
+from .chat import DGChatType, ConversationContext
 
 __all__ = [
     "GPTModel",
@@ -14,15 +14,6 @@ class GPTModel:
     _model: str = ""
     _display_name: str = ""
     _description: str = ""
-    
-    def __init__(self, conversation: DGChatType) -> None:
-        self._conversation = conversation
-
-    @property
-    def conversation(self):
-        return self._conversation
-    
-    # Classmethods
     
     @classmethod
     @property
@@ -57,10 +48,10 @@ class GPTModel:
     def __str__(cls) -> str:
         return cls._model
     
-    # Methods
+    @classmethod
+    def __askmodel__(cls, context: ConversationContext) -> str:
+        raise NotImplementedError
     
-    def __askmodel__(self):
-        ...
         
 class GPT3Turbo(GPTModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
@@ -84,9 +75,7 @@ class GPT4(GPTModel):
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
     
-    
-
-GPTModelType = GPT3Turbo | GPT4
+GPTModelType = typing.Union[GPT3Turbo, GPT4]
 registered_models = {
     "gpt-4": GPT4,
     "gpt-3.5-turbo": GPT3Turbo

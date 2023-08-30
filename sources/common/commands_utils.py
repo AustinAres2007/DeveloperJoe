@@ -59,7 +59,10 @@ def get_modeltype_from_name(name: str) -> models.GPTModelType:
         """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
         if name in list(models.registered_models):
             return models.registered_models[name]
-        raise exceptions.ModelNotExist(None, name)
+        raise exceptions.DGException(f"Inconfigured GPT model setup. This is a fatal coding error and should be sorted as such. \n\n**Debug Information**\n\nFailed Model: {name}\nModel Map: {models.registered_models}\nName Parameter Type: {type(name)}")
+
+def modeltype_is_in_models(name: str):
+    return name in list(models.registered_models)
 
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
