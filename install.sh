@@ -21,7 +21,7 @@ then
     MINOR=${VERSION_ARRAY[1]}
     PATCH=${VERSION_ARRAY[2]}
 
-    if [ "$MAJOR" -lt 3 ] || ([ "$MAJOR" -eq 3 ] && [ "$MINOR" -lt 9 ]); then
+    if [ "$MAJOR" -lt 3 ] || ([ "$MAJOR" -eq 3 ] && [ "$MINOR" -lt 11 ]); then
         echo "You cannot run the install script. Python version is too old. (Python 3.9 and above, you have $VERSION)"
         exit 1
     else
