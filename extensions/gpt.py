@@ -38,7 +38,7 @@ class Communication(commands.Cog):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
-        
+        actual_model = commands_utils.get_modeltype_from_name(gpt_model)
         print("Pass")
         
         async def command():
@@ -84,7 +84,7 @@ class Communication(commands.Cog):
             self.client.add_conversation(member, name, convo)
             self.client.set_default_conversation(member, name)
     
-        if self.client.get_user_has_permission(member, gpt_model):
+        if self.client.get_user_has_permission(member, actual_model):
             return await command()
         raise exceptions.ModelIsLockedError(gpt_model)
         

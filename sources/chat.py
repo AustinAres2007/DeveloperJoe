@@ -38,29 +38,29 @@ class GPTConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
         """Class that should contain a users conversation history / context with a GPT Model."""
-        self._context = []
-    
+        self._display_context, self._context = [], []
+        
     @property
     def context(self) -> list:
-        return self._context
+        return self._context   
     
-    def add_user_query(self, query: str, user_type: str="user") -> list:
-        """Adds a users question (query) to the conversation context.
-
-        Args:
-            query (str): The query.
-            user_type (str, optional): The role the user is playing to the AI. Defaults to "user".
-
-        Returns:
-            list: The updated context.
-        """
-        self._context.append({"content": query, "role": user_type})
+    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+        
+        data_query = {"role": user_type, "content": query}
+        data_reply = {"role": "assistent", "content": answer}
+        
+        self._context.extend([data_query, data_reply])
+        self._display_context.append([data_query, data_reply])
+        
         return self._context
-    
-    def add_ai_reply(self):
-        ...
         
+    def get_temporary_context(self, query, user_type: str="user") -> list:
+
+        data = {"role": user_type, "content": query}
+        _temp_context = self._context
+        _temp_context.append(data)
         
+        return _temp_context
         
 class DGChats:
     def __init__(self, 
@@ -135,14 +135,8 @@ class DGChats:
     def private(self, is_p: bool):
         self._private = is_p
     
-    def __manage_history__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
-        self.is_processing = False
-
-        if not save_message and query_type == "query":
-            self.chat_history = self.chat_history[:len(self.chat_history)-2]
-            self.readable_history.pop()
-
-        if is_gpt_reply and save_message and query_type == "query":
+    def __manage_tokens__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
+        if save_message and query_type == "query":
             self.tokens += tokens
     
     async def __get_stream_parsed_data__(self, **kwargs) -> _AsyncGenerator:
@@ -188,7 +182,7 @@ class DGChats:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             try:
-                await self.model.__askmodel__(kwargs["content"], self.context, self.oapi)
+                await self.model.__askmodel__(kwargs["content"], self.context, save_message, self.oapi)
             except KeyError:
                 print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
                 await self.bot.close()
