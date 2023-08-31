@@ -50,7 +50,7 @@ class GPTConversationContext:
         data_reply = {"role": "assistent", "content": answer}
         
         self._context.extend([data_query, data_reply])
-        self._display_context.append([data_query, data_reply])
+        self._display_context.append([data_query, data_reply]) # Add as whole
         
         return self._context
         
