@@ -65,6 +65,7 @@ except FileNotFoundError:
 
 # Main Bot Class    
 
+print(sys.platform)
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
