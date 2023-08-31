@@ -318,8 +318,8 @@ class DeveloperJoe(commands.Bot):
     @property
     def is_voice_compatible(self) -> bool:
         self.__ffmpeg__ = find_executable(developerconfig.FFMPEG)
-        self.__ffprobe__ = find_executable(developerconfig.FFMPEG)
-        return bool(find_library('opus') and self.__ffmpeg__ and self.__ffprobe__)
+        self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
+        return bool(find_library(developerconfig.LIBOPUS) and self.__ffmpeg__ and self.__ffprobe__)
     
     async def on_ready(self):
         if self.application:
