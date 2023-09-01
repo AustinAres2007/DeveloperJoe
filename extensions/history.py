@@ -49,9 +49,9 @@ class History(commands.Cog):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
 
-
-        formatted_history_string = self.format(convo.readable_history, convo.user.display_name) if convo.readable_history else errors.HistoryErrors.HISTORY_EMPTY
-        print(formatted_history_string, convo.readable_history)
+        print(convo.context.context, "\n\n\n", convo.context._display_context)
+        formatted_history_string = self.format(convo.context._display_context, convo.user.display_name) if convo.context._display_context else errors.HistoryErrors.HISTORY_EMPTY
+        print(formatted_history_string, convo.readable_history, convo.chat_history)
         file_like = io.BytesIO(formatted_history_string.encode())
         file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 

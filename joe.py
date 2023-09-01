@@ -15,6 +15,7 @@ try:
     import discord, logging, asyncio, os, datetime, traceback, aiohttp
     from discord.ext import commands
     from typing import Union
+    from warnings import warn
     
     from distutils.spawn import find_executable
     from ctypes.util import find_library
@@ -65,7 +66,9 @@ except FileNotFoundError:
 
 # Main Bot Class    
 
-print(sys.platform)
+class OpusWarning(Warning):
+    ...
+    
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
@@ -318,9 +321,13 @@ class DeveloperJoe(commands.Bot):
     
     @property
     def is_voice_compatible(self) -> bool:
-        self.__ffmpeg__ = find_executable(developerconfig.FFMPEG)
-        self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
-        return bool(find_library(developerconfig.LIBOPUS) and self.__ffmpeg__ and self.__ffprobe__)
+        try:
+            self.__ffmpeg__ = find_executable(developerconfig.FFMPEG)
+            self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
+            discord.opus.load_opus(developerconfig.LIBOPUS)
+        except OSError:
+            warn(f"WARNING: Opus library not found. Voice will NOT work. (Library specified: {developerconfig.LIBOPUS})", OpusWarning)
+        return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
     
     async def on_ready(self):
         if self.application:
@@ -385,8 +392,6 @@ class DeveloperJoe(commands.Bot):
         await self.tree.sync()
         return await super().setup_hook()
 
-from discord.ext.commands import Cog
-        
 # Driver Code
 
 async def _run_bot():

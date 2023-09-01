@@ -47,7 +47,7 @@ class GPTConversationContext:
     def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
         
         data_query = {"role": user_type, "content": query}
-        data_reply = {"role": "assistent", "content": answer}
+        data_reply = {"role": "assistant", "content": answer}
         
         self._context.extend([data_query, data_reply])
         self._display_context.append([data_query, data_reply]) # Add as whole
@@ -57,7 +57,7 @@ class GPTConversationContext:
     def get_temporary_context(self, query, user_type: str="user") -> list:
 
         data = {"role": user_type, "content": query}
-        _temp_context = self._context
+        _temp_context = self._context.copy()
         _temp_context.append(data)
         
         return _temp_context
@@ -135,7 +135,7 @@ class DGChats:
     def private(self, is_p: bool):
         self._private = is_p
     
-    def __manage_tokens__(self, is_gpt_reply: _Any, query_type: str, save_message: bool, tokens: int):
+    def __manage_tokens__(self, query_type: str, save_message: bool, tokens: int):
         if save_message and query_type == "query":
             self.tokens += tokens
     
@@ -182,7 +182,10 @@ class DGChats:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             try:
-                await self.model.__askmodel__(kwargs["content"], self.context, save_message, self.oapi)
+                print(self.context)
+                ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, self.oapi, "user", save_message)
+                replied_content = ai_reply._reply
+                print(self.context.context)
             except KeyError:
                 print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
                 await self.bot.close()
@@ -204,8 +207,8 @@ class DGChats:
         else:
             error = f"Generic ({query_type})"
 
-        self.__manage_history__(reply, query_type, save_message, usage["total_tokens"] if reply and usage else 0)
-        return replied_content if not error or not str(error).strip() else f"Error: {str(error)}"
+        self.__manage_tokens__(query_type, save_message, ai_reply._tokens if reply and usage else 0)
+        return replied_content
 
     async def __stream_send_query__(self, save_message: bool=True, **kwargs):
         total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
@@ -431,7 +434,7 @@ class DGTextChat(DGChats):
         Returns:
             str: The welcome message.
         """
-        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction to yourself, what you can do and limitations. This is for YOU. Not an end user."))
+        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction (Under 1800 characters) of yourself (ChatGPT) what you can do and limitations."))
 
     def clear(self) -> None:
         """Clears the internal chat history."""

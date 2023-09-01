@@ -53,7 +53,7 @@ MODEL_CHOICES: list[_Choice] = [
 
 FFMPEG = "ffmpeg" # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
 FFPROBE = "ffprobe" # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
-LIBOPUS = "/opt/homebrew/lib/libopus"
+LIBOPUS = "/opt/homebrew/lib/libopus.dylib"
 
 STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This is needed as a placeholder text so that the initial streaming message is not empty. This can be anything as long as it is not empty, and not more than 2000 characters. It usually doesn't appear for more than half a second.
 

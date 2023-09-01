@@ -58,7 +58,7 @@ class GPTModel:
         return cls._model
     
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
         raise NotImplementedError
     
         
@@ -74,7 +74,7 @@ class GPT3Turbo(GPTModel):
         return cls.model == __value.model
     
     @classmethod
-    async def __askmodel__(cls, context: GPTConversationContext, api_key: str, query: str, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
         
         temp_context = context.get_temporary_context(query, role)
         
@@ -97,6 +97,7 @@ class GPT3Turbo(GPTModel):
             r_history.extend([kwargs, dict(actual_reply)])
             self.readable_history.append(r_history)
             """
+            print(save_message)
             if save_message:
                 context.add_conversation_entry(query, actual_reply["content"], "user")
             
