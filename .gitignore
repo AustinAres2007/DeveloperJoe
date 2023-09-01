@@ -4,6 +4,9 @@ bin/
 lib/
 lib64
 share/
+Scripts/
+Lib/
+
 *.cfg
 *.pyc
 *.log
