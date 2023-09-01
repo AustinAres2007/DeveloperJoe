@@ -182,10 +182,8 @@ class DGChats:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             try:
-                print(self.context)
                 ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, self.oapi, "user", save_message)
                 replied_content = ai_reply._reply
-                print(self.context.context)
             except KeyError:
                 print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
                 await self.bot.close()

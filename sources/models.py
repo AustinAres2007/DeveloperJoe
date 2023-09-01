@@ -1,4 +1,4 @@
-import tiktoken, typing, openai_async
+import tiktoken, typing, openai_async, json, tiktoken
 
 from .chat import GPTConversationContext
 from .common.developerconfig import GPT_REQUEST_TIMEOUT
@@ -61,6 +61,9 @@ class GPTModel:
     async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
         raise NotImplementedError
     
+    @classmethod
+    async def __askmodelstream__(cls):
+        raise NotImplementedError
         
 class GPT3Turbo(GPTModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
@@ -75,6 +78,8 @@ class GPT3Turbo(GPTModel):
     
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
+        
+        # TODO: Add error handling (Check for error key and add it to AIReply)
         
         temp_context = context.get_temporary_context(query, role)
         
@@ -104,7 +109,68 @@ class GPT3Turbo(GPTModel):
             return AIReply(replied_content, usage["total_tokens"], 0, "No error")
         else:
             raise GPTReplyError(reply, type(reply))
-            
+    
+    @classmethod
+    async def __askmodelstream__(cls):
+        async def __get_stream_parsed_data__(self, **kwargs) -> typing.AsyncGenerator:
+            payload = {"model": self.model.model, "messages": self.chat_history, "stream": True} | kwargs
+            reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+
+            # Setup the list of responses
+            responses: list[str] = [""]
+            last_char = 0
+
+            # For every character byte in byte stream
+            for char in reply.read():
+                # Check if current character and last char are line feed characters (Represents new chunk)
+                if char == 10 and last_char == 10:
+                    
+                    # Check if chunk is the right format, or doesn't equal anything
+                    if responses[-1].strip("\n") in ["data: [DONE]", ""]:
+                        responses.pop()
+                    else:
+                        responses[-1] = json.loads(responses[-1][6:]) # Filter out the "data: " part, and translate to a dictionary
+
+                        yield responses[-1] # Yield finished chunk
+                        responses.append("") # Append start of a new chunk
+                else:
+                    # Append part of new chunk to string
+                    responses[-1] += chr(char)
+
+                last_char = char
+        
+        total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
+        r_history = []
+        replied_content = ""
+
+        add_history, self.is_processing = True, True
+        self.chat_history.append(kwargs)
+        generator_reply = self.__get_stream_parsed_data__()
+
+        async for chunk in generator_reply:
+            stop_reason = chunk["choices"][0]["finish_reason"]
+            if stop_reason == None:
+                c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
+                replied_content += c_token
+                total_tokens += len(self.model.tokeniser.encode(c_token))
+
+                yield c_token
+            elif stop_reason == "length":
+                add_history = self.is_active = False
+                raise exceptions.GPTReachedLimit()
+
+            elif stop_reason == "content_filter":
+                add_history = False
+                raise exceptions.GPTContentFilter(kwargs["content"])
+
+        if add_history == True:
+            replicate_reply = {"role": "assistant", "content": replied_content}
+            self.chat_history.append(replicate_reply)
+            r_history.extend([kwargs, replicate_reply])
+
+            self.readable_history.append(r_history)
+
+            self.__manage_history__(generator_reply, "query", save_message, total_tokens)
         
 class GPT4(GPTModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
