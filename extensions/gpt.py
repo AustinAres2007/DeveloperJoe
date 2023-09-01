@@ -79,7 +79,10 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
-            await interaction.followup.send(f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*", ephemeral=False)
+            
+            welcome = f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
+            print(len(welcome))
+            await interaction.followup.send(welcome, ephemeral=False)
 
             self.client.add_conversation(member, name, convo)
             self.client.set_default_conversation(member, name)
@@ -181,7 +184,7 @@ class Communication(commands.Cog):
         embeds = (
             {"name": "Started At", "value": str(convo.time), "inline": False},
             {"name": "Used Tokens", "value": str(convo.tokens), "inline": False},
-            {"name": "Chat Length", "value": str(len(convo.chat_history)), "inline": False},
+            {"name": "Chat Length", "value": str(len(convo.context.context)), "inline": False},
             {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
             {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
             {"name": "Is Active", "value": str(convo.is_active), "inline": False},

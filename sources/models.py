@@ -2,8 +2,7 @@ import tiktoken, typing, openai_async, json, tiktoken
 
 from .chat import GPTConversationContext
 from .common.developerconfig import GPT_REQUEST_TIMEOUT
-from .exceptions import GPTReplyError
-
+from .exceptions import GPTReplyError, GPTContentFilter, GPTReachedLimit
 __all__ = [
     "GPTModel",
     "GPT3Turbo",
@@ -62,7 +61,7 @@ class GPTModel:
         raise NotImplementedError
     
     @classmethod
-    async def __askmodelstream__(cls):
+    def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, **kwargs) -> typing.AsyncGenerator: 
         raise NotImplementedError
         
 class GPT3Turbo(GPTModel):
@@ -97,11 +96,7 @@ class GPT3Turbo(GPTModel):
         if isinstance(reply, dict):
             actual_reply = reply["message"]  
             replied_content = actual_reply["content"]
-            """
-            self.chat_history.append(dict(actual_reply))
-            r_history.extend([kwargs, dict(actual_reply)])
-            self.readable_history.append(r_history)
-            """
+
             print(save_message)
             if save_message:
                 context.add_conversation_entry(query, actual_reply["content"], "user")
@@ -111,10 +106,10 @@ class GPT3Turbo(GPTModel):
             raise GPTReplyError(reply, type(reply))
     
     @classmethod
-    async def __askmodelstream__(cls):
-        async def __get_stream_parsed_data__(self, **kwargs) -> typing.AsyncGenerator:
-            payload = {"model": self.model.model, "messages": self.chat_history, "stream": True} | kwargs
-            reply = await openai_async.chat_complete(api_key=self.oapi, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+    async def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, **kwargs) -> typing.AsyncGenerator:
+        async def __get_stream_parsed_data__(_history, **kwargs) -> typing.AsyncGenerator:
+            payload = {"model": cls.model, "messages": _history, "stream": True} | kwargs
+            reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
 
             # Setup the list of responses
             responses: list[str] = [""]
@@ -139,38 +134,35 @@ class GPT3Turbo(GPTModel):
 
                 last_char = char
         
-        total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
-        r_history = []
+        total_tokens = len(cls.tokeniser.encode(query))
         replied_content = ""
 
-        add_history, self.is_processing = True, True
-        self.chat_history.append(kwargs)
-        generator_reply = self.__get_stream_parsed_data__()
+        add_history = True
+        history = context.get_temporary_context(query)
 
+        generator_reply = __get_stream_parsed_data__(history)
+        
+        yield (replied_content, total_tokens)
+        
         async for chunk in generator_reply:
             stop_reason = chunk["choices"][0]["finish_reason"]
             if stop_reason == None:
                 c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
                 replied_content += c_token
-                total_tokens += len(self.model.tokeniser.encode(c_token))
+                total_tokens += len(cls.tokeniser.encode(c_token))
 
-                yield c_token
+                yield (c_token, total_tokens)
             elif stop_reason == "length":
-                add_history = self.is_active = False
-                raise exceptions.GPTReachedLimit()
+                add_history = False
+                raise GPTReachedLimit()
 
             elif stop_reason == "content_filter":
                 add_history = False
-                raise exceptions.GPTContentFilter(kwargs["content"])
+                raise GPTContentFilter(kwargs["content"])
 
         if add_history == True:
-            replicate_reply = {"role": "assistant", "content": replied_content}
-            self.chat_history.append(replicate_reply)
-            r_history.extend([kwargs, replicate_reply])
-
-            self.readable_history.append(r_history)
-
-            self.__manage_history__(generator_reply, "query", save_message, total_tokens)
+            context.add_conversation_entry(query, replied_content, "user")
+            
         
 class GPT4(GPTModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""

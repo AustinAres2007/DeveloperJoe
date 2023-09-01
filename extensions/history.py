@@ -19,7 +19,7 @@ class History(commands.Cog):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
-    def format(self, data: list, username: str) -> str:
+    def format(self, data: list, username: str, model: str) -> str:
         final = ""
         
         for entry in data:
@@ -50,8 +50,8 @@ class History(commands.Cog):
         convo = self.client.manage_defaults(member, name)
 
         print(convo.context.context, "\n\n\n", convo.context._display_context)
-        formatted_history_string = self.format(convo.context._display_context, convo.user.display_name) if convo.context._display_context else errors.HistoryErrors.HISTORY_EMPTY
-        print(formatted_history_string, convo.readable_history, convo.chat_history)
+        formatted_history_string = self.format(convo.context._display_context, convo.user.display_name, convo.model.display_name) if convo.context._display_context else errors.HistoryErrors.HISTORY_EMPTY
+        #print(formatted_history_string, convo.readable_history, convo.chat_history)
         file_like = io.BytesIO(formatted_history_string.encode())
         file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
@@ -68,7 +68,7 @@ class History(commands.Cog):
                     if history_chat.private == False or interaction.user.id == history_chat.user:
                         list_history: Any = history_chat.data
                         history_user = self.client.get_user(history_chat.user)
-                        formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User") if list_history else errors.HistoryErrors.HISTORY_EMPTY
+                        formatted = self.format(data=list_history, username=history_user.display_name if history_user else "Deleted User", model="AI") if list_history else errors.HistoryErrors.HISTORY_EMPTY
 
                         history_file = io.BytesIO(formatted.encode())
                         history_file.name = f"{history_chat.name}-transcript.txt"

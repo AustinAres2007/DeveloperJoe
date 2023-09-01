@@ -53,7 +53,12 @@ class GPTConversationContext:
         self._display_context.append([data_query, data_reply]) # Add as whole
         
         return self._context
-        
+    
+    def add_image_entry(self, prompt: str, image_url: str) -> list:
+        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
+        self._display_context.extend(interaction_data)
+        return self._display_context
+    
     def get_temporary_context(self, query, user_type: str="user") -> list:
 
         data = {"role": user_type, "content": query}
@@ -107,7 +112,6 @@ class DGChats:
         self.tokens = 0
 
         self._private, self._is_active, self.is_processing = is_private, True, False
-        self.chat_history, self.readable_history = [], []
         self.header = f'{self.display_name} | {self.model.display_name}'
         self.context = GPTConversationContext()
         # Voice attributes
@@ -138,44 +142,13 @@ class DGChats:
     def __manage_tokens__(self, query_type: str, save_message: bool, tokens: int):
         if save_message and query_type == "query":
             self.tokens += tokens
-    
-    async def __get_stream_parsed_data__(self, **kwargs) -> _AsyncGenerator:
-        payload = {"model": self.model.model, "messages": self.chat_history, "stream": True} | kwargs
-        reply = await _openai_async.chat_complete(api_key=self.oapi, timeout=developerconfig.GPT_REQUEST_TIMEOUT, payload=payload)
-
-        # Setup the list of responses
-        responses: list[str] = [""]
-        last_char = 0
-
-        # For every character byte in byte stream
-        for char in reply.read():
-            # Check if current character and last char are line feed characters (Represents new chunk)
-            if char == 10 and last_char == 10:
-                
-                # Check if chunk is the right format, or doesn't equal anything
-                if responses[-1].strip("\n") in ["data: [DONE]", ""]:
-                    responses.pop()
-                else:
-                    responses[-1] = _json.loads(responses[-1][6:]) # Filter out the "data: " part, and translate to a dictionary
-
-                    yield responses[-1] # Yield finished chunk
-                    responses.append("") # Append start of a new chunk
-            else:
-                # Append part of new chunk to string
-                responses[-1] += chr(char)
-
-            last_char = char
             
     async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
             
-        error, replied_content = None, None
-        r_history = []
         replied_content = ""
-
-        reply: _Union[None, dict] = None
-        usage: _Union[None, dict] = None
         self.is_processing = True
-
+        ai_reply = models.AIReply("No reply.", 0, 0, "Unknown")
+        
         if query_type == "query":
             
             # Put necessary variables here (Doesn't matter weather streaming or not)
@@ -195,52 +168,33 @@ class DGChats:
                 if isinstance(image_request, dict) == True:
                     image_url = image_request['data'][0]['url']
                     replied_content = f"Created Image at {_datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
-                    r_history.extend([{'image': f'User asked GPT to compose the following image: "{kwargs["prompt"]}"'}, {'image_return': image_url}])
 
-                    self.readable_history.append(r_history)
+                    self.context.add_image_entry(kwargs["prompt"], image_url)
                 else:
                     raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
             except _openai.InvalidRequestError:
                 raise exceptions.GPTContentFilter(kwargs["prompt"])
-        else:
-            error = f"Generic ({query_type})"
 
-        self.__manage_tokens__(query_type, save_message, ai_reply._tokens if reply and usage else 0)
+        self.__manage_tokens__(query_type, save_message, ai_reply._tokens)
+        self.is_processing = False
         return replied_content
 
-    async def __stream_send_query__(self, save_message: bool=True, **kwargs):
-        total_tokens = len(self.model.tokeniser.encode(kwargs["content"]))
-        r_history = []
-        replied_content = ""
-
-        add_history, self.is_processing = True, True
-        self.chat_history.append(kwargs)
-        generator_reply = self.__get_stream_parsed_data__()
-
-        async for chunk in generator_reply:
-            stop_reason = chunk["choices"][0]["finish_reason"]
-            if stop_reason == None:
-                c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
-                replied_content += c_token
-                total_tokens += len(self.model.tokeniser.encode(c_token))
-
-                yield c_token
-            elif stop_reason == "length":
-                add_history = self.is_active = False
-                raise exceptions.GPTReachedLimit()
-
-            elif stop_reason == "content_filter":
-                add_history = False
-                raise exceptions.GPTContentFilter(kwargs["content"])
-
-        if add_history == True:
-            replicate_reply = {"role": "assistant", "content": replied_content}
-            self.chat_history.append(replicate_reply)
-            r_history.extend([kwargs, replicate_reply])
-
-            self.readable_history.append(r_history)
-
-            self.__manage_history__(generator_reply, "query", save_message, total_tokens)
+    async def __stream_send_query__(self, query: str, save_message: bool=True, **kwargs) -> _AsyncGenerator:
+        self.is_processing = True
+        try:
+            tokens = 0
+            ai_reply = self.model.__askmodelstream__(query, self.context, self.oapi, "user", save_message)
+            async for chunk, token in ai_reply:
+                tokens += token
+                yield chunk
+                
+        except exceptions.GPTReachedLimit as e:
+            self.is_active = False
+            raise e
+        finally:
+            self.is_processing = False
+            
+        self.__manage_tokens__("query", save_message, tokens)
     
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
@@ -376,7 +330,7 @@ class DGTextChat(DGChats):
         og_message = await channel.send(developerconfig.STREAM_PLACEHOLDER)
                             
         msg: list[_discord.Message] = [og_message]
-        reply = self.__stream_send_query__(role="user", content=query)
+        reply = self.__stream_send_query__(query, True)
         full_message = f"## {self.header}\n\n"
         i, start_message_at = 0, 0
         sendable_portion = "<>"
@@ -436,8 +390,8 @@ class DGTextChat(DGChats):
 
     def clear(self) -> None:
         """Clears the internal chat history."""
-        self.readable_history.clear()
-        self.chat_history.clear()
+        self.context._context.clear()
+        self.context._display_context.clear()
     
     async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: str) -> str:
         """Stops the chat instance.
