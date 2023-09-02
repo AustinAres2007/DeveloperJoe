@@ -185,7 +185,7 @@ class Communication(commands.Cog):
 
         embeds = (
             {"name": "Started At", "value": str(convo.time), "inline": False},
-            {"name": "Used Tokens", "value": str(convo.tokens), "inline": False},
+            {"name": "Used Tokens", "value": f"{convo.tokens} (An estimation, very likely inaccurate)", "inline": False},
             {"name": "Chat Length", "value": str(len(convo.context.context)), "inline": False},
             {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
             {"name": "Chat ID", "value": str(convo.display_name), "inline": False},

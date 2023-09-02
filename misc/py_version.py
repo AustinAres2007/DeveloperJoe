@@ -1,3 +1,5 @@
+# Assists with the `install.bat` script.
+
 if __name__ == "__main__":
     from platform import python_version_tuple
     MAJOR, MINOR, PATCH = python_version_tuple()

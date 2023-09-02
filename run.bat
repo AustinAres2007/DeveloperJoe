@@ -22,10 +22,10 @@ if %ERRORLEVEL% EQU 0 (
             echo Running normally.
             %PYTHON_COMMAND% main.py
         ) else (
-            echo Incorrect / missing virtual enviroment.v
+            echo Incorrect / missing virtual enviroment. ^(0^)
         )
     ) else (
-        echo Incorrect / missing virtual enviroment
+        echo Incorrect / missing virtual enviroment. ^(1^)
     )
     
 ) else (
