@@ -49,7 +49,7 @@ MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
 
-# BUG:TODO: Need to change configuration
+# TODO: Need to change configuration
 
 FFMPEG = "ffmpeg" # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
 FFPROBE = "ffprobe" # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
