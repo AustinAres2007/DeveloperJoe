@@ -56,7 +56,7 @@ class GPTConversationContext:
     
     def add_image_entry(self, prompt: str, image_url: str) -> list:
         interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
-        self._display_context.extend(interaction_data)
+        self._display_context.append(interaction_data)
         return self._display_context
     
     def get_temporary_context(self, query, user_type: str="user") -> list:
@@ -392,7 +392,7 @@ class DGTextChat(DGChats):
         self.context._context.clear()
         self.context._display_context.clear()
     
-    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: str) -> str:
+    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: bool) -> str:
         """Stops the chat instance.
 
         Args:
@@ -411,7 +411,7 @@ class DGTextChat(DGChats):
             raise exceptions.CannotDeleteThread(self.chat_thread)
         try:
             farewell = f"Ended chat: {self.display_name} with {developerconfig.BOT_NAME}!"
-            if save_history == "y":
+            if save_history == True:
                 history.upload_chat_history(self)
                 farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"
             else:

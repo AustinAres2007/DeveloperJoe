@@ -128,12 +128,8 @@ class Communication(commands.Cog):
             raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
             
     @discord.app_commands.command(name="stop", description=f"Stop a {developerconfig.BOT_NAME} session.")
-    @discord.app_commands.describe(save="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
-    @discord.app_commands.choices(save=[
-        discord.app_commands.Choice(name="No, do not save my transcript save.", value="n"),
-        discord.app_commands.Choice(name="Yes, please save my transcript.", value="y")
-    ])
-    async def stop(self, interaction: discord.Interaction, save: discord.app_commands.Choice[str], name: str):
+    @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
+    async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=True):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         
         async def func(gpt: chat.DGTextChat):
@@ -144,7 +140,7 @@ class Communication(commands.Cog):
                     if reply.content != developerconfig.QUERY_CONFIRMATION:
                         return await interaction.followup.send("Cancelled action.", ephemeral=False)
                     
-                    farewell = await gpt.stop(interaction, history_session, save.value)
+                    farewell = await gpt.stop(interaction, history_session, save_chat)
                     
                     self.client.delete_conversation(member, name)
                     self.client.reset_default_conversation(member)

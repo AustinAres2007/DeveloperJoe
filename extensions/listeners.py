@@ -28,25 +28,25 @@ class Listeners(commands.Cog):
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
-                channel: developerconfig.InteractableChannel = commands_utils.assure_class_is_value(message.channel, discord.Thread)
-                
+    
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
-                    if self.client.get_user_has_permission(member, convo.model):
+                    if isinstance(channel := message.channel, discord.Thread):
+                        if self.client.get_user_has_permission(member, convo.model):
 
-                        thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
-                        content: str = message.content
-                        has_private_thread = thread and thread.is_private()
-                        
-                        if has_private_thread and convo.is_processing != True:
-                            if convo.stream == True:
-                                await convo.ask_stream(content, channel)
-                            else:
-                                await convo.ask(content, channel)
+                            thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
+                            content: str = message.content
+                            has_private_thread = thread and thread.is_private()
                             
-                        elif has_private_thread and convo.is_processing == True:
-                            raise exceptions.DGException(f"{developerconfig.BOT_NAME} is still processing your last request.")
-                    else:
-                        raise exceptions.ModelIsLockedError(convo.model.model)
+                            if has_private_thread and convo.is_processing != True:
+                                if convo.stream == True:
+                                    await convo.ask_stream(content, channel)
+                                else:
+                                    await convo.ask(content, channel)
+                                
+                            elif has_private_thread and convo.is_processing == True:
+                                raise exceptions.DGException(f"{developerconfig.BOT_NAME} is still processing your last request.")
+                        else:
+                            raise exceptions.ModelIsLockedError(convo.model.model)
 
         except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
             await message.channel.send(error.message)

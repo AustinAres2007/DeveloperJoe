@@ -212,7 +212,7 @@ class DeveloperJoe(commands.Bot):
         self.default_chats[f"{member.id}-lastest"] = None
         
     @decorators.user_has_chat
-    def manage_defaults(self, member: discord.Member, name: str="") -> chat.DGChatType:
+    def manage_defaults(self, member: discord.Member, name: str | None=None) -> chat.DGChatType:
         """Manages a users default chat depending on parameters given.
 
         Args:
@@ -224,17 +224,22 @@ class DeveloperJoe(commands.Bot):
             Union[str, None]: The name of the new chat, or None if the chat does not exist.
         """
         current_default = self.get_default_conversation(member)
-        names_convo = self.get_user_conversation(member, name)
-        name_is_chat = isinstance(names_convo, chat.DGChatType)
+        if isinstance(name, str) and name:
+            names_convo = self.get_user_conversation(member, name)
+            name_is_chat = isinstance(names_convo, chat.DGChatType)
 
-        if name_is_chat:
-            self.set_default_conversation(member, name)
-            return names_convo
-        elif current_default:
-            return current_default
+            if name_is_chat:
+                self.set_default_conversation(member, name)
+                return names_convo
+            elif current_default:
+                return current_default
+            else:
+                raise exceptions.UserDoesNotHaveChat(member.name)
         else:
+            if current_default:
+                return current_default
             raise exceptions.UserDoesNotHaveChat(member.name)
-
+        
     def get_member_conversation_bot_voice_instance(self, voice_channel: discord.VoiceChannel):
         return discord.utils.get(self.voice_clients, guild=voice_channel.guild)
     

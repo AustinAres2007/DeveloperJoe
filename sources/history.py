@@ -1,11 +1,11 @@
 """Module for anything ralating to conversation storage"""
 
-import json as _json
+import json
 from . import (
     database, 
-    exceptions
-)     
-
+    exceptions,
+)    
+    
 __all__ = [
     "DGHistoryChat",
     "DGHistorySession"
@@ -18,7 +18,7 @@ class DGHistoryChat:
         self._id: str = data[0][0]
         self._user: int = data[0][1]
         self._name: str = data[0][2]
-        self._data: dict = _json.loads(data[0][3])
+        self._data: dict = json.loads(data[0][3])
         self._private: bool = data[0][4]
         
     @property
@@ -70,5 +70,5 @@ class DGHistorySession(database.DGDatabaseSession):
         raise exceptions.HistoryNotExist(history_id)
     
     def upload_chat_history(self, chat) -> list:
-        json_dump = _json.dumps(chat.readable_history)
+        json_dump = json.dumps(chat.context._display_context)
         return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.user.id, chat.name, json_dump, int(chat.private)))
