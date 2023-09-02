@@ -5,6 +5,7 @@ from sources.chat import GPTConversationContext
 from .chat import GPTConversationContext
 from .common.developerconfig import GPT_REQUEST_TIMEOUT
 from .exceptions import GPTReplyError, GPTContentFilter, GPTReachedLimit
+
 __all__ = [
     "GPTModel",
     "GPT3Turbo",
@@ -29,7 +30,6 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext, api_key: st
         actual_reply = reply["message"]  
         replied_content = actual_reply["content"]
 
-        print(save_message)
         if save_message:
             context.add_conversation_entry(query, actual_reply["content"], "user")
         
@@ -37,9 +37,9 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext, api_key: st
     else:
         raise GPTReplyError(reply, type(reply))
 
-async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, **kwargs):
+async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs):
     async def __get_stream_parsed_data__(_history, **kwargs) -> typing.AsyncGenerator:
-        payload = {"model": tokenizer.name, "messages": _history, "stream": True} | kwargs
+        payload = {"model": model, "messages": _history, "stream": True} | kwargs
         reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
@@ -69,11 +69,9 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
     replied_content = ""
 
     add_history = True
-    history = context.get_temporary_context(query, role)
-
-    generator_reply = __get_stream_parsed_data__(history)
     
-    yield (replied_content, total_tokens)
+    history = context.get_temporary_context(query, role)
+    generator_reply = __get_stream_parsed_data__(history)
     
     async for chunk in generator_reply:
         stop_reason = chunk["choices"][0]["finish_reason"]
@@ -164,7 +162,7 @@ class GPT3Turbo(GPTModel):
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", **kwargs) -> typing.AsyncGenerator:
-        return _gpt_ask_stream_base(query, context, api_key, role, cls.tokeniser, **kwargs)
+        return _gpt_ask_stream_base(query, context, api_key, role, cls.tokeniser, cls.model, **kwargs)
             
         
 class GPT4(GPTModel):
@@ -184,7 +182,7 @@ class GPT4(GPTModel):
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str = "user", **kwargs) -> typing.AsyncGenerator:
-        return _gpt_ask_stream_base(query, context, api_key, role, cls.tokeniser, **kwargs)
+        return _gpt_ask_stream_base(query, context, api_key, role, cls.tokeniser, cls.model, **kwargs)
     
 GPTModelType = typing.Union[GPT3Turbo, GPT4]
 registered_models = {

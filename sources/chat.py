@@ -107,7 +107,6 @@ class DGChats:
         self.display_name = display_name
         self.stream = stream
 
-        print(model)
         self.model = model if isinstance(model, models.GPTModelType) else commands_utils.get_modeltype_from_name(model)
         self.tokens = 0
 
@@ -183,7 +182,7 @@ class DGChats:
         self.is_processing = True
         try:
             tokens = 0
-            ai_reply = self.model.__askmodelstream__(query, self.context, self.oapi, "user")
+            ai_reply = self.model.__askmodelstream__(query, self.context, self.oapi, "user", **kwargs)
             async for chunk, token in ai_reply:
                 tokens += token
                 yield chunk
@@ -386,7 +385,7 @@ class DGTextChat(DGChats):
         Returns:
             str: The welcome message.
         """
-        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction (Under 1800 characters) of yourself (ChatGPT) what you can do and limitations."))
+        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations."))
 
     def clear(self) -> None:
         """Clears the internal chat history."""

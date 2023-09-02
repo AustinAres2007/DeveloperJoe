@@ -39,7 +39,6 @@ class Communication(commands.Cog):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
         actual_model = commands_utils.get_modeltype_from_name(gpt_model)
-        print("Pass")
         
         async def command():
         
@@ -79,9 +78,12 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
+            ai_welcome = await convo.start()
             
-            welcome = f"{await convo.start()}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
-            print(len(welcome))
+            if len(ai_welcome) > 1500:
+                ai_welcome = "Started chat."
+                
+            welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
             await interaction.followup.send(welcome, ephemeral=False)
 
             self.client.add_conversation(member, name, convo)
