@@ -183,7 +183,7 @@ class DGChats:
         self.is_processing = True
         try:
             tokens = 0
-            ai_reply = self.model.__askmodelstream__(query, self.context, self.oapi, "user", save_message)
+            ai_reply = self.model.__askmodelstream__(query, self.context, self.oapi, "user")
             async for chunk, token in ai_reply:
                 tokens += token
                 yield chunk
