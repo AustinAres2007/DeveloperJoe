@@ -35,10 +35,10 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.3
+## Release Notes 1.3.4
 
-1. Internal model rework-- Easier to program new models into DG
-2. Bug fixes
+1. Bug fixes
+2. New AI Command
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
 [^op]: If you want details, use Python version 3.11, and execute `joe.py` within the root folder of DeveloperJoe.

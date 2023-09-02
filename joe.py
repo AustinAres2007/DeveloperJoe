@@ -308,22 +308,6 @@ class DeveloperJoe(commands.Bot):
         message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=developerconfig.QUERY_TIMEOUT)
         return message
     
-    async def send_debug_message(self, interaction: discord.Interaction, error: BaseException, cog: str) -> None:
-        """For internal use. Sends a debug message.
-
-        Args:
-            interaction (discord.Interaction): The interaction of the message.
-            error (BaseException): The error to send.
-            cog (str): Where the error came from.
-
-        Raises:
-            error: the error given.
-        """
-        if developerconfig.DEBUG == True:
-            exception_text = f"From main class error handler \n\nError Class: {str(Exception)}\nError Arguments: {str(Exception.args)}\nFrom cog: {cog} "
-            await interaction.followup.send(exception_text) if interaction.response.is_done() else await interaction.response.send_message(exception_text) 
-            raise error
-    
     @property
     def is_voice_compatible(self) -> bool:
         try:
