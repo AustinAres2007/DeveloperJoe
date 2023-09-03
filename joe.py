@@ -57,7 +57,7 @@ except (FileNotFoundError, ValueError, IndexError):
     print("Missing token file / Missing tokens within token file"); exit(1)
 
 try:
-    with open(developerconfig.WELCOME_FILE) as welcome_file, open(developerconfig.ADMIN_FILE) as admin_file:
+    with open(developerconfig.WELCOME_FILE, encoding="utf8") as welcome_file, open(developerconfig.ADMIN_FILE, encoding="utf8") as admin_file:
         WELCOME_TEXT = welcome_file.read()
         ADMIN_TEXT = admin_file.read()
 
