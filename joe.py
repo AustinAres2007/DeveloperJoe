@@ -1,7 +1,8 @@
 """Main DeveloperJoe file."""
 
 from __future__ import annotations
-import sys
+import sys, os
+
 v_info = sys.version_info
 
 if not (v_info.major >= 3 and v_info.minor > 8):
@@ -12,7 +13,7 @@ try:
     # Not required here, just importing for integrity check.
     import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz
 
-    import discord, logging, asyncio, os, datetime, traceback, aiohttp
+    import discord, logging, asyncio, datetime, traceback, aiohttp
     from discord.ext import commands
     from typing import Union
     from warnings import warn
@@ -25,6 +26,12 @@ except ImportError as e:
     exit(1)
 
 try:
+    from sources.common import (
+        commands_utils,
+        decorators,
+        developerconfig
+    )
+    
     from sources import (
         chat,  
         database, 
@@ -36,11 +43,9 @@ try:
         models, 
         ttsmodels, 
     )
-    from sources.common import (
-        commands_utils,
-        decorators,
-        developerconfig
-    )
+    
+    from sources.voice import pydub
+    
 except IndexError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
     exit(1)
@@ -315,7 +320,7 @@ class DeveloperJoe(commands.Bot):
             self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
             discord.opus.load_opus(developerconfig.LIBOPUS)
         except OSError:
-            warn(f"WARNING: Opus library not found. Voice will NOT work. (Library specified: {developerconfig.LIBOPUS})", OpusWarning)
+            warn(f"WARNING: Opus library not found. Voice will NOT work. (Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {self.__ffmpeg__}\nHas FFProbe: {self.__ffprobe__})", OpusWarning)
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
     
     async def on_ready(self):

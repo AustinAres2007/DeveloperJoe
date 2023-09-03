@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import pytz as _pytz
+import pytz as _pytz, pathlib, sys
 
 from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
 """END-USER CONFIGURATION"""
+
 
 # General
 
@@ -27,6 +28,13 @@ TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.t
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
 
+def _get_voice_paths(library: str, shared_lib: bool) -> str:
+    path = str(pathlib.Path("voice", library).absolute())
+    if not shared_lib:
+        return path + ".exe" if sys.platform == "win32" else ""
+    else:
+        return path + ".dll" if sys.platform == "win32" else ".dylib"
+    
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
 QUERY_TIMEOUT = 10 # Timeout for destructive actions.
 QUERY_CONFIRMATION = ">y" # What keyword to use for confirmation of destructive actions
@@ -50,10 +58,11 @@ MODEL_CHOICES: list[_Choice] = [
 
 # TODO: Need to change configuration
 
-FFMPEG = "ffmpeg" # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
-FFPROBE = "ffprobe" # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
-LIBOPUS = "/opt/homebrew/lib/libopus.dylib"
+FFMPEG = _get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
+FFPROBE = _get_voice_paths("ffprobe", False) # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
+LIBOPUS = _get_voice_paths("opus", True)
 
+print(LIBOPUS)
 STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This is needed as a placeholder text so that the initial streaming message is not empty. This can be anything as long as it is not empty, and not more than 2000 characters. It usually doesn't appear for more than half a second.
 
 """VERY ADVANCED. IGNORE IF NOT CONCERNED."""
