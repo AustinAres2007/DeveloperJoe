@@ -213,6 +213,10 @@ class Communication(commands.Cog):
              
         await interaction.response.send_message(embed=embed)
             
-    
+    @discord.app_commands.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
+    @discord.app_commands.describe(query="The question you wish to pose.")
+    async def inquire_once(self, interaction: discord.Interaction, query: str):
+        ...
+        
 async def setup(client):
     await client.add_cog(Communication(client))

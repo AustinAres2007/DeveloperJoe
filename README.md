@@ -27,6 +27,18 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 * Congratulations, you have finished the instillation. Click the footnote at the end of this sentence for instructions to run the bot. [^nm] Click the footnote at the end of this sentence for insturctions of how to run the bot for advanced users. [^op]
 
+## Voice Support
+
+* To note, this is optional. You can use DeveloperJoe without voice. (Voice features will be disabled when the bot is active) But if you want voice support, keep reading.
+
+* Obtain FFMpeg, FFProbe, and Libopus (Or just opus) You may find FFMpeg and FFProbe at the following links for your operating system. On Mac, FFProbe may come seperate from FFMpeg if you install it directly from their website. So I have provided a link for both FFMpeg and FFProbe on Mac. Windows comes with both.
+(Advanced warning: If using `brew` FFProbe comes with FFMpeg. E.G. `brew install ffmpeg`)
+
+- [FFMpeg Mac](https://evermeet.cx/ffmpeg/ffmpeg-6.0.zip) | [FFMpeg Windows 10 / 11](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)
+- [FFProbe Mac](https://evermeet.cx/ffmpeg/ffprobe-6.0.zip)
+- You may install FFMpeg and FFProbe any method you like. But I am trying to provide a simple and straightforward way.
+
+
 ## Optional
 
 * In the file `sources/common/developerconfig.py` you can change any variables to suit your needs. *Note; it is recommended to set `BOT_NAME` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
