@@ -29,15 +29,11 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 ## Voice Support
 
-* To note, this is optional. You can use DeveloperJoe without voice. (Voice features will be disabled when the bot is active) But if you want voice support, keep reading.
+Voice support is provided by default. I have only officially supported Windows 10 / 11 and macOS Sonoma. I will test Linux in the future. (Custom distro)
+You may disable voice support if you like, either by removing a library in the `voice` folder in root. Or by changing the `ALLOW_VOICE` variable in `sources/common/developerconfig.py` to `False`
 
-* Obtain FFMpeg, FFProbe, and Libopus (Or just opus) You may find FFMpeg and FFProbe at the following links for your operating system. On Mac, FFProbe may come seperate from FFMpeg if you install it directly from their website. So I have provided a link for both FFMpeg and FFProbe on Mac. Windows comes with both.
-(Advanced warning: If using `brew` FFProbe comes with FFMpeg. E.G. `brew install ffmpeg`)
-
-- [FFMpeg Mac](https://evermeet.cx/ffmpeg/ffmpeg-6.0.zip) | [FFMpeg Windows 10 / 11](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)
-- [FFProbe Mac](https://evermeet.cx/ffmpeg/ffprobe-6.0.zip)
-- You may install FFMpeg and FFProbe any method you like. But I am trying to provide a simple and straightforward way.
-
+You can add your own voice support pretty easily if you have basic knowledge of what your Operating System is, the architechure (32 Bit, 64 Bit, ARM-64, ect..)
+I will add to this later, and try and make a more indepth and easy to understand tutorial.
 
 ## Optional
 
@@ -51,6 +47,7 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 
 1. Bug fixes
 2. New AI Command
+3. Precompiled / Inbuilt voice libraries (No voice setup needed if you are using a commonly used OS!!! (Windows 10 / 11, macOS))
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
 [^op]: If you want details, use Python version 3.11, and execute `joe.py` within the root folder of DeveloperJoe.

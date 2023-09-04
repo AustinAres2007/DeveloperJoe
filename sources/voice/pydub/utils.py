@@ -270,7 +270,6 @@ def mediainfo_json(filepath, read_ahead_limit=-1):
             file.close()
 
     command = [prober, '-of', 'json'] + command_args
-    print(command)
     res = Popen(command, stdin=stdin_parameter, stdout=PIPE, stderr=PIPE)
     output, stderr = res.communicate(input=stdin_data)
     output = output.decode("utf-8", 'ignore')

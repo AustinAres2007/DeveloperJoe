@@ -30,7 +30,6 @@ TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.t
 
 def _get_voice_paths(library: str, shared_lib: bool) -> str:
     path = str(pathlib.Path("voice", library).absolute())
-    print("+"*20)
     if not shared_lib:
         return path + (".exe" if sys.platform == "win32" else "")
     else:
@@ -63,7 +62,6 @@ FFMPEG = _get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absol
 FFPROBE = _get_voice_paths("ffprobe", False) # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
 LIBOPUS = _get_voice_paths("opus", True)
 
-print("OPUS:L ",LIBOPUS)
 STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This is needed as a placeholder text so that the initial streaming message is not empty. This can be anything as long as it is not empty, and not more than 2000 characters. It usually doesn't appear for more than half a second.
 
 """VERY ADVANCED. IGNORE IF NOT CONCERNED."""

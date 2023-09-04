@@ -771,8 +771,6 @@ class AudioSegment(object):
 
         log_conversion(conversion_command)
         
-        
-        print(conversion_command)
         p = subprocess.Popen(conversion_command, stdin=stdin_parameter,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p_out, p_err = p.communicate(input=stdin_data)

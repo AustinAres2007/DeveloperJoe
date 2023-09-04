@@ -44,7 +44,7 @@ try:
         ttsmodels, 
     )
     
-    from sources.voice import pydub
+    from sources.voice import pydub # type: ignore It does exist mate.
     
 except IndexError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
