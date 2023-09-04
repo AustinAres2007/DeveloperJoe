@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import pytz as _pytz, pathlib, sys
+import pytz as _pytz, pathlib, sys, warnings
 
 from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
 _platform = sys.platform
 
-print(_platform)
 """END-USER CONFIGURATION"""
 
 
@@ -42,11 +41,15 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         "darwin": ".dylib",
         "linux": ".so"
     }
-    path = str(pathlib.Path("voice", library).absolute())
-    if not shared_lib:
-        return path + executable_suffix[_platform]
-    else:
-        return path + shared_library_suffix[_platform]
+    try:
+        path = str(pathlib.Path("voice", _platform, library).absolute())
+        if not shared_lib:
+            return path + executable_suffix[_platform]
+        else:
+            return path + shared_library_suffix[_platform]
+    except (KeyError, FileNotFoundError):
+        warnings.warn("Running an unsupported operating system. Voice will not work.")
+        return ""
     
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
 QUERY_TIMEOUT = 10 # Timeout for destructive actions.
