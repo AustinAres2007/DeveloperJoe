@@ -5,6 +5,8 @@ import pytz as _pytz, pathlib, sys
 from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
+_platform = "linux"
+
 """END-USER CONFIGURATION"""
 
 
@@ -29,11 +31,21 @@ TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.t
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
 
 def _get_voice_paths(library: str, shared_lib: bool) -> str:
+    executable_suffix = {
+        "win32": ".exe",
+        "darwin": "",
+        "linux": ""
+    }
+    shared_library_suffix = {
+        "win32": ".dll",
+        "darwin": ".dylib",
+        "linux": ".so"
+    }
     path = str(pathlib.Path("voice", library).absolute())
     if not shared_lib:
-        return path + (".exe" if sys.platform == "win32" else "")
+        return path + executable_suffix[_platform]
     else:
-        return path + (".dll" if sys.platform == "win32" else ".dylib")
+        return path + shared_library_suffix[_platform]
     
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
 QUERY_TIMEOUT = 10 # Timeout for destructive actions.
