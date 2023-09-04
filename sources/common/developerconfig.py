@@ -5,8 +5,9 @@ import pytz as _pytz, pathlib, sys
 from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
-_platform = "linux"
+_platform = sys.platform
 
+print(_platform)
 """END-USER CONFIGURATION"""
 
 
