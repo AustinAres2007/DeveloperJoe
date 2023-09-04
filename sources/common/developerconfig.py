@@ -9,7 +9,6 @@ _platform = sys.platform
 
 """END-USER CONFIGURATION"""
 
-
 # General
 
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
@@ -48,7 +47,7 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         else:
             return path + shared_library_suffix[_platform]
     except (KeyError, FileNotFoundError):
-        warnings.warn("Running an unsupported operating system. Voice will not work.")
+        warnings.warn("Running an unsupported operating system. Voice will not work.", RuntimeWarning)
         return ""
     
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
