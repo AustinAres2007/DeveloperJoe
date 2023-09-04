@@ -1,8 +1,6 @@
 import io as _io, gtts as _gtts, json as _json
 from .common.developerconfig import FFMPEG, FFPROBE
-from .voice import pydub as _pydub
-
-_pydub.AudioSegment.ffmpeg = FFMPEG
+from .voice import pydub as _pydub # type: ignore Again, Python is being dumb. The dependency does exist.
 
 """I want to put more TTS models here, but using one that is not system dependent and has a package for python is difficult."""
 
