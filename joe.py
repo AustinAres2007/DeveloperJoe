@@ -319,7 +319,7 @@ class DeveloperJoe(commands.Bot):
             self.__ffmpeg__ = find_executable(developerconfig.FFMPEG)
             self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
             discord.opus.load_opus(developerconfig.LIBOPUS)
-        except IndexError:
+        except OSError:
             warn(f"WARNING: Opus library not found. Voice will NOT work. (Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {self.__ffmpeg__}\nHas FFProbe: {self.__ffprobe__})", OpusWarning)
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
     
