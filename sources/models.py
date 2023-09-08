@@ -4,7 +4,7 @@ from sources.chat import GPTConversationContext
 
 from .chat import GPTConversationContext
 from .common.developerconfig import GPT_REQUEST_TIMEOUT
-from .exceptions import GPTReplyError, GPTContentFilter, GPTReachedLimit
+from .exceptions import GPTReplyError, GPTContentFilter, GPTReachedLimit, DGException
 
 __all__ = [
     "GPTModel",
@@ -14,29 +14,31 @@ __all__ = [
     "registered_models"
 ]
 
-async def _gpt_ask_base(query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None):
-    temp_context = context.get_temporary_context(query, role)
+async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None):
+    temp_context = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
         
     payload = {
         "model": __model,
         "messages": temp_context
     }
     _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+    try:
+        reply = _reply.json()["choices"][0]
+        usage = _reply.json()["usage"]
 
-    reply = _reply.json()["choices"][0]
-    usage = _reply.json()["usage"]
+        if isinstance(reply, dict):
+            actual_reply = reply["message"]  
+            replied_content = actual_reply["content"]
 
-    if isinstance(reply, dict):
-        actual_reply = reply["message"]  
-        replied_content = actual_reply["content"]
-
-        if save_message:
-            context.add_conversation_entry(query, actual_reply["content"], "user")
-        
-        return AIReply(replied_content, usage["total_tokens"], 0, "No error")
-    else:
-        raise GPTReplyError(reply, type(reply))
-
+            if save_message and context:
+                context.add_conversation_entry(query, actual_reply["content"], "user")
+            
+            return AIReply(replied_content, usage["total_tokens"], 0, "No error")
+        else:
+            raise GPTReplyError(reply, type(reply))
+    except KeyError:
+        raise DGException(f"Got incomplete reply: {_reply.json()}", log_error=True, send_exceptions=True)
+    
 async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs):
     async def __get_stream_parsed_data__(_history, **kwargs) -> typing.AsyncGenerator:
         payload = {"model": model, "messages": _history, "stream": True} | kwargs
@@ -138,7 +140,7 @@ class GPTModel:
         return cls._model
     
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
         raise NotImplementedError
     
     @classmethod
@@ -157,7 +159,7 @@ class GPT3Turbo(GPTModel):
         return cls.model == __value.model
     
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
         return await _gpt_ask_base(query, context, api_key, role, save_message, cls.model)
     
     @classmethod
@@ -177,7 +179,7 @@ class GPT4(GPTModel):
         return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext, api_key: str, role: str = "user", save_message: bool = True, **kwargs) -> AIReply:
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, api_key: str, role: str = "user", save_message: bool = True, **kwargs) -> AIReply:
         return await _gpt_ask_base(query, context, api_key, role, save_message, cls.model)
     
     @classmethod

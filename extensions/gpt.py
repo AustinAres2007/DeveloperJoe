@@ -12,7 +12,8 @@ from sources import (
     chat,
     errors,
     history,
-    guildconfig
+    guildconfig,
+    models
 )
 from sources.common import (
     commands_utils,
@@ -215,8 +216,20 @@ class Communication(commands.Cog):
             
     @discord.app_commands.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
     @discord.app_commands.describe(query="The question you wish to pose.")
-    async def inquire_once(self, interaction: discord.Interaction, query: str):
-        ...
+    @discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
+    async def inquire_once(self, interaction: discord.Interaction, query: str, gpt_model: str=developerconfig.DEFAULT_GPT_MODEL):
+        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        actual_model = commands_utils.get_modeltype_from_name(gpt_model)
+        
+        if self.client.get_user_has_permission(member, actual_model):
+            asked = await actual_model.__askmodel__(query, None, self.client._OPENAI_TOKEN, "user", False)
+            reply = asked._reply
+            
+            if len(reply) >= 2000:
+                return await interaction.response.send_message(file=commands_utils.to_file(reply, "reply.txt"))
+            return await interaction.response.send_message(reply)
+        
+        raise exceptions.ModelIsLockedError(actual_model.model)
         
 async def setup(client):
     await client.add_cog(Communication(client))
