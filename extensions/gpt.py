@@ -230,6 +230,6 @@ class Communication(commands.Cog):
             return await interaction.response.send_message(reply)
         
         raise exceptions.ModelIsLockedError(actual_model.model)
-        
+    
 async def setup(client):
     await client.add_cog(Communication(client))
