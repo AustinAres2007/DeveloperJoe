@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pytz as _pytz, pathlib, sys, warnings
+import pytz as _pytz, pathlib, sys, warnings, platform
 
 from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
@@ -29,6 +29,8 @@ TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.t
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
 
+RELEASE = platform.release()
+
 def _get_voice_paths(library: str, shared_lib: bool) -> str:
     executable_suffix = {
         "win32": ".exe",
@@ -41,7 +43,7 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         "linux": ".so"
     }
     try:
-        path = str(pathlib.Path("voice", _platform, library).absolute())
+        path = str(pathlib.Path("voice", _platform, RELEASE if _platform == "win32" else _platform, library).absolute())
         if not shared_lib:
             return path + executable_suffix[_platform]
         else:

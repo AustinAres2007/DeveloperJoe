@@ -1,6 +1,6 @@
 import io as _io, gtts as _gtts, json as _json
-from .common.developerconfig import FFMPEG, FFPROBE
 from .voice import pydub as _pydub # type: ignore Again, Python is being dumb. The dependency does exist.
+from .exceptions import DGException
 
 """I want to put more TTS models here, but using one that is not system dependent and has a package for python is difficult."""
 
@@ -70,6 +70,10 @@ class GTTSModel(TTSModel):
             speed_up = _pydub.AudioSegment.from_file(_temp_file)
         except _json.decoder.JSONDecodeError: # pydub may not work sometimes depending on ffmpeg / ffprobe version, return non-speedup file instead
             return self.emulated_file_object
+        except OSError as ose:
+            if ose.errno == 216:
+                raise DGException("The host machine is running an incompatible version of Windows. (10 and above only)")
+            
         else:
             return speed_up.speedup(playback_speed=speed).export(self.emulated_file_object)
         
