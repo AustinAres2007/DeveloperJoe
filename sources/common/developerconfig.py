@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import pytz as _pytz, pathlib, sys, warnings, platform
+import pytz as _pytz
 
 from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
-_platform = sys.platform
+from .voice_checks import _get_voice_paths
 
 """END-USER CONFIGURATION"""
 
@@ -28,29 +28,6 @@ ALLOW_VOICE = True # Weather voice support is enabled. It is by default, and wi
 TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.txt for a list of all.)
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
-
-RELEASE = platform.release()
-
-def _get_voice_paths(library: str, shared_lib: bool) -> str:
-    executable_suffix = {
-        "win32": ".exe",
-        "darwin": "",
-        "linux": ""
-    }
-    shared_library_suffix = {
-        "win32": ".dll",
-        "darwin": ".dylib",
-        "linux": ".so"
-    }
-    try:
-        path = str(pathlib.Path("voice", _platform, RELEASE if _platform == "win32" else _platform, library).absolute())
-        if not shared_lib:
-            return path + executable_suffix[_platform]
-        else:
-            return path + shared_library_suffix[_platform]
-    except (KeyError, FileNotFoundError):
-        warnings.warn("Running an unsupported operating system. Voice will not work.", RuntimeWarning)
-        return ""
     
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
 QUERY_TIMEOUT = 10 # Timeout for destructive actions.
