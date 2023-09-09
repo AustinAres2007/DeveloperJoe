@@ -13,10 +13,10 @@ class Archs:
     x64 = ""
     
 def _get_path_according_to_specs(library: str) -> str:
-    if platform != OSTypes.Windows and arch().lower() != Archs.arm64:
-        return str(Path("voice", platform, release() if platform == "win32" else platform, library).absolute())
-    warn("You are using an ARM64 Processor on a windows machine. This is not supported. Voice has been disabled.")
-    return ""
+    if platform == OSTypes.Windows and arch().lower() == Archs.arm64:
+        warn("You are using an ARM64 Processor on a windows machine. This is not supported. Voice has been disabled.")
+        return ""
+    return str(Path("voice", platform, release() if platform == "win32" else platform, library).absolute())
 
 def _get_voice_paths(library: str, shared_lib: bool) -> str:
     executable_suffix = {
@@ -39,6 +39,8 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         warn("Running an unsupported operating system. Voice will not work.", RuntimeWarning)
         return ""
 
-_get_voice_paths("ffmpeg", False)
-_get_voice_paths("ffprobe", False)
-_get_voice_paths("opus", True)
+if __name__ == "__main__":
+    _get_voice_paths("ffmpeg", False)
+    _get_voice_paths("ffprobe", False)
+    _get_voice_paths("opus", True)
+    
