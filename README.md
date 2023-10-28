@@ -47,8 +47,14 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 1. Bug fixes
 2. New AI Command
-3. Precompiled / Inbuilt voice libraries (No voice setup needed if you are using a commonly used OS!!! (Windows 10 / 11, macOS))
+3. Easier voice setup (Drag and drop)
+
+## Todo 1.3.4
+
+1. Update README with updated method of installing voice library
+2. Add compatibility with new library name scheme (<lib>-<platform>.<libExtension> Eg. opus-darwin.dylib) done in developerconfig.py
 
 [^nm]: For a normal user, running `run.sh` within the root folder will suffice.
 [^op]: If you want details, use Python version 3.11, and execute `joe.py` within the root folder of DeveloperJoe.
         If you do not do this, you will most likely run into errors regarding importing modules and other dependencies that require reletive paths.
+
