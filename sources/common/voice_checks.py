@@ -22,7 +22,6 @@ def _get_path_according_to_specs(library: str) -> str:
         warn("Somehow you are using an ARM64 processor on Linux. This is not supported. Voice has been disabled.")
     else:
         return str(Path("voice", f"{library}-{platform}").absolute())
-        #return str(Path("voice", platform, release() if platform == "win32" else platform, library).absolute()) Old
     return ""
 
 def _get_voice_paths(library: str, shared_lib: bool) -> str:
