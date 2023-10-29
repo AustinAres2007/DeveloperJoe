@@ -7,7 +7,6 @@ arch = machine().lower()
 
 class OSTypes:
     MacOS = "darwin"
-    Windows = "win32"
     Linux = "linux"
     Unix = (Linux, MacOS)
     
@@ -16,27 +15,25 @@ class Archs:
     x64 = ""
     
 def _get_path_according_to_specs(library: str) -> str:
-    if platform == OSTypes.Windows and arch == Archs.arm64:
-        warn("You are using an ARM64 processor on a Windows machine. This is not supported. Voice has been disabled.")
-    elif platform == OSTypes.MacOS and arch == Archs.x64:
+    if platform == OSTypes.MacOS and arch == Archs.x64:
         warn("You are using an Intel processor on a Mac machine. This is not supported. Voice has been disabled.")
     elif platform == OSTypes.Linux and arch == Archs.arm64:
         warn("Somehow you are using an ARM64 processor on Linux. This is not supported. Voice has been disabled.")
     else:
-        return str(Path("voice", platform, release() if platform == "win32" else platform, library).absolute())
+        return str(Path("voice", f"{library}-{platform}").absolute())
+        #return str(Path("voice", platform, release() if platform == "win32" else platform, library).absolute()) Old
     return ""
 
 def _get_voice_paths(library: str, shared_lib: bool) -> str:
     executable_suffix = {
-        OSTypes.Windows: ".exe",
         OSTypes.MacOS: "",
         OSTypes.Linux: ""
     }
     shared_library_suffix = {
-        OSTypes.Windows: ".dll",
         OSTypes.MacOS: ".dylib",
         OSTypes.Linux: ".so"
     }
+    
     try:
         path = _get_path_according_to_specs(library)
         if not shared_lib:
