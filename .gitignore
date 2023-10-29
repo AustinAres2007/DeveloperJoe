@@ -1,3 +1,7 @@
+*
+!*/
+!*.*
+
 .vscode/
 __pycache__
 bin/
@@ -12,7 +16,11 @@ Lib/
 *.log
 *.db
 *.db-journal
+*.jar
+*.dylib
+*.
 @eaDir
 .DS_Store
 misc/bot_log.log
 api-keys.key
+

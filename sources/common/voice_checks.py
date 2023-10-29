@@ -1,7 +1,8 @@
 from sys import platform
 from pathlib import Path
-from platform import release, machine 
+from platform import machine 
 from warnings import warn
+from os import system
 
 arch = machine().lower()
 
@@ -36,10 +37,11 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
     
     try:
         path = _get_path_according_to_specs(library)
-        if not shared_lib:
-            return path + executable_suffix[platform]
-        else:
-            return path + shared_library_suffix[platform]
+        final_path = path + executable_suffix[platform] if not shared_lib else path + shared_library_suffix[platform]
+        
+        system(f"chmod a+rwx {final_path}")
+        return final_path
+    
     except (KeyError, FileNotFoundError):
         warn("Running an unsupported operating system. Voice will not work.", RuntimeWarning)
         return ""
