@@ -55,10 +55,10 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.5
+## Release Notes 1.3.6
 
-1. Bug reporting channel configuration added
+1. More user friendly configuration. (Also makes it easier to store private config when pushing to git)
 
-## Todo 1.3.5
+## Todo 1.3.6
 
-None atm
+Setup config checking within `joe.py`
