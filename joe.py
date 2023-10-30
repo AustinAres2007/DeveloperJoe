@@ -19,7 +19,6 @@ try:
     from warnings import warn
     
     from distutils.spawn import find_executable
-    from ctypes.util import find_library
     
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
@@ -259,6 +258,20 @@ class DeveloperJoe(commands.Bot):
             _type_: Any
         """
         error = getattr(error, "original", error)
+        async def send_to_debug_channel(**kwargs):
+            if developerconfig.BUG_REPORT_CHANNEL == None:
+                return
+            elif str(developerconfig.BUG_REPORT_CHANNEL).isdecimal():
+                try:
+                    channel = self.get_channel(developerconfig.BUG_REPORT_CHANNEL)
+                    if channel:
+                        return await channel.send(**kwargs) # type: ignore
+                    warn("WARNING: Bug report channel ID is invalid or it does not exist. (Error 1)")
+                except Exception as e:
+                    print(f"FATAL BUG REPORT ERROR: \nReporting Bug: {e}\n\nOriginal Error: {exc}")
+            else:
+                warn("WARNING: Bug report channel ID is invalid or it does not exist. (Error 0)")
+                
         async def send(text: str):
             if interaction.response.is_done():
                 return await interaction.followup.send(text)
@@ -275,18 +288,21 @@ class DeveloperJoe(commands.Bot):
             if (log := getattr(error, "log_error", None)) != None:
                 if log == True:
                     logging.error(exception) 
-                return await send(message) if getattr(error, "send_exception", False) == True else None
+                await send(message) if getattr(error, "send_exception", False) == True else None
+                return await send_to_debug_channel(content=message)
         
         if isinstance(error, discord.app_commands.CheckFailure):
             return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
         
         logging.error(exception)
 
+        exc = traceback.format_exc()
         error_text = f"From error handler: {str(error)}"
-        error_traceback = commands_utils.to_file(traceback.format_exc(), "traceback.txt")
-
-        return await send_with_file(error_text, error_traceback)
-
+        error_traceback = commands_utils.to_file(exc, "traceback.txt")
+        
+        await send_with_file(error_text, error_traceback)
+        return await send_to_debug_channel(content=error_text, file=error_traceback)
+    
     def get_embed(self, title: str) -> discord.Embed:
         
         uptime = self.get_uptime()
@@ -329,6 +345,7 @@ class DeveloperJoe(commands.Bot):
             
             print(f"""
             Version = {developerconfig.VERSION}
+            Report Channel = {self.get_channel(developerconfig.BUG_REPORT_CHANNEL) if developerconfig.BUG_REPORT_CHANNEL and str(developerconfig.BUG_REPORT_CHANNEL).isdecimal() == True else None}
             Voice Installed = {self.is_voice_compatible}
             Voice Enabled = {developerconfig.ALLOW_VOICE}
             Users Can Use Voice = {self.is_voice_compatible and developerconfig.ALLOW_VOICE}
@@ -375,7 +392,7 @@ class DeveloperJoe(commands.Bot):
             self.chats = {user.id: {} for user in self.users}
             self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
 
-            self.tree.on_error = self.handle_error
+            self.tree.on_error = self.handle_error # type: ignore
 
     async def setup_hook(self):
         print("Cogs\n")

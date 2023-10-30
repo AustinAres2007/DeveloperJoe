@@ -3,7 +3,8 @@ import discord
 from discord.ext.commands import Cog as _Cog
 
 from sources import (
-    models
+    models,
+    exceptions
 )
 from sources.common import (
     commands_utils,
@@ -56,6 +57,10 @@ class General(_Cog):
         embed = self.client.get_embed("GPT Models")
         [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
         await interaction.response.send_message(embed=embed)
-        
+    
+    @discord.app_commands.command(name="error", description="Sends a purposeful error to test the bug sending system.")
+    async def send_error(self, interaction: discord.Interaction):
+        raise exceptions.DGException("This is not a real error. This is a test.")
+    
 async def setup(client):
     await client.add_cog(General(client))

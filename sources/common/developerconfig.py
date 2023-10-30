@@ -11,6 +11,7 @@ from .voice_checks import _get_voice_paths
 
 # General
 
+BUG_REPORT_CHANNEL = None # Channel ID of the channel you want bug reports to be sent too. Set to `None` for no bug reporting.
 BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
 STATUS_TYPE = ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
 STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
@@ -38,7 +39,7 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.3.4" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.3.5" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)

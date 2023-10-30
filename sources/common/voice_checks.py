@@ -2,7 +2,7 @@ from sys import platform
 from pathlib import Path
 from platform import machine 
 from warnings import warn
-from os import system
+import os
 
 arch = machine().lower()
 
@@ -38,7 +38,8 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         path = _get_path_according_to_specs(library)
         final_path = path + executable_suffix[platform] if not shared_lib else path + shared_library_suffix[platform]
         
-        system(f"chmod a+rwx {final_path}")
+        if os.path.isfile(final_path):
+            os.system(f"chmod a+rwx {final_path}")
         return final_path
     
     except (KeyError, FileNotFoundError):
