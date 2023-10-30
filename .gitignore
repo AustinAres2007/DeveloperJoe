@@ -19,6 +19,7 @@ Lib/
 *.jar
 *.dylib
 *.so
+
 @eaDir
 .DS_Store
 misc/bot_log.log

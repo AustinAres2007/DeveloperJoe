@@ -11,7 +11,7 @@ if not (v_info.major >= 3 and v_info.minor > 8):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz
+    import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz, yaml
 
     import discord, logging, asyncio, datetime, traceback, aiohttp
     from discord.ext import commands
@@ -381,6 +381,7 @@ class DeveloperJoe(commands.Bot):
                     print("Database could not be rebuilt. Aborting. Check database files.")
                     return await self.close()
                 
+                def check_config_yaml
                 print("Checks\n")
                 
                 await _check_integrity(0)
