@@ -8,26 +8,31 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 - Image Generation
 - Streaming chat replies
 
+This bot is directed towards people who want customisation. Though, this is because I am lazy and too broke to afford the API prices. The customisation does come at a cost, which is that you have to have some very minor knowledge or python programming.
+
 ## Setup
 
-* To start, ==run the `install.sh` file== located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
+1. ### Run the installation script (`install.sh`) 
+    * To start, run the `install.sh` file located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
 
-    >api-keys.key file format:
-    >:discord-api-key:
-    >:openai-api-key:
+2. ### Obtain a Discord API Key from [Discord's Developer Website.](https://discord.com/developers/applications) 
+    * Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
 
-* ==Obtain a Discord API Key== from [Discord's Developer Website.](https://discord.com/developers/applications) Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
+    * After you have obtained an API Key, load the file `dependencies/api-keys.key` and paste the key on line 1.
 
-    After you have obtained an API Key, load the file ==`dependencies/api-keys.key` and paste the key on line 1.==
+3. ### Obtain an OpenAI API Key from [OpenAI's Website](https://platform.openai.com/account) 
+    * Navigate to the "API keys" tab and register one. And warning for beginnners, using this API costs money, and you will **NEED** to add a payment method if you do not have free credits, and depending on the model and how much you use it, it can get expensive.
 
-* ==Obtain an OpenAI API Key== from [OpenAI's Website](https://platform.openai.com/account) and navigate to the "API keys" tab and register one. And warning for beginnners, using this API costs money, and you will **NEED** to add a payment method if you do not have free credits, and depending on the model and how much you use it, it can get expensive.
+    * Paste the OpenAI API Key in `dependencies/api-keys.key` on line 2, under the Discord API Key.
 
-    ==Paste the OpenAI API Key in `dependencies/api-keys.key` on line 2==, under the Discord API Key.
-    Congratulations, the hard part is over. The following steps are not essential, but recommended for customisation purposes.
+4. ### Congratulations, you have finished the instillation.
+    * Read further if you want to setup voice capabilities or instructions on how to run the bot.
 
-* Congratulations, you have finished the instillation. Click the footnote at the end of this sentence for instructions to run the bot. [^nm] Click the footnote at the end of this sentence for insturctions of how to run the bot for advanced users. [^op]
+## Running DeveloperJoe
 
-## Voice Support (MACOS AND LINUX ONLY)
+All you have to do is execute the file `run.sh` after the installation. Or do the following command in the terminal `sh run.sh` or `bash run.sh` for Linux!
+
+## Voice Support (MACOS AND LINUX ONLY!)
 
 Voice support is not added by default. You will need to acquire the required libraries. You can download the respective files for your computer at [this repository.](https://github.com/AustinAres2007/developerjoe-downloads/releases) Simply drag and drop all 3 files into the `voice` directory.
 
@@ -50,19 +55,10 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.4
+## Release Notes 1.3.5
 
-1. Bug fixes
-2. New AI Command
-3. Easier voice setup (Drag and drop)
+1. Bug reporting channel configuration added
 
-## Todo 1.3.4
+## Todo 1.3.5
 
-~~Update README with updated method of installing voice library~~ Done
-~~Add compatibility with new library name scheme (<lib>-<platform>.<libExtension> Eg. opus-darwin.dylib) done in developerconfig.py~~ Done
-~~Fix `run.sh` not working outside of VENV. For now, execute `. bin/activate` on CLI and run via `python3 main.py`~~ Done
-
-[^nm]: For a normal user, running `run.sh` within the root folder will suffice.
-[^op]: If you want details, use Python version 3.11, and execute `joe.py` within the root folder of DeveloperJoe.
-        If you do not do this, you will most likely run into errors regarding importing modules and other dependencies that require reletive paths.
-
+None atm
