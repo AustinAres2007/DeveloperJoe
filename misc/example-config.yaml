@@ -1,0 +1,39 @@
+# Backup / Example Bot Configuration File
+
+# bug_report_channel
+# The channel where bugs will be sent to. Feel free to leave it undefined if you do not want bug reports (leave it as null) if so, use the channel ID only. 
+# You can copy the ID by right clicking on the channel you want, 
+# click "Copy Channel ID" you will need to activate Developer Mode to do this-- User Settings (Cog in the bottom left) > Advanced (Under Streamer Mode) > Developer Mode
+
+# ~ ~ ~ 
+
+# status_type Options:
+# -1 - Unknown
+# 0 - Playing
+# 1 - Streaming
+# 2 - Listening
+# 3 - Watching
+# 4 & 5 seem to not work. Feel free to try. (Custom and Competing respectively.)
+
+# ~ ~ ~ 
+
+# default_gpt_model Options:
+# gpt-3.5-turbo -- Very smart, life-like, can help with many problems with a very low cost.
+# gpt-4 -- Even smarter than gpt-3.5-turbo, can help with the same problems with GPT-3 and more. The price is cheap but may add up over the weeks that it is used.
+
+bot_name: "DeveloperJoe" # Name for the bot used in the 3rd person when using some commands. This does not have to match the bots actual name. Set it to whatever you like.
+bug_report_channel: null # The channel where bugs will be sent to. 
+status_type: 2 # Set from -1 to 3 for different options. Check table above (Line 10)
+status_text: "/help and answering lifes biggest questions." # The text the bot will have as a status.
+default_gpt_model: "gpt-3.5-turbo" # The default GPT model that will be used if the user does not specify one. Check line 20 for more models.
+
+# Voice Configuration
+
+listening_keyword: "assistant" # The keyword that will activate the bot's voice listening feature. Just like "Alexa" or "Hey Siri"
+listening_timeout: 2.5 # How long it will take until the bot stops starts processing voice data (Timer starts the last time silence was detected by the user that the chat belongs to)
+voice_speedup_multiplier: 1.17 # How fast you want the Google Text-to-Speach engine to talk. 1.0 was too slow for me, anything over 1.7 becomes too fast.
+allow_voice: true # Weather you want your users the option to use voice.
+
+# Region Settings (Global)
+
+timezone: "UTC" # What Timezone the bot will use for command footers.
