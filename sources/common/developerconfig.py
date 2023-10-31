@@ -39,13 +39,13 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.3.6-G" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.3.6-E" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
 WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome text is located. (Reletive)
 ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / welcome text is located. (Reletive)
-CONFIG_FILE = "config.yaml"
+CONFIG_FILE = "bot-config.yaml"
 
 MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),

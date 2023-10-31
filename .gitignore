@@ -19,10 +19,10 @@ Lib/
 *.jar
 *.dylib
 *.so
-*.yaml
 
 @eaDir
 .DS_Store
 misc/bot_log.log
 api-keys.key
+bot-config.yaml
 

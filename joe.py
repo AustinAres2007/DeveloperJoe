@@ -394,8 +394,8 @@ class DeveloperJoe(commands.Bot):
                     print("Database could not be rebuilt. Aborting. Check database files.")
                     return await self.close()
                 
-                def fix_config():
-                    warn("Invalid Configuration Setup. Default configuration will be used. Repairing...")
+                def fix_config(error_message: str):
+                    warn(error_message)
                     with open(developerconfig.CONFIG_FILE, 'w+') as yaml_file_repair:
                         self.config = default_config_keys
                         yaml.safe_dump(default_config_keys, yaml_file_repair)
@@ -408,14 +408,15 @@ class DeveloperJoe(commands.Bot):
                             try:
                                 self.config = yaml.safe_load(yaml_file)
                                 for i1 in enumerate(dict(self.config).items()):
-                                    if (i1[1][0] not in list(default_config_keys) or type(i1[1][0]) != type(default_config_keys[i1[1][0]])):
-                                        fix_config()
+                                    if (i1[1][0] not in list(default_config_keys) or type(i1[1][1]) != type(default_config_keys[i1[1][0]])):
+                                        fix_config("Invalid Configuration Value Type. Default configuration will be used. Repairing...")
+                                        break
                                 else:
                                     print("Correct configuration.\n\n")
                             except (KeyError, IndexError):
-                                fix_config()
+                                fix_config(f"Invalid configuration key. Default configuration will be used. Repairing...")
                     else:        
-                        fix_config()  
+                        fix_config("Configuration file missing. Default configuration will be used. Repairing...")
                         
                 print("Checks\n")
                 
