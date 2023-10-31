@@ -4,6 +4,18 @@ from __future__ import annotations
 import sys, os
 
 v_info = sys.version_info
+default_config_keys = {
+    "bot_name": "DeveloperJoe",
+    "bug_report_channel": False,
+    "status_type": 2,
+    "status_text": "/help and answering lifes biggest questions.",
+    "default_gpt_model": "gpt-3.5-turbo",
+    "listening_keyword": "assistant",
+    "listening_timeout": 2.5,
+    "voice_speedup_multiplier": 1.17,
+    "allow_voice": False,
+    "timezone": "UTC"
+}
 
 if not (v_info.major >= 3 and v_info.minor > 8):
     print(f'You must run this bot with Python 3.9 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
@@ -86,6 +98,7 @@ class DeveloperJoe(commands.Bot):
         self.WELCOME_TEXT = WELCOME_TEXT.format(developerconfig.BOT_NAME)
         self.ADMIN_TEXT = ADMIN_TEXT.format(developerconfig.BOT_NAME)
         self.__tzs__ = pytz.all_timezones
+        self.config = None
         
         super().__init__(*args, **kwargs)
     
@@ -381,11 +394,34 @@ class DeveloperJoe(commands.Bot):
                     print("Database could not be rebuilt. Aborting. Check database files.")
                     return await self.close()
                 
-                def check_config_yaml
+                def fix_config():
+                    warn("Invalid Configuration Setup. Default configuration will be used. Repairing...")
+                    with open(developerconfig.CONFIG_FILE, 'w+') as yaml_file_repair:
+                        self.config = default_config_keys
+                        yaml.safe_dump(default_config_keys, yaml_file_repair)
+                    
+                def check_config_yaml():
+                    print("Checking configuration layout..")
+                    
+                    if os.path.isfile(developerconfig.CONFIG_FILE):
+                        with open(developerconfig.CONFIG_FILE, 'r') as yaml_file:
+                            try:
+                                self.config = yaml.safe_load(yaml_file)
+                                for i1 in enumerate(dict(self.config).items()):
+                                    if (i1[1][0] not in list(default_config_keys) or type(i1[1][0]) != type(default_config_keys[i1[1][0]])):
+                                        fix_config()
+                                else:
+                                    print("Correct configuration.\n\n")
+                            except (KeyError, IndexError):
+                                fix_config()
+                    else:        
+                        fix_config()  
+                        
                 print("Checks\n")
                 
                 await _check_integrity(0)
                 check_servers()
+                check_config_yaml()
                 
                 print("Running.")
             

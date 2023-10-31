@@ -19,6 +19,7 @@ Lib/
 *.jar
 *.dylib
 *.so
+*.yaml
 
 @eaDir
 .DS_Store
