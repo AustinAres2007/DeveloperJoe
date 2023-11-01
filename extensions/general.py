@@ -18,7 +18,7 @@ class General(_Cog):
 
     @discord.app_commands.command(name="help", description="Lists avalible commands")
     async def help_command(self, interaction: discord.Interaction):    
-        embed = self.client.get_embed(f"{developerconfig.BOT_NAME} Commands Page 1")
+        embed = self.client.get_embed(f"{commands_utils.get_config('bot_name')} Commands Page 1")
         get_name = lambda cmd: cmd.name
         cmd_len = 1
         
@@ -38,7 +38,7 @@ class General(_Cog):
                     cmd_len += 1
                     if cmd_len and cmd_len % 15 == 0:
                         await send_embed(embed)
-                        embed = self.client.get_embed(f"{developerconfig.BOT_NAME} Commands Page {(cmd_len // 15) + 1}")
+                        embed = self.client.get_embed(f"{commands_utils.get_config('bot_name')} Commands Page {(cmd_len // 15) + 1}")
                         
                     params = ", ".join(list(map(get_name, command.parameters)))
                     embed.add_field(name=f"/{command.name}", value=f'{command.description} | /{command.name} {params}', inline=False)

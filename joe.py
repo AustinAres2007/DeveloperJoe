@@ -86,12 +86,13 @@ class DeveloperJoe(commands.Bot):
         self.WELCOME_TEXT = WELCOME_TEXT.format(commands_utils.get_config("bot_name"))
         self.ADMIN_TEXT = ADMIN_TEXT.format(commands_utils.get_config("bot_name"))
         self.__tzs__ = pytz.all_timezones
+        self.__tz__ = pytz.timezone(commands_utils.get_config("timezone"))
         self.config = None
         
         super().__init__(*args, **kwargs)
     
     def get_uptime(self) -> datetime.timedelta:
-        return (datetime.datetime.now(tz=developerconfig.DATETIME_TZ) - self.start_time)
+        return (datetime.datetime.now(tz=self.__tz__) - self.start_time)
     
     @decorators.user_has_chat
     def get_user_conversation(self, member: discord.Member, chat_name: str) -> chat.DGChatType | None:
@@ -346,18 +347,18 @@ class DeveloperJoe(commands.Bot):
             
             print(f"""
             Version = {developerconfig.VERSION}
-            Report Channel = {self.get_channel(developerconfig.BUG_REPORT_CHANNEL) if developerconfig.BUG_REPORT_CHANNEL and str(developerconfig.BUG_REPORT_CHANNEL).isdecimal() == True else None}
+            Report Channel = {self.get_channel(commands_utils.get_config("bug_report_channel")) if commands_utils.get_config("bug_report_channel") and str(commands_utils.get_config("bug_report_channel")).isdecimal() == True else None}
             Voice Installed = {self.is_voice_compatible}
-            Voice Enabled = {developerconfig.ALLOW_VOICE}
-            Users Can Use Voice = {self.is_voice_compatible and developerconfig.ALLOW_VOICE}
+            Voice Enabled = {commands_utils.get_config("allow_voice")}
+            Users Can Use Voice = {self.is_voice_compatible and commands_utils.get_config("allow_voice")}
             """)
 
             self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
             self.default_chats: dict[str, None | chat.DGChatType] = {}
 
-            self.start_time = datetime.datetime.now(tz=developerconfig.DATETIME_TZ)
+            self.start_time = datetime.datetime.now(tz=self.__tz__)
             
-            await self.change_presence(activity=discord.Activity(type=developerconfig.STATUS_TYPE, name=developerconfig.STATUS_TEXT))
+            await self.change_presence(activity=discord.Activity(type=commands_utils.get_config("status_type"), name=commands_utils.get_config("status_text")))
             with (database.DGDatabaseSession() as database_session, modelhandler.DGRulesManager() as _guild_handler):
                 
                 
@@ -437,5 +438,5 @@ def main():
         pass
 
 if __name__ == "__main__":
-    print(f"Please use main.py to run {developerconfig.BOT_NAME}")
+    print(f"Please use main.py to run {commands_utils.get_config('bot_name')}")
     

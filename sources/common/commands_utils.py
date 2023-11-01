@@ -83,8 +83,6 @@ def fix_config(error_message: str):
         return developerconfig.default_config_keys
                     
 def check_config_yaml():
-    print("Checking configuration layout..")
-    
     if os.path.isfile(developerconfig.CONFIG_FILE):
         with open(developerconfig.CONFIG_FILE, 'r') as yaml_file:
             try:

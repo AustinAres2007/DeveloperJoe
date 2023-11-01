@@ -27,7 +27,7 @@ class Voice(Cog):
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0 or more than 4.0.")
     
-    @discord.app_commands.command(name="shutup", description=f"If you have a {developerconfig.BOT_NAME} voice chat and you want it to stop talking a reply, execute this command.")
+    @discord.app_commands.command(name="shutup", description=f"If you have a {commands_utils.get_config('bot_name')} voice chat and you want it to stop talking a reply, execute this command.")
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)

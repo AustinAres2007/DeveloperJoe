@@ -2,31 +2,10 @@ from __future__ import annotations
 
 import pytz as _pytz
 
-from discord import ChannelType, ActivityType, TextChannel, Thread, TextChannel
+from discord import ChannelType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
 from .voice_checks import _get_voice_paths
-
-"""END-USER CONFIGURATION"""
-
-# General
-
-BUG_REPORT_CHANNEL = None # Channel ID of the channel you want bug reports to be sent too. Set to `None` for no bug reporting.
-BOT_NAME = "DeveloperJoe" # Name of the bot when describing commands or help.
-STATUS_TYPE = ActivityType.listening # The "Playing" or "Listening to" part of the bot's status
-STATUS_TEXT = "/help AND answering lifes biggest questions." # Bot's status when activated
-DEFAULT_GPT_MODEL = "gpt-3.5-turbo" # gpt-4, or gpt-3.5-turbo (GPT4 or GPT3Turbo)
-
-# Voice
-
-LISTENING_KEYWORD = "assistant" # The name that will invoke the bots reply (Like with "Hey Siri" or "Alexa", example: "Hey developer, what is factorial of 1?")
-LISTENING_TIMEOUT = 2.5 # How many seconds of silence there must be until the bot will process a users voice request.
-VOICE_SPEEDUP_MULTIPLIER = 1.17 # How fast you want the default text-to-speach model to talk. (1 = default, quite slow. 2 = Quite fast)
-ALLOW_VOICE = True # Weather voice support is enabled. It is by default, and will require additional setup if you do not have FFMPEG installed. It is easy to do so.
-
-# Region
-
-TIMEZONE = "UTC" # What timezone to use (UTC by default, check misc/timezones.txt for a list of all.)
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
     
@@ -64,13 +43,6 @@ STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This 
 
 ALLOWED_INTERACTIONS = [ChannelType.private_thread, ChannelType.text, TextChannel, ChannelType.private_thread] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
 ALLOW_TRACEBACK = False # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
-GUILD_CONFIG_KEYS = {
-    "speed": VOICE_SPEEDUP_MULTIPLIER,
-    "timezone": TIMEZONE,
-    "voice": True,
-    "voice-keyword": LISTENING_KEYWORD,
-    "allow-voice": True
-} # Default values for guild configurations
 DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.
 
 """Generic Types (Do not edit, no matter what. Unless you foundationally change how this bot work. Which, I think you wouldn't do!)"""

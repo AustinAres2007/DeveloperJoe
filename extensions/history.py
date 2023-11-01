@@ -53,7 +53,7 @@ class History(commands.Cog):
         file_like = io.BytesIO(formatted_history_string.encode())
         file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
-        await interaction.user.send(f"{convo.user.name}'s {developerconfig.BOT_NAME} Transcript ({convo.display_name})", file=discord.File(file_like))
+        await interaction.user.send(f"{convo.user.name}'s {commands_utils.get_config('bot_name')} Transcript ({convo.display_name})", file=discord.File(file_like))
         await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
     
         

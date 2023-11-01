@@ -49,7 +49,7 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Optional
 
-* In the file `sources/common/developerconfig.py` you can change any variables to suit your needs. *Note; it is recommended to set `BOT_NAME` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
+* In the file `bot-config.yaml` you can change any variables to suit your needs. *Note; it is recommended to set `bot_name` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
 
 ## Errors
 

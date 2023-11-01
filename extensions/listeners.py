@@ -44,7 +44,7 @@ class Listeners(commands.Cog):
                                     await convo.ask(content, channel)
                                 
                             elif has_private_thread and convo.is_processing == True:
-                                raise exceptions.DGException(f"{developerconfig.BOT_NAME} is still processing your last request.")
+                                raise exceptions.DGException(f"{commands_utils.get_config('bot_name')} is still processing your last request.")
                         else:
                             raise exceptions.ModelIsLockedError(convo.model.model)
 
