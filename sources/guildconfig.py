@@ -20,13 +20,14 @@ __all__ = [
     "get_guild_config_attribute",
     "reset_guild_config"
 ]
-generate_config_keys = lambda: {} # TODO
-config_keys = {
-    "speed": commands_utils.get_config("voice_speedup_multiplier"),
-    "timezone": commands_utils.get_config("timezone"),
-    "voice": True,
-    "voice-keyword": commands_utils.get_config("listening_keyword")
-} 
+
+def generate_config_key():
+    return {
+        "speed": commands_utils.get_config("voice_speedup_multiplier"),
+        "timezone": commands_utils.get_config("timezone"),
+        "voice": True,
+        "voice-keyword": commands_utils.get_config("listening_keyword")
+    }
 
 class GuildData:
     def __init__(self, data: list):
@@ -58,7 +59,7 @@ class DGGuildConfigSession:
     @decorators.has_config
     def edit_guild(self, **keys):
         
-        if set(keys.keys()).issubset(set(config_keys.keys())):
+        if set(keys.keys()).issubset(set(generate_config_key().keys())):
             data: GuildData = self._manager.get_guild()
             data.config_data.update(keys)
             self._manager.edit_guild(data.config_data)
@@ -87,7 +88,7 @@ class DGGuildConfigSessionManager(database.DGDatabaseSession):
         return bool(self.get_guild(gid if isinstance(gid, int) else self._session.guild.id).guild_id)
     
     def add_guild(self):
-        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self._session.guild.id, self._session.guild.owner_id, _json.dumps(config_keys),))
+        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self._session.guild.id, self._session.guild.owner_id, _json.dumps(generate_config_key()),))
     
     def edit_guild(self, data: dict):
         self._exec_db_command("UPDATE guild_configs SET json=? WHERE gid=?", (_json.dumps(data), self._session.guild.id))
@@ -110,7 +111,7 @@ def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: _Any |
         return cs.edit_guild(**actual_data)
 
 def reset_guild_config(guild: _discord.Guild) -> None:
-    return edit_guild_config(guild, **config_keys)
+    return edit_guild_config(guild, **generate_config_key())
         
     
 def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> _Any:

@@ -128,7 +128,7 @@ class Communication(commands.Cog):
         else:
             raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
             
-    @discord.app_commands.command(name="stop", description=f"Stop a {developerconfig.BOT_NAME} session.")
+    @discord.app_commands.command(name="stop", description=f"Stop a {commands_utils.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=True):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)

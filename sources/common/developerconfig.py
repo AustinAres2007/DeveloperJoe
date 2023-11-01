@@ -43,7 +43,6 @@ STREAM_PLACEHOLDER = ":)" # The message that will be sent when streaming. This 
 
 ALLOWED_INTERACTIONS = [ChannelType.private_thread, ChannelType.text, TextChannel, ChannelType.private_thread] # What text channels the bot is allowed to talk in. Even if modifying source code, I do NOT recommend changing this.
 ALLOW_TRACEBACK = False # If a minor error occurs, this determines weather it will be in the traceback or not. This can be overriden in the Exceptions definition in `exceptions.py` (log_error param, bool only)
-DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want time systems to work.
 
 """Generic Types (Do not edit, no matter what. Unless you foundationally change how this bot work. Which, I think you wouldn't do!)"""
 
