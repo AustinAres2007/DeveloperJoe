@@ -4,18 +4,6 @@ from __future__ import annotations
 import sys, os
 
 v_info = sys.version_info
-default_config_keys = {
-    "bot_name": "DeveloperJoe",
-    "bug_report_channel": False,
-    "status_type": 2,
-    "status_text": "/help and answering lifes biggest questions.",
-    "default_gpt_model": "gpt-3.5-turbo",
-    "listening_keyword": "assistant",
-    "listening_timeout": 2.5,
-    "voice_speedup_multiplier": 1.17,
-    "allow_voice": False,
-    "timezone": "UTC"
-}
 
 if not (v_info.major >= 3 and v_info.minor > 8):
     print(f'You must run this bot with Python 3.9 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
@@ -95,8 +83,8 @@ class DeveloperJoe(commands.Bot):
         self._DISCORD_TOKEN = DISCORD_TOKEN
         self._OPENAI_TOKEN = OPENAI_TOKEN
 
-        self.WELCOME_TEXT = WELCOME_TEXT.format(developerconfig.BOT_NAME)
-        self.ADMIN_TEXT = ADMIN_TEXT.format(developerconfig.BOT_NAME)
+        self.WELCOME_TEXT = WELCOME_TEXT.format(commands_utils.get_config("bot_name"))
+        self.ADMIN_TEXT = ADMIN_TEXT.format(commands_utils.get_config("bot_name"))
         self.__tzs__ = pytz.all_timezones
         self.config = None
         
@@ -272,11 +260,11 @@ class DeveloperJoe(commands.Bot):
         """
         error = getattr(error, "original", error)
         async def send_to_debug_channel(**kwargs):
-            if developerconfig.BUG_REPORT_CHANNEL == None:
+            if commands_utils.get_config("bug_report_channel") == None:
                 return
-            elif str(developerconfig.BUG_REPORT_CHANNEL).isdecimal():
+            elif str(commands_utils.get_config("bug_report_channel")).isdecimal():
                 try:
-                    channel = self.get_channel(developerconfig.BUG_REPORT_CHANNEL)
+                    channel = self.get_channel(int(commands_utils.get_config("bug_report_channel")))
                     if channel:
                         return await channel.send(**kwargs) # type: ignore
                     warn("WARNING: Bug report channel ID is invalid or it does not exist. (Error 1)")
@@ -354,7 +342,7 @@ class DeveloperJoe(commands.Bot):
     
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} / {developerconfig.BOT_NAME} Online.")
+            print(f"\n{self.application.name} / {commands_utils.get_config('bot_name')} Online.") # TODO
             
             print(f"""
             Version = {developerconfig.VERSION}
@@ -394,35 +382,9 @@ class DeveloperJoe(commands.Bot):
                     print("Database could not be rebuilt. Aborting. Check database files.")
                     return await self.close()
                 
-                def fix_config(error_message: str):
-                    warn(error_message)
-                    with open(developerconfig.CONFIG_FILE, 'w+') as yaml_file_repair:
-                        self.config = default_config_keys
-                        yaml.safe_dump(default_config_keys, yaml_file_repair)
-                    
-                def check_config_yaml():
-                    print("Checking configuration layout..")
-                    
-                    if os.path.isfile(developerconfig.CONFIG_FILE):
-                        with open(developerconfig.CONFIG_FILE, 'r') as yaml_file:
-                            try:
-                                self.config = yaml.safe_load(yaml_file)
-                                for i1 in enumerate(dict(self.config).items()):
-                                    if (i1[1][0] not in list(default_config_keys) or type(i1[1][1]) != type(default_config_keys[i1[1][0]])):
-                                        fix_config("Invalid Configuration Value Type. Default configuration will be used. Repairing...")
-                                        break
-                                else:
-                                    print("Correct configuration.\n\n")
-                            except (KeyError, IndexError):
-                                fix_config(f"Invalid configuration key. Default configuration will be used. Repairing...")
-                    else:        
-                        fix_config("Configuration file missing. Default configuration will be used. Repairing...")
-                        
-                print("Checks\n")
-                
                 await _check_integrity(0)
                 check_servers()
-                check_config_yaml()
+                commands_utils.check_config_yaml()
                 
                 print("Running.")
             
@@ -475,4 +437,5 @@ def main():
         pass
 
 if __name__ == "__main__":
-    print(f"Please use main.py to run {developerconfig.BOT_NAME}.")
+    print(f"Please use main.py to run {developerconfig.BOT_NAME}")
+    

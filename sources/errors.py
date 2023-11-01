@@ -12,6 +12,9 @@ __all__ = [
     "ModelErrors"
 ]
 
+class GenericErrors:
+    CONFIG_NO_ENTRY = "Config key does not exist within config yaml file or developer configuration."
+    
 class ConversationErrors:
     """Errors pertaining to general conversations."""
 

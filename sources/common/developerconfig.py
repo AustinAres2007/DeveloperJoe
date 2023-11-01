@@ -77,3 +77,18 @@ DATETIME_TZ = _pytz.timezone(TIMEZONE) # This cannot change AT ALL if you want 
 
 InteractableChannel = TextChannel | Thread
 
+"""Default config, do not change"""
+
+default_config_keys = {
+    "bot_name": "DeveloperJoe",
+    "bug_report_channel": False,
+    "status_type": 2,
+    "status_text": "/help and answering lifes biggest questions.",
+    "default_gpt_model": "gpt-3.5-turbo",
+    "listening_keyword": "assistant",
+    "listening_timeout": 2.5,
+    "voice_speedup_multiplier": 1.17,
+    "allow_voice": False,
+    "timezone": "UTC"
+}
+

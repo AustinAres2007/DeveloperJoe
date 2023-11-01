@@ -504,7 +504,7 @@ class DGVoiceChat(DGTextChat):
                 except _speech_recognition.UnknownValueError:
                     pass
                 else:
-                    prefix = guildconfig.get_guild_config_attribute(member.guild, "voice-keyword")
+                    prefix = guildconfig.get_guild_config_attribute(self.bot, member.guild, "voice-keyword")
                     if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
                         text = text.split(developerconfig.LISTENING_KEYWORD)[1].lstrip()
                         usr_voice_convo = self.bot.get_default_voice_conversation(member)
@@ -541,7 +541,7 @@ class DGVoiceChat(DGTextChat):
             def _play_voice(index: int, error: _Any=None):
                 if not error:
                     if not (index >= len(self.voice_tss_queue)):
-                        speed: int = guildconfig.get_guild_config_attribute(new_voice.guild, "speed")
+                        speed: int = guildconfig.get_guild_config_attribute(self.bot, new_voice.guild, "speed")
                         return new_voice.play(_discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True), after=lambda error: _play_voice(index + 1, error))
                         
                     self.voice_tss_queue.clear()

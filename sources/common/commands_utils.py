@@ -1,7 +1,10 @@
 """Utils that commands use."""
 
 from __future__ import annotations
-import discord, io, typing
+from warnings import warn
+from typing import Any
+
+import discord, io, typing, yaml, os
 
 from .. import (
     chat,
@@ -72,3 +75,34 @@ def get_correct_channel(channel: typing.Any | None) -> developerconfig.Interacta
     if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel
     raise exceptions.CannotTalkInChannel(channel)
+
+def fix_config(error_message: str):
+    warn(error_message)
+    with open(developerconfig.CONFIG_FILE, 'w+') as yaml_file_repair:
+        yaml.safe_dump(developerconfig.default_config_keys, yaml_file_repair)
+        return developerconfig.default_config_keys
+                    
+def check_config_yaml():
+    print("Checking configuration layout..")
+    
+    if os.path.isfile(developerconfig.CONFIG_FILE):
+        with open(developerconfig.CONFIG_FILE, 'r') as yaml_file:
+            try:
+                config = yaml.safe_load(yaml_file)
+                for i1 in enumerate(dict(config).items()):
+                    if (i1[1][0] not in list(developerconfig.default_config_keys) or type(i1[1][1]) != type(developerconfig.default_config_keys[i1[1][0]])):
+                        return fix_config("Invalid Configuration Value Type. Default configuration will be used. Repairing...")
+                else:
+                    return config
+            except (KeyError, IndexError):
+                return fix_config(f"Invalid configuration key. Default configuration will be used. Repairing...")
+    else:        
+        return fix_config("Configuration file missing. Default configuration will be used. Repairing...")
+                        
+def get_config(key: str) -> Any:
+    local_config = check_config_yaml()
+    if key in local_config:
+        return local_config.get(key)
+    elif hasattr(developerconfig, key):
+        return getattr(developerconfig, key)
+    raise exceptions.ConfigKeyError(key)

@@ -105,7 +105,7 @@ def reset_guild_config(guild: _discord.Guild) -> None:
     return edit_guild_config(guild, **developerconfig.GUILD_CONFIG_KEYS)
         
     
-def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Any:
+def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> _Any:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
     Args:
@@ -119,8 +119,8 @@ def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> _Any:
         cf = cs.get_guild().config_data
         if attribute in cf:
             return cf[attribute]
-        elif attribute in developerconfig.GUILD_CONFIG_KEYS:
-            return developerconfig.GUILD_CONFIG_KEYS.get(attribute)
+        elif attribute in list(bot.config):
+            return bot.config.get(attribute)
         else:
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
         

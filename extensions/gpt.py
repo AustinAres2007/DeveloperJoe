@@ -71,7 +71,7 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             elif speak_reply and self.client.is_voice_compatible == False:
                 raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
-            elif speak_reply and interaction.guild and guildconfig.get_guild_config_attribute(interaction.guild, "voice") == False:
+            elif speak_reply and interaction.guild and guildconfig.get_guild_config_attribute(self.client, interaction.guild, "voice") == False:
                 raise exceptions.VoiceIsLockedError()
             elif speak_reply and self.client.is_voice_compatible:
                 convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)

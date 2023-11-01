@@ -193,3 +193,8 @@ class CannotTalkInChannel(DGException):
     def __init__(self, channel_type: _Any):
         """Will be raised when a user is trying to talk in an enviroment where the bot cannot talk."""
         super().__init__(self.reply, channel_type)
+    
+class ConfigKeyError(DGException):
+    reply = errors.GenericErrors.CONFIG_NO_ENTRY
+    def __init__(self, missing_key):
+        super().__init__(self.reply, missing_key)
