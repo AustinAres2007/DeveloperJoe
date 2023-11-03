@@ -13,7 +13,7 @@ from typing import (
 )
 from . import (
     exceptions, 
-    guildconfig, 
+    confighandler, 
     history, 
     ttsmodels,
     models
@@ -75,7 +75,7 @@ class DGChats:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=commands_utils.get_config('default_gpt_model'), 
+                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -89,7 +89,7 @@ class DGChats:
             name (str): _description_
             stream (bool): _description_
             display_name (str): _description_
-            model (models.GPTModelType, optional): _description_. Defaults to default_gpt_model.
+            model (models.GPTModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
             associated_thread (_Union[_discord.Thread, None], optional): _description_. Defaults to None.
             is_private (bool, optional): _description_. Defaults to True.
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): _description_. Defaults to None.
@@ -274,7 +274,7 @@ class DGTextChat(DGChats):
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=commands_utils.get_config('default_gpt_model'), 
+                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -410,7 +410,7 @@ class DGTextChat(DGChats):
         if isinstance(self.chat_thread, _discord.Thread) and self.chat_thread.id == interaction.channel_id:
             raise exceptions.CannotDeleteThread(self.chat_thread)
         try:
-            farewell = f"Ended chat: {self.display_name} with {commands_utils.get_config('bot_name')}!"
+            farewell = f"Ended chat: {self.display_name} with {confighandler.get_config('bot_name')}!"
             if save_history == True:
                 history.upload_chat_history(self)
                 farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"
@@ -439,7 +439,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: models.GPTModelType | str=commands_utils.get_config('default_gpt_model'), 
+            model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
             associated_thread: _Union[_discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -504,9 +504,9 @@ class DGVoiceChat(DGTextChat):
                 except _speech_recognition.UnknownValueError:
                     pass
                 else:
-                    prefix = guildconfig.get_guild_config_attribute(self.bot, member.guild, "voice-keyword")
+                    prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword")
                     if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
-                        text = text.split(commands_utils.get_config('listening_keyword'))[1].lstrip()
+                        text = text.split(confighandler.get_config('listening_keyword'))[1].lstrip()
                         usr_voice_convo = self.bot.get_default_voice_conversation(member)
                         
                         if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
@@ -541,7 +541,7 @@ class DGVoiceChat(DGTextChat):
             def _play_voice(index: int, error: _Any=None):
                 if not error:
                     if not (index >= len(self.voice_tss_queue)):
-                        speed: int = guildconfig.get_guild_config_attribute(self.bot, new_voice.guild, "speed")
+                        speed: int = confighandler.get_guild_config_attribute(self.bot, new_voice.guild, "speed")
                         return new_voice.play(_discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True), after=lambda error: _play_voice(index + 1, error))
                         
                     self.voice_tss_queue.clear()

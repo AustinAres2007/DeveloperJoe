@@ -1,8 +1,11 @@
 from sys import platform
 from pathlib import Path
 from platform import machine 
-from warnings import warn
 import os
+
+from . import (
+    common_functions
+)
 
 arch = machine().lower()
 
@@ -17,9 +20,9 @@ class Archs:
     
 def _get_path_according_to_specs(library: str) -> str:
     if platform == OSTypes.MacOS and arch == Archs.x64:
-        warn("You are using an Intel processor on a Mac machine. This is not supported. Voice has been disabled.")
+        common_functions.warn_for_error("You are using an Intel processor on a Mac machine. This is not supported. Voice has been disabled.")
     elif platform == OSTypes.Linux and arch == Archs.arm64:
-        warn("Somehow you are using an ARM64 processor on Linux. This is not supported. Voice has been disabled.")
+        common_functions.warn_for_error("Somehow you are using an ARM64 processor on Linux. This is not supported. Voice has been disabled.")
     else:
         return str(Path("voice", f"{library}-{platform}").absolute())
     return ""
@@ -43,7 +46,7 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         return final_path
     
     except (KeyError, FileNotFoundError):
-        warn("Running an unsupported operating system. Voice will not work.", RuntimeWarning)
+        common_functions.warn_for_error("Running an unsupported operating system. Voice will not work.")
         return ""
 
 if __name__ == "__main__":

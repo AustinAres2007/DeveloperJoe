@@ -3,13 +3,12 @@ from discord.ext.commands import Cog
 
 from joe import DeveloperJoe
 from sources import (
-    guildconfig, 
+    confighandler, 
     chat, 
     exceptions
 )
 from sources.common import (
-    commands_utils,
-    developerconfig
+    commands_utils
 )
 
 class Voice(Cog):
@@ -22,12 +21,12 @@ class Voice(Cog):
     async def set_speed(self, interaction: discord.Interaction, speed: float):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             if not speed < 1.0 and speed < 4.0: # Arbituary limit on 4.0, if anything less than 1 it becomes glitchy if I remember correctly
-                guildconfig.edit_guild_config(guild, "speed", speed)
+                confighandler.edit_guild_config(guild, "speed", speed)
                 await interaction.response.send_message(f"Changed voice speed to {speed}")
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0 or more than 4.0.")
     
-    @discord.app_commands.command(name="shutup", description=f"If you have a {commands_utils.get_config('bot_name')} voice chat and you want it to stop talking a reply, execute this command.")
+    @discord.app_commands.command(name="shutup", description=f"If you have a {confighandler.get_config('bot_name')} voice chat and you want it to stop talking a reply, execute this command.")
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)

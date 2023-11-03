@@ -10,7 +10,7 @@ from .database import *
 from .history import *
 from .models import *
 from .ttsmodels import *
-from .guildconfig import *
+from .confighandler import *
 
 # Common
 

@@ -1,13 +1,14 @@
-import discord, json, datetime, io, asyncio
+import discord, datetime, io, asyncio
 
-from typing import Union, Any
+from typing import Any
 from discord.ext import commands
 from joe import DeveloperJoe
 
 from sources import (
     history, 
     exceptions, 
-    errors
+    errors,
+    confighandler
 )
 from sources.common import (
     commands_utils,
@@ -33,8 +34,8 @@ class History(commands.Cog):
         try:
             await interaction.response.defer(thinking=False, ephemeral=True)
             with history.DGHistorySession() as history_session:
-                reply: discord.Message = await self.client.get_input(interaction, f'Are you sure? \n(Send reply within {developerconfig.QUERY_TIMEOUT} seconds, \nand "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.)')
-                if reply.content == developerconfig.QUERY_CONFIRMATION:
+                reply = await self.client.get_input(interaction, f'Are you sure? \n(Send reply within {developerconfig.QUERY_TIMEOUT} seconds, \nand "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.)')
+                if reply and reply.content == developerconfig.QUERY_CONFIRMATION:
                     return await interaction.followup.send(history_session.delete_chat_history(history_id))
                 return await interaction.followup.send("Cancelled action.")
 
@@ -53,7 +54,7 @@ class History(commands.Cog):
         file_like = io.BytesIO(formatted_history_string.encode())
         file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
-        await interaction.user.send(f"{convo.user.name}'s {commands_utils.get_config('bot_name')} Transcript ({convo.display_name})", file=discord.File(file_like))
+        await interaction.user.send(f"{convo.user.name}'s {confighandler.get_config('bot_name')} Transcript ({convo.display_name})", file=discord.File(file_like))
         await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
     
         

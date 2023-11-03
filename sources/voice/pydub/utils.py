@@ -7,8 +7,11 @@ import sys
 from subprocess import Popen, PIPE
 from math import log, ceil
 from tempfile import TemporaryFile
-from warnings import warn
 from functools import wraps
+
+from ...common import (
+    common_functions
+)
 
 try:
     import audioop
@@ -166,7 +169,7 @@ def get_encoder_name():
         return "ffmpeg"
     else:
         # should raise exception
-        warn("Couldn't find ffmpeg. Voice will not work.", RuntimeWarning)
+        common_functions.warn_for_error("Couldn't find ffmpeg. Voice will not work.")
         return "ffmpeg"
 
 
@@ -180,7 +183,7 @@ def get_player_name():
         return "ffplay"
     else:
         # should raise exception
-        warn("Couldn't find ffplay or avplay - defaulting to ffplay, but may not work", RuntimeWarning)
+        common_functions.warn_for_error("Couldn't find ffplay or avplay - defaulting to ffplay, but may not work")
         return "ffplay"
 
 
@@ -194,7 +197,7 @@ def get_prober_name():
         return "ffprobe"
     else:
         # should raise exception
-        warn("Couldn't find ffprobe or avprobe - defaulting to ffprobe, but may not work", RuntimeWarning)
+        common_functions.warn_for_error("Couldn't find ffprobe or avprobe - defaulting to ffprobe, but may not work")
         return "ffprobe"
 
 

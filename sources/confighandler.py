@@ -1,5 +1,5 @@
 import discord as _discord, json as _json
-from typing import Union as _Union, Any as _Any
+from typing import Union as _Union, Any
 
 from . import (
     database, 
@@ -23,10 +23,11 @@ __all__ = [
 
 def generate_config_key():
     return {
-        "speed": commands_utils.get_config("voice_speedup_multiplier"),
-        "timezone": commands_utils.get_config("timezone"),
+        "speed": get_config("voice_speedup_multiplier"),
+        "timezone": get_config("timezone"),
         "voice": True,
-        "voice-keyword": commands_utils.get_config("listening_keyword")
+        "voice-keyword": 
+            get_config("listening_keyword")
     }
 
 class GuildData:
@@ -105,7 +106,7 @@ def get_guild_config(guild: _discord.Guild) -> GuildData:
     with DGGuildConfigSession(guild) as cs:
         return cs.get_guild()
 
-def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: _Any | None=None, **kwargs) -> None:
+def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: Any | None=None, **kwargs) -> None:
     with DGGuildConfigSession(guild) as cs:
         actual_data = {key: value} if key and value else kwargs
         return cs.edit_guild(**actual_data)
@@ -114,7 +115,7 @@ def reset_guild_config(guild: _discord.Guild) -> None:
     return edit_guild_config(guild, **generate_config_key())
         
     
-def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> _Any:
+def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> Any:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
     Args:
@@ -132,6 +133,11 @@ def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> _A
             return bot.config.get(attribute)
         else:
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
-        
-        
-        
+
+def get_config(key: str) -> Any:
+    local_config = commands_utils.check_config_yaml()
+    if key in local_config:
+        return local_config.get(key)
+    elif hasattr(developerconfig, key):
+        return getattr(developerconfig, key)
+    raise exceptions.ConfigKeyError(key)        

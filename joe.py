@@ -1,7 +1,13 @@
 """Main DeveloperJoe file."""
 
 from __future__ import annotations
+from asyncio import CancelledError
+from multiprocessing import Value
 import sys, os
+from turtle import color
+from attr import has
+
+from click import command
 
 v_info = sys.version_info
 
@@ -11,12 +17,11 @@ if not (v_info.major >= 3 and v_info.minor > 8):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz, yaml
+    import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz, yaml, colorama
 
     import discord, logging, asyncio, datetime, traceback, aiohttp
     from discord.ext import commands
     from typing import Union
-    from warnings import warn
     
     from distutils.spawn import find_executable
     
@@ -28,7 +33,9 @@ try:
     from sources.common import (
         commands_utils,
         decorators,
-        developerconfig
+        developerconfig,
+        common_functions,
+        voice_checks
     )
     
     from sources import (
@@ -36,7 +43,7 @@ try:
         database, 
         errors, 
         exceptions, 
-        guildconfig, 
+        confighandler, 
         history, 
         modelhandler, 
         models, 
@@ -83,10 +90,10 @@ class DeveloperJoe(commands.Bot):
         self._DISCORD_TOKEN = DISCORD_TOKEN
         self._OPENAI_TOKEN = OPENAI_TOKEN
 
-        self.WELCOME_TEXT = WELCOME_TEXT.format(commands_utils.get_config("bot_name"))
-        self.ADMIN_TEXT = ADMIN_TEXT.format(commands_utils.get_config("bot_name"))
+        self.WELCOME_TEXT = WELCOME_TEXT.format(confighandler.get_config("bot_name"))
+        self.ADMIN_TEXT = ADMIN_TEXT.format(confighandler.get_config("bot_name"))
         self.__tzs__ = pytz.all_timezones
-        self.__tz__ = pytz.timezone(commands_utils.get_config("timezone"))
+        self.__tz__ = pytz.timezone(confighandler.get_config("timezone"))
         self.config = None
         
         super().__init__(*args, **kwargs)
@@ -261,18 +268,15 @@ class DeveloperJoe(commands.Bot):
         """
         error = getattr(error, "original", error)
         async def send_to_debug_channel(**kwargs):
-            if commands_utils.get_config("bug_report_channel") == None:
+            if confighandler.get_config("bug_report_channel") == None:
                 return
-            elif str(commands_utils.get_config("bug_report_channel")).isdecimal():
-                try:
-                    channel = self.get_channel(int(commands_utils.get_config("bug_report_channel")))
-                    if channel:
-                        return await channel.send(**kwargs) # type: ignore
-                    warn("WARNING: Bug report channel ID is invalid or it does not exist. (Error 1)")
-                except Exception as e:
-                    print(f"FATAL BUG REPORT ERROR: \nReporting Bug: {e}\n\nOriginal Error: {exc}")
+            elif str(confighandler.get_config("bug_report_channel")).isdecimal():
+                channel = self.get_channel(int(confighandler.get_config("bug_report_channel")))
+                if channel:
+                    return await channel.send(**kwargs) # type: ignore
+                common_functions.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 1)")
             else:
-                warn("WARNING: Bug report channel ID is invalid or it does not exist. (Error 0)")
+                common_functions.warn_for_error(colorama.Fore.RED + "WARNING: " + colorama.Fore.LIGHTRED_EX + "Bug report channel ID is invalid or it does not exist. (Error 0)")
                 
         async def send(text: str):
             if interaction.response.is_done():
@@ -314,7 +318,7 @@ class DeveloperJoe(commands.Bot):
         
         return embed
     
-    async def get_input(self, interaction: discord.Interaction, msg: str) -> discord.Message:
+    async def get_input(self, interaction: discord.Interaction, msg: str) -> discord.Message | None:
         """Get confirmation for an action that a user can perform (For example; /stop)
 
         Args:
@@ -327,10 +331,12 @@ class DeveloperJoe(commands.Bot):
         def _check_if_user(message: discord.Message) -> bool:
             return message.author.id == interaction.user.id and message.channel == interaction.channel
         
-        await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
-        message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=developerconfig.QUERY_TIMEOUT)
-        return message
-    
+        try:
+            await interaction.response.send_message(msg) if not interaction.response.is_done() else await interaction.followup.send(msg)
+            message: discord.Message = await self.wait_for('message', check=_check_if_user, timeout=developerconfig.QUERY_TIMEOUT)
+            return message
+        except (TimeoutError, CancelledError):
+            return None
     @property
     def is_voice_compatible(self) -> bool:
         try:
@@ -338,19 +344,20 @@ class DeveloperJoe(commands.Bot):
             self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
             discord.opus.load_opus(developerconfig.LIBOPUS)
         except OSError:
-            warn(f"WARNING: Opus library not found. Voice will NOT work. (Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {self.__ffmpeg__}\nHas FFProbe: {self.__ffprobe__})", OpusWarning)
+            common_functions.warn_for_error(f"Opus library not found. Voice will NOT work. \n(Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {'No' if not self.__ffmpeg__ else f'Yes (At: {self.__ffmpeg__})'}\nHas FFProbe: {'No' if not self.__ffprobe__ else f'Yes (At: {self.__ffprobe__})'})")
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
     
     async def on_ready(self):
         if self.application:
-            print(f"\n{self.application.name} / {commands_utils.get_config('bot_name')} Online.") # TODO
+            has_voice = self.is_voice_compatible
+            common_functions.send_affirmative_text(f"\n{self.application.name} / {confighandler.get_config('bot_name')} Online.")
             
             print(f"""
             Version = {developerconfig.VERSION}
-            Report Channel = {self.get_channel(commands_utils.get_config("bug_report_channel")) if commands_utils.get_config("bug_report_channel") and str(commands_utils.get_config("bug_report_channel")).isdecimal() == True else None}
-            Voice Installed = {self.is_voice_compatible}
-            Voice Enabled = {commands_utils.get_config("allow_voice")}
-            Users Can Use Voice = {self.is_voice_compatible and commands_utils.get_config("allow_voice")}
+            Report Channel = {self.get_channel(confighandler.get_config("bug_report_channel")) if confighandler.get_config("bug_report_channel") and str(confighandler.get_config("bug_report_channel")).isdecimal() == True else None}
+            Voice Installed = {has_voice}
+            Voice Enabled = {confighandler.get_config("allow_voice")}
+            Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
             """)
 
             self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
@@ -358,7 +365,7 @@ class DeveloperJoe(commands.Bot):
 
             self.start_time = datetime.datetime.now(tz=self.__tz__)
             
-            await self.change_presence(activity=discord.Activity(type=commands_utils.get_config("status_type"), name=commands_utils.get_config("status_text")))
+            await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
             with (database.DGDatabaseSession() as database_session, modelhandler.DGRulesManager() as _guild_handler):
                 
                 
@@ -438,5 +445,5 @@ def main():
         pass
 
 if __name__ == "__main__":
-    print(f"Please use main.py to run {commands_utils.get_config('bot_name')}")
+    print(f"Please use main.py to run {confighandler.get_config('bot_name')}")
     

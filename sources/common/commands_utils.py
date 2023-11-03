@@ -1,7 +1,6 @@
 """Utils that commands use."""
 
 from __future__ import annotations
-from warnings import warn
 from typing import Any
 
 import discord, io, typing, yaml, os
@@ -12,17 +11,22 @@ from .. import (
     models
 )
 from . import (
-    developerconfig
+    developerconfig,
+    common_functions
 )
 
 __all__ = [
-    "is_voice_conversation",
     "to_file",
     "to_file_fp",
+    "is_voice_conversation",
+    "is_correct_channel",
     "assure_class_is_value",
     "get_modeltype_from_name",
+    "modeltype_is_in_models",
     "in_correct_channel",
-    "get_correct_channel"
+    "get_correct_channel",
+    "fix_config",
+    "check_config_yaml"
 ]
 
 def to_file_fp(fp: str) -> discord.File:
@@ -76,13 +80,26 @@ def get_correct_channel(channel: typing.Any | None) -> developerconfig.Interacta
         return channel
     raise exceptions.CannotTalkInChannel(channel)
 
-def fix_config(error_message: str):
-    warn(error_message)
+def fix_config(error_message: str) -> dict[str, Any]:
+    """Resets the bot-config.yaml file to the programmed default. This function also returns the default.
+
+    Args:
+        error_message (str): The warning about the failed configuration.
+
+    Returns:
+        dict[str, Any]: _description_ The default config.
+    """
+    common_functions.warn_for_error(error_message)
     with open(developerconfig.CONFIG_FILE, 'w+') as yaml_file_repair:
         yaml.safe_dump(developerconfig.default_config_keys, yaml_file_repair)
         return developerconfig.default_config_keys
                     
-def check_config_yaml():
+def check_config_yaml() -> dict[str, Any]:
+    """Return the bot-config.yaml file as a dictionary.
+
+    Returns:
+        dict[str, Any]: The configuration. (Updated when this function is called)
+    """
     if os.path.isfile(developerconfig.CONFIG_FILE):
         with open(developerconfig.CONFIG_FILE, 'r') as yaml_file:
             try:
@@ -96,11 +113,3 @@ def check_config_yaml():
                 return fix_config(f"Invalid configuration key. Default configuration will be used. Repairing...")
     else:        
         return fix_config("Configuration file missing. Default configuration will be used. Repairing...")
-                        
-def get_config(key: str) -> Any:
-    local_config = check_config_yaml()
-    if key in local_config:
-        return local_config.get(key)
-    elif hasattr(developerconfig, key):
-        return getattr(developerconfig, key)
-    raise exceptions.ConfigKeyError(key)
