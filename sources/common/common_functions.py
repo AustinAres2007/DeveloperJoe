@@ -3,11 +3,21 @@
 from colorama import Fore
 
 __all__ = [
-    "warn_for_error"
+    "send_fatal_error_warning",
+    "warn_for_error",
+    "send_affirmative_text"
 ]
 
+def send_fatal_error_warning(text: str) -> None:
+    """Prints a red formatted text, indicating distress to the end client. 
+
+    Args:
+        text (str): _description_
+    """
+    print(Fore.LIGHTRED_EX + "\nLETHAL WARNING: " + Fore.RED + f"{text}\n" + Fore.WHITE)
+    
 def warn_for_error(text: str) -> None:
-    """Prints a red formatted text warning to the end client.
+    """Prints a yellow formatted text warning to the end client.
 
     Args:
         text (str): _description_ The text to warn.
@@ -21,3 +31,5 @@ def send_affirmative_text(text: str) -> None:
         text (str): _description_ The text to print.
     """
     print(Fore.GREEN + f"\n{text}\n" + Fore.WHITE)
+
+

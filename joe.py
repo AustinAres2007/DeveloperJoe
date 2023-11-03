@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 from asyncio import CancelledError
-from multiprocessing import Value
 import sys, os
-from turtle import color
-from attr import has
-
-from click import command
 
 v_info = sys.version_info
 
@@ -350,7 +345,6 @@ class DeveloperJoe(commands.Bot):
     async def on_ready(self):
         if self.application:
             has_voice = self.is_voice_compatible
-            common_functions.send_affirmative_text(f"\n{self.application.name} / {confighandler.get_config('bot_name')} Online.")
             
             print(f"""
             Version = {developerconfig.VERSION}
@@ -387,15 +381,15 @@ class DeveloperJoe(commands.Bot):
                             return await _check_integrity(i+1)
                             
                         return print("Database all set.\n")
-                    print("Database could not be rebuilt. Aborting. Check database files.")
+                    common_functions.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
                     return await self.close()
                 
                 await _check_integrity(0)
                 check_servers()
                 commands_utils.check_config_yaml()
                 
-                print("Running.")
-            
+                common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
+                
             
             self.chats = {user.id: {} for user in self.users}
             self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
@@ -422,7 +416,7 @@ async def _run_bot():
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
-        async with DeveloperJoe(command_prefix="++_", intents=DeveloperJoe.INTENTS) as client:
+        async with DeveloperJoe(command_prefix="whatever", intents=DeveloperJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)
             
     except KeyboardInterrupt:

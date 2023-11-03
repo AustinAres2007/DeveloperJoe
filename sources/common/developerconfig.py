@@ -50,7 +50,7 @@ InteractableChannel = TextChannel | Thread
 
 default_config_keys = {
     "bot_name": "DeveloperJoe",
-    "bug_report_channel": False,
+    "bug_report_channel": 0,
     "status_type": 2,
     "status_text": "/help and answering lifes biggest questions.",
     "default_gpt_model": "gpt-3.5-turbo",
