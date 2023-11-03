@@ -34,7 +34,13 @@ then
 
         if [ ! -e "$DIR/dependencies/api-keys.key" ]
         then
-            echo "WARNING: I do not detect a "dependencies/api-keys.key" file. I will create one, but no API tokens will be inserted. Are you sure you want to continue? (Press anything if so, CTRL + C to exit)"
+            echo "WARNING: I do not detect a "dependencies/api-keys.key" file. 
+            If you want to supply one, do it now before you continue this prompt.
+            If not, one will be created but no API tokens will be inserted and the file will be empty. 
+            
+            If you have any other files to insert (Voice Libraries) do it now. If not, you can do it later.
+            Do you want to continue? (Press anything if so, CTRL + C to exit)"
+            
             read -p ""
             touch "$DIR/dependencies/api-keys.key"
         fi
