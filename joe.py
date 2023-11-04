@@ -297,13 +297,13 @@ class DeveloperJoe(commands.Bot):
             return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
         
         logging.error(exception)
-
-        exc = traceback.format_exc()
         error_text = f"From error handler: {str(error)}"
-        error_traceback = commands_utils.to_file(exc, "traceback.txt")
+        error_traceback = commands_utils.to_file(exception, "traceback.txt")
         
         await send_with_file(error_text, error_traceback)
-        return await send_to_debug_channel(content=error_text, file=error_traceback)
+        
+        nef = commands_utils.to_file(exception, f"{interaction.guild}-error.txt")
+        return await send_to_debug_channel(content=error_text, file=nef)
     
     def get_embed(self, title: str) -> discord.Embed:
         
@@ -333,6 +333,7 @@ class DeveloperJoe(commands.Bot):
             return message
         except (TimeoutError, CancelledError):
             return None
+        
     @property
     def is_voice_compatible(self) -> bool:
         try:

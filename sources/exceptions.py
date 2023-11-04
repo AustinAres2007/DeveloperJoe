@@ -197,4 +197,11 @@ class CannotTalkInChannel(DGException):
 class ConfigKeyError(DGException):
     reply = errors.GenericErrors.CONFIG_NO_ENTRY
     def __init__(self, missing_key):
+        """Will be raised when a config key has been specified, but does not exist."""
         super().__init__(self.reply, missing_key)
+
+class GPTTimeoutError(DGException):
+    reply = errors.GptErrors.GPT_TIMEOUT_ERROR
+    def __init__(self, message: str):
+        """Will be raised when a query was given to DG, but the request timed out."""
+        super().__init__(self.reply, message)

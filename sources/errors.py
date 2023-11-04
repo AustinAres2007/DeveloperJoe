@@ -61,6 +61,7 @@ class GptErrors:
 
     GPT_CONTENT_FILTER = "You have asked a query that flagged GPT's content filter. Do not ask the same query or anything like it again."
     GPT_PORTAL_ERROR = "Invalid command from OpenAI Gateway server."
+    GPT_TIMEOUT_ERROR = "The server took too long to respond. Please ask your query again."
 
 class HistoryErrors:
     """Errors pertaining to the history database / incorrect parameters."""

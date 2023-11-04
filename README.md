@@ -58,15 +58,21 @@ I will add to this later, and try and make a more indepth and easy to understand
 ## Release Notes 1.3.6
 
 1. More user friendly configuration. (Also makes it easier to store private config when pushing to git)
-2. Bug fixes
+2. More dynamic configuration
+3. Bug fixes
 
-*Bug Eliminations*
+*Bug Eliminations and changes*
 * Fixed bug where you could not set the servers `voice` setting to False due to a logic error.
+* Fixed bug where if you specified a history id that didn't exist, it would give a fatal error.
+* Fixed error handling with timeout when using /ask or any functions within.
+* Fixed bug channel file issue
+* Random wording changes
 
 
 ## Todo 1.3.6
 
 ~~Setup config checking within `joe.py`~~ Done
 
-Test commands (At /config, keep working way down according to /help)
-Test voice-related commands (None done yet)
+~~Test commands (At /config, keep working way down according to /help)~~ Done
+
+~~Test voice-related commands (None done yet)~~ Done

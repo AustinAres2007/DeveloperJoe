@@ -13,7 +13,6 @@ __all__ = [
 
 class DGHistoryChat:
     
-    # TODO: History system not working. Fix.
     def __init__(self, data: list):
         self._id: str = data[0][0]
         self._user: int = data[0][1]
@@ -60,9 +59,11 @@ class DGHistorySession(database.DGDatabaseSession):
         """
         super().__init__()
     
-    def retrieve_chat_history(self, history_id: str) -> DGHistoryChat:
-        return DGHistoryChat(self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,)))
-    
+    def retrieve_chat_history(self, history_id: str) -> DGHistoryChat | None:
+        data = self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,))
+        if data:
+            return DGHistoryChat(data)
+        
     def delete_chat_history(self, history_id: str) -> str:
         if self.retrieve_chat_history(history_id):
             self._exec_db_command("DELETE FROM history WHERE uid=?", (history_id,))

@@ -159,6 +159,8 @@ class DGChats:
             except KeyError:
                 print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
                 await self.bot.close()
+            except TimeoutError:
+                raise exceptions.GPTTimeoutError(kwargs["content"])
             
         elif query_type == "image":
             # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
@@ -385,7 +387,7 @@ class DGTextChat(DGChats):
         Returns:
             str: The welcome message.
         """
-        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content="Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations."))
+        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
