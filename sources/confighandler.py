@@ -60,10 +60,12 @@ class DGGuildConfigSession:
     @decorators.has_config
     def edit_guild(self, **keys):
         
-        if set(keys.keys()).issubset(set(generate_config_key().keys())):
+        if keys and set(keys.keys()).issubset(set(generate_config_key().keys())):
             data: GuildData = self._manager.get_guild()
             data.config_data.update(keys)
             self._manager.edit_guild(data.config_data)
+        elif not keys:
+            raise exceptions.DGException(f"Empty keys would make no change.")
         else:
             raise exceptions.DGException(f"Unknown configuration key(s): {list(keys)}")
         
@@ -108,7 +110,7 @@ def get_guild_config(guild: _discord.Guild) -> GuildData:
 
 def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: Any | None=None, **kwargs) -> None:
     with DGGuildConfigSession(guild) as cs:
-        actual_data = {key: value} if key and value else kwargs
+        actual_data = {key: value} if key != None and value != None else kwargs
         return cs.edit_guild(**actual_data)
 
 def reset_guild_config(guild: _discord.Guild) -> None:

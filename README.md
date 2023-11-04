@@ -58,7 +58,15 @@ I will add to this later, and try and make a more indepth and easy to understand
 ## Release Notes 1.3.6
 
 1. More user friendly configuration. (Also makes it easier to store private config when pushing to git)
+2. Bug fixes
+
+*Bug Eliminations*
+* Fixed bug where you could not set the servers `voice` setting to False due to a logic error.
+
 
 ## Todo 1.3.6
 
-Setup config checking within `joe.py`
+~~Setup config checking within `joe.py`~~ Done
+
+Test commands (At /config, keep working way down according to /help)
+Test voice-related commands (None done yet)

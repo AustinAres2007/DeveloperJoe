@@ -59,7 +59,7 @@ class Configuration(_Cog):
                 return await interaction.followup.send("Cancelled action.", ephemeral=False)
                 
             confighandler.reset_guild_config(guild)
-            return await interaction.followup.send("Reset this server configuration keys. You may view them with /config.")
+            return await interaction.followup.send("The servers configuration options have been reset. You may view them with /config.")
             
         
 async def setup(client):

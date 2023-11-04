@@ -6,8 +6,8 @@ import sys, os
 
 v_info = sys.version_info
 
-if not (v_info.major >= 3 and v_info.minor > 8):
-    print(f'You must run this bot with Python 3.9 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
+if not (v_info.major >= 3 and v_info.minor >= 11):
+    print(f'You must run this bot with Python 3.11 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
     exit(1)
 
 try:
@@ -284,13 +284,14 @@ class DeveloperJoe(commands.Bot):
             return await interaction.response.send_message(text, file=file)
         
         exception: str = traceback.format_exc()
-        # If it is a DGException
+        
+        # If it is a DGException or derives from it
         if message := getattr(error, "message", None):
             if (log := getattr(error, "log_error", None)) != None:
                 if log == True:
                     logging.error(exception) 
-                await send(message) if getattr(error, "send_exception", False) == True else None
-                return await send_to_debug_channel(content=message)
+                return await send(message) if getattr(error, "send_exception", False) == True else None
+                
         
         if isinstance(error, discord.app_commands.CheckFailure):
             return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
@@ -439,5 +440,5 @@ def main():
         pass
 
 if __name__ == "__main__":
-    print(f"Please use main.py to run {confighandler.get_config('bot_name')}")
+    print(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
     
