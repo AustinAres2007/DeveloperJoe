@@ -22,3 +22,7 @@ misc/bot_log.log
 api-keys.key
 bot-config.yaml
 
+ffprobe-darwin
+ffmpeg-darwin
+ffprobe-linux
+ffmpeg-linux
