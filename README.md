@@ -55,24 +55,12 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.6
+## Release Notes 1.3.7
 
-1. More user friendly configuration. (Also makes it easier to store private config when pushing to git)
-2. More dynamic configuration
-3. Bug fixes
+1. Bug fixes
+2. Video and Written setup tutorials
 
-*Bug Eliminations and changes*
-* Fixed bug where you could not set the servers `voice` setting to False due to a logic error.
-* Fixed bug where if you specified a history id that didn't exist, it would give a fatal error.
-* Fixed error handling with timeout when using /ask or any functions within.
-* Fixed bug channel file issue
-* Random wording changes
+## Todo 1.3.7
 
-
-## Todo 1.3.6
-
-~~Setup config checking within `joe.py`~~ Done
-
-~~Test commands (At /config, keep working way down according to /help)~~ Done
-
-~~Test voice-related commands (None done yet)~~ Done
+1. Make video, plan it out.
+2. Make flowchart of debugging
