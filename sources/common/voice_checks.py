@@ -48,11 +48,4 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
     except (KeyError, FileNotFoundError):
         common_functions.warn_for_error("Running an unsupported operating system. Voice will not work.")
         return ""
-
-if __name__ == "__main__":
-    ffm = _get_voice_paths("ffmpeg", False)
-    ffp = _get_voice_paths("ffprobe", False)
-    opus = _get_voice_paths("opus", True)
-    
-    print(ffm, ffp, opus)
     

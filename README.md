@@ -8,6 +8,8 @@ DeveloperJoe is a GPT 3/4 Discord bot that is fully customisable if you have suf
 - Image Generation
 - Streaming chat replies
 
+I would recommend reading all the files inside the instructions folder if you plan to take advantage of the full capabilities of this bot. Though, the "welcome.md" file would suffice, or even just this file would do.
+
 This bot is directed towards people who want customisation. Though, this is because I am lazy and too broke to afford the API prices. The customisation does come at a cost, which is that you have to have some very minor knowledge or python programming.
 
 ## Setup
