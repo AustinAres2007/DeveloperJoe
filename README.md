@@ -61,6 +61,8 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 1. Written setup tutorials
 2. Easier bot setup (No longer need to validate voice libs with macOS)
+3. Can now change bot listening keyword.
+4. Renamed "/generate" to "/image".
 
 ## Todo 1.3.6 (Revision)
 
