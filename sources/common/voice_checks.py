@@ -42,7 +42,11 @@ def _get_voice_paths(library: str, shared_lib: bool) -> str:
         final_path = path + executable_suffix[platform] if not shared_lib else path + shared_library_suffix[platform]
         
         if os.path.isfile(final_path):
-            os.system(f"chmod a+rwx {final_path}")
+            os.system("chmod a+rwx {}".format(final_path))
+            if platform == OSTypes.MacOS:
+                print("xattr")
+                os.system("xattr -r -d com.apple.quarantine {}".format(final_path))
+                
         return final_path
     
     except (KeyError, FileNotFoundError):
