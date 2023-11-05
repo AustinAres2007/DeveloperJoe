@@ -57,12 +57,11 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.7
+## Release Notes 1.3.6 (Revision)
 
-1. Bug fixes
-2. Video and Written setup tutorials
+1. Written setup tutorials
+2. Easier bot setup (No longer need to validate voice libs with macOS)
 
-## Todo 1.3.7
+## Todo 1.3.6 (Revision)
 
-1. Make video, plan it out.
-2. Make flowchart of debugging
+None
