@@ -14,8 +14,8 @@ This bot is directed towards people who want customisation. Though, this is beca
 
 ## Setup
 
-1. ### Run the installation script (`install.sh`) 
-    * To start, run the `install.sh` file located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
+1. ### Run the installation / run script (`bot` for macOS / Linux or `install.bat` for Windows) 
+    * To start, run the installation / run script located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
 
 2. ### Obtain a Discord API Key from [Discord's Developer Website.](https://discord.com/developers/applications) 
     * Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
@@ -32,9 +32,11 @@ This bot is directed towards people who want customisation. Though, this is beca
 
 ## Running DeveloperJoe
 
-All you have to do is execute the file `run.sh` after the installation. Or do the following command in the terminal `sh run.sh` or `bash run.sh` for Linux!
+All you have to do is double click the file `bot` for macOS / Linux or `run.bat` for Windows after the installation. Or you can do the following command in the terminal: `./bot` for macOS and Linux.
 
 ## Voice Support (MACOS AND LINUX ONLY!)
+
+TODO Update README: Voice support is added if you download a release.
 
 Voice support is not added by default. You will need to acquire the required libraries. You can download the respective files for your computer at [this repository.](https://github.com/AustinAres2007/developerjoe-downloads/releases) Simply drag and drop all 3 files into the `voice` directory.
 
