@@ -130,24 +130,16 @@ class Communication(commands.Cog):
             
     @discord.app_commands.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
-    async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=True):
+    async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=False):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         
         async def func(gpt: chat.DGTextChat):
-            with history.DGHistorySession() as history_session:
-    
-                if self.client.get_all_user_conversations(member):
-                    reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {developerconfig.QUERY_TIMEOUT} seconds, and "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
-                    if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
-                        return await interaction.followup.send("Cancelled action.", ephemeral=False)
-                    
-                    farewell = await gpt.stop(interaction, history_session, save_chat)
-                    
-                    self.client.delete_conversation(member, name)
-                    self.client.reset_default_conversation(member)
-                    await interaction.followup.send(farewell, ephemeral=False)
-                else:
-                    await interaction.followup.send(errors.ConversationErrors.NO_CONVO_WITH_NAME, ephemeral=False)
+            reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {developerconfig.QUERY_TIMEOUT} seconds, and "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
+            if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
+                return await interaction.followup.send("Cancelled action.", ephemeral=False)
+            
+            farewell = await gpt.stop(interaction, save_chat)
+            await interaction.followup.send(farewell, ephemeral=False)
             
         # checks because app_commands cannot use normal ones.
         if convo := self.client.get_user_conversation(member, name):
@@ -155,9 +147,21 @@ class Communication(commands.Cog):
         else:
             raise exceptions.UserDoesNotHaveChat(name)
 
-    @discord.app_commands.command(name="end", description=f"Stop all conversations you hold with {confighandler.get_config('bot_name')}")
+    @discord.app_commands.command(name="end", description=f"Stop all conversations you hold with {confighandler.get_config('bot_name')}. No conversation threads will be deleted.")
     async def stop_all(self, interaction: discord.Interaction):
-        ...
+        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        if convos := self.client.get_all_user_conversations(member):
+            reply = await self.client.get_input(interaction, f'Are you sure you want to end all of your chats? Type "{developerconfig.QUERY_CONFIRMATION}" to confirm or anything else to cancel. Timeout is {developerconfig.QUERY_TIMEOUT} seconds.')
+            if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
+                return await interaction.followup.send("Cencelled action.", ephemeral=False)
+            
+            chat_len = len(self.client.get_all_user_conversations(member))
+            convos.clear()
+            
+            await interaction.followup.send(f"Deleted {chat_len} chat{'s.' if chat_len > 1 else '.'}")
+        else:
+            raise exceptions.UserDoesNotHaveAnyChats()
         
     @discord.app_commands.command(name="image", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")

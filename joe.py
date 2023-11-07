@@ -427,11 +427,15 @@ async def _run_bot():
             exit(0)
             
     except discord.errors.LoginFailure:
-        print(f"Improper Discord API Token given in {developerconfig.TOKEN_FILE}, please make sure the API token is still valid.")
+        common_functions.send_fatal_error_warning(f"Improper Discord API Token given in {developerconfig.TOKEN_FILE}, please make sure the API token is still valid.")
         exit(1)
         
     except aiohttp.ClientConnectionError:
-        print("You are not connected to WiFi.")
+        common_functions.send_fatal_error_warning("You are not connected to WiFi.")
+        exit(1)
+    
+    except discord.app_commands.errors.CommandSyncFailure:
+        common_functions.send_fatal_error_warning(f'There was an error with a command. This may occur because your bots name is too long within the "{developerconfig.CONFIG_FILE}" config file.')
         exit(1)
         
 def main():

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from collections.abc import Iterator
-import datetime as _datetime, discord as _discord, openai as _openai, random as _random, openai_async as _openai_async, json as _json, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
+import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
 from enum import Enum as _Enum
 from typing import (
@@ -394,7 +394,7 @@ class DGTextChat(DGChats):
         self.context._context.clear()
         self.context._display_context.clear()
     
-    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: bool) -> str:
+    async def stop(self, interaction: _discord.Interaction, save_history: bool) -> str:
         """Stops the chat instance.
 
         Args:
@@ -409,21 +409,26 @@ class DGTextChat(DGChats):
         Returns:
             str: A farewell message.
         """
-        if isinstance(self.chat_thread, _discord.Thread) and self.chat_thread.id == interaction.channel_id:
-            raise exceptions.CannotDeleteThread(self.chat_thread)
-        try:
-            farewell = f"Ended chat: {self.display_name} with {confighandler.get_config('bot_name')}!"
-            if save_history == True:
-                history.upload_chat_history(self)
-                farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"
-            else:
-                farewell += "\n\n\n*Not saved chat history*"
+        with history.DGHistorySession() as dg_history:
+            member: _discord.Member = commands_utils.assure_class_is_value(interaction.user, _discord.Member)
+            if isinstance(self.chat_thread, _discord.Thread) and self.chat_thread.id == interaction.channel_id:
+                raise exceptions.CannotDeleteThread(self.chat_thread)
+            try:
+                farewell = f"Ended chat: {self.display_name} with {confighandler.get_config('bot_name')}!"
+                self.bot.delete_conversation(member, self.display_name)
+                self.bot.reset_default_conversation(member)
+                
+                if save_history == True:
+                    dg_history.upload_chat_history(self)
+                    farewell += f"\n\n\n*Saved chat history with ID: {self.hid}*"
+                else:
+                    farewell += "\n\n\n*Not saved chat history*"
 
-            if isinstance(self.chat_thread, _discord.Thread):
-                await self.chat_thread.delete()
-            return farewell
-        except _discord.Forbidden as e:
-            raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
+                if isinstance(self.chat_thread, _discord.Thread):
+                    await self.chat_thread.delete()
+                return farewell
+            except _discord.Forbidden as e:
+                raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.user} is_active={self.is_active}>"
