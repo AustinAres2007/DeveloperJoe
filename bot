@@ -7,7 +7,7 @@ else
     PYTHON_COMMAND=python3
 fi
 
-echo Loading..
+echo Loading.. If running for the first time, you will notice a long pause.
 DIR=$(cd "$(dirname "$0")"; pwd)
 cd $DIR
 
@@ -38,7 +38,7 @@ then
             If you have any other files to insert (Voice Libraries) do it now. If not, you can do it later.
             If you want to exit press "CTRL + C" to do so.'
             
-            read -p 'Discord API Key: ' -r DISCORD_KEY
+            read -p 'Discord API Key (Most likely starting with "MT"): ' -r DISCORD_KEY
             read -p 'OpenAI API Key (Starting with "sk-"): ' -r OPENAI_KEY
 
             $PYTHON_COMMAND "$DIR/misc/write_keys.py" $DISCORD_KEY $OPENAI_KEY

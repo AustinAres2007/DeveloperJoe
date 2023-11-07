@@ -413,7 +413,7 @@ async def _run_bot():
     """Runs the bot."""
     client = None
     try:
-        print(f"\nTokens\n\nDiscord: {DISCORD_TOKEN}\nOpenAI: {OPENAI_TOKEN}\n")
+        print(f"\nTokens\n\nDiscord: {DISCORD_TOKEN[:6]}...{DISCORD_TOKEN[-3:]}\nOpenAI: {OPENAI_TOKEN[:6]}...{OPENAI_TOKEN[-3:]}\n")
             
         logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
@@ -433,7 +433,7 @@ async def _run_bot():
     except aiohttp.ClientConnectionError:
         print("You are not connected to WiFi.")
         exit(1)
-
+        
 def main():
     try:
         asyncio.run(_run_bot())
