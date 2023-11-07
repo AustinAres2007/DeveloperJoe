@@ -93,7 +93,11 @@ Commands that relate to starting a chat, or anything relating to it
       - `save_chat`: If you want the chat to be stored for long term storage. This is active by default.
    * This command stops a chat that was started with `/start`.
 
-4. ## /inquire `query` `gpt_model`
+4. ## /end
+   * This command has no arguments.
+   * This command ends all conversations a user may hold. Confirmation will be asked for.
+
+5. ## /inquire `query` `gpt_model`
    * This command has 2 arguments. `gpt_model` is optional.
       - `query`: What you want to ask DeveloperJoe.
       - `gpt_model`: What model of GPT you want to use. This is optional and a default will be used if not provided.

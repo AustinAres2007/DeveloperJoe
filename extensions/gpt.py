@@ -155,6 +155,10 @@ class Communication(commands.Cog):
         else:
             raise exceptions.UserDoesNotHaveChat(name)
 
+    @discord.app_commands.command(name="end", description=f"Stop all conversations you hold with {confighandler.get_config('bot_name')}")
+    async def stop_all(self, interaction: discord.Interaction):
+        ...
+        
     @discord.app_commands.command(name="image", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
     @discord.app_commands.choices(resolution=[
