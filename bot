@@ -7,7 +7,7 @@ else
     PYTHON_COMMAND=python3
 fi
 
-echo Loading.. If running for the first time, you will notice a long pause.
+echo Loading...
 DIR=$(cd "$(dirname "$0")"; pwd)
 cd $DIR
 
