@@ -34,7 +34,7 @@ then
             
             if [ "$OSTYPE" = "linux-gnu" ]
             then 
-                sudo apt install python3.11-venv &> /dev/null # Emptying output because not all linux machines have apt installed, and already have venv installed with python311
+                sudo apt install python3.11-venv
             fi
 
             PYTHON_PATH=$(which $PYTHON_COMMAND)

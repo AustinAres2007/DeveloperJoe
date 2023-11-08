@@ -62,11 +62,11 @@ I will add to this later, and try and make a more indepth and easy to understand
 ## Release Notes 1.3.7
 
 1. New command: "/end" Ends all chats a user currently has.
-2. Written & Recorded setup tutorials
-3. Easier bot setup (No longer need to validate voice libs with macOS)
+2. Written setup tutorials
+3. Easier bot setup (No longer need to validate voice libs with macOS and better linux setup)
 4. Can now change bot listening keyword.
 5. Renamed "/generate" to "/image".
 
-## Todo 1.3.7
+## Todo 1.3.8
 
-None
+URGENT: Fix Linux Libs AS SOON AS POSSIBLE.
