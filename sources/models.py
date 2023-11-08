@@ -22,9 +22,10 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
         "messages": temp_context
     }
     _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+    json_reply = _reply.json()
     try:
-        reply = _reply.json()["choices"][0]
-        usage = _reply.json()["usage"]
+        reply = json_reply["choices"][0]
+        usage = json_reply["usage"]
 
         if isinstance(reply, dict):
             actual_reply = reply["message"]  
@@ -37,7 +38,13 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
         else:
             raise GPTReplyError(reply, type(reply))
     except KeyError:
-        raise DGException(f"Got incomplete reply: {_reply.json()}", log_error=True, send_exceptions=True)
+        if "error" in json_reply:
+            if json_reply["error"]["code"] in [502, 503]:
+                raise DGException("OpenAI's Servers are overloaded at the moment. Try again in another hour or two.")
+            else:
+                raise DGException(f"Got uncatched error: {json_reply}", log_error=True, send_exceptions=True)
+            
+        raise DGException(f"Got incomplete reply: {json_reply}", log_error=True, send_exceptions=True)
     
 async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs):
     async def __get_stream_parsed_data__(_history, **kwargs) -> typing.AsyncGenerator:
