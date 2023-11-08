@@ -40,7 +40,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
     except KeyError:
         if "error" in json_reply:
             if json_reply["error"]["code"] in [502, 503]:
-                raise DGException("OpenAI's Servers are overloaded at the moment. Try again in another hour or two.")
+                raise DGException("OpenAI's Servers are overloaded or have had an outage. Try again in another hour or two. You may check the server status at [OpenAI's Status Page.](https://status.openai.com)")
             else:
                 raise DGException(f"Got uncatched error: {json_reply}", log_error=True, send_exceptions=True)
             
