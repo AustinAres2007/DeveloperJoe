@@ -514,7 +514,7 @@ class DGVoiceChat(DGTextChat):
                     with _speech_recognition.AudioFile(voice) as wav_file:
                         data = recogniser.record(wav_file)
                         text = recogniser.recognize_google(data, pfilter=0)
-                except _speech_recognition.UnknownValueError as e:
+                except _speech_recognition.UnknownValueError:
                     pass
                 else:
                     prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword")

@@ -63,8 +63,8 @@ class Listeners(commands.Cog):
             #[await owner.send(self.client.ADMIN_TEXT[.CHARACTER_LIMIT * t:]) for t in range(ceil(len(self.client.ADMIN_TEXT) / .CHARACTER_LIMIT))]
             await owner.send(file=commands_utils.to_file(self.client.ADMIN_TEXT, "admin-introduction.md"))
 
-        with modelhandler.DGRules(guild):
-            pass # Make sure guild in rule database, if not, make it.
+        with modelhandler.DGRulesManager(guild) as _guild_handler:
+            _guild_handler._add_raw_guild(guild.id)
     
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
