@@ -22,7 +22,7 @@ then
     PATCH=${VERSION_ARRAY[2]}
 
     if [ "$MAJOR" -lt 3 ] || ([ "$MAJOR" -eq 3 ] && [ "$MINOR" -lt 11 ]); then
-        echo "You cannot run this script. Python version is too old. (Python 3.11 and above, you have $VERSION)"
+        echo "You cannot run this script. Python version is too old. (Python 3.11 and above, you have $VERSION) You can download Python 3.11 at https://python.org"
         exit 1
     else
         . "$DIR/bin/activate" &> /dev/null
