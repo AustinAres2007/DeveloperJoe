@@ -28,7 +28,7 @@ then
         . "$DIR/bin/activate" &> /dev/null
         IN_VE=$(python3 -c 'import sys; print(sys.prefix != sys.base_prefix)')
 
-        if [ ! "$IN_VE" = "False" ]
+        if [ ! "$IN_VE" = "True" ]
         then
             echo Installing... You may need to enter your password and confirm some prompts.
             
