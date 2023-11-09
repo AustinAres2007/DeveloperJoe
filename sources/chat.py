@@ -21,8 +21,10 @@ from . import (
 from .common import (
     decorators,
     commands_utils,
-    developerconfig
+    developerconfig,
+    common_functions
 )
+
 if TYPE_CHECKING:
     from joe import DeveloperJoe
 
@@ -501,23 +503,31 @@ class DGVoiceChat(DGTextChat):
     async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
         try:
             
+            # TODO: Fix voice here
+            
             if self.proc_packet == False:
                 self.proc_packet = True
+                
                 recogniser = _speech_recognition.Recognizer()
+                
                 try:
                     with _speech_recognition.AudioFile(voice) as wav_file:
                         data = recogniser.record(wav_file)
                         text = recogniser.recognize_google(data, pfilter=0)
-                except _speech_recognition.UnknownValueError:
+                except _speech_recognition.UnknownValueError as e:
                     pass
                 else:
                     prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword")
+                    
                     if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
                         text = text.split(confighandler.get_config('listening_keyword'))[1].lstrip()
                         usr_voice_convo = self.bot.get_default_voice_conversation(member)
                         
                         if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
                             await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
+                            
+        except Exception as error:
+            common_functions.send_fatal_error_warning(str(error))
         finally:
             self.proc_packet = False
         

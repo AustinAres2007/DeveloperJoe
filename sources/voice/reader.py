@@ -396,7 +396,7 @@ class OpusEventAudioReader(_ReaderBase):
                                           [self.client.socket], 0.01)
             if not ready:
                 if err:
-                    print("Socket error")
+                    print("Socket error", err)
                 continue
 
             try:
