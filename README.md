@@ -67,6 +67,6 @@ I will add to this later, and try and make a more indepth and easy to understand
 4. Can now change bot listening keyword.
 5. Renamed "/generate" to "/image".
 
-## Todo 1.3.8
+## Todo 1.3.7
 
 Urgent: Fix bot listening.
