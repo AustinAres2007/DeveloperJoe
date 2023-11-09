@@ -69,4 +69,4 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Todo 1.3.8
 
-URGENT: Fix Linux Libs AS SOON AS POSSIBLE.
+Urgent: Fix bot listening.
