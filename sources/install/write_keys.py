@@ -1,9 +1,13 @@
-import sys, os
+import sys, os, confighandler
+
+from ..common import developerconfig
 
 try:
     if sys.argv[1:]:
         discord, openai = sys.argv[1:3]
-        if os.path.exists("dependencies/api-keys.key") == False:
+        if os.path.exists(developerconfig.TOKEN_FILE) == False:
+            # TODO: Change system over to yaml format with confighandler.write_api_keys()
+            
             with open("dependencies/api-keys.key", "w+") as key_file:
                 key_file.writelines([f"{discord}\n", f"{openai}"])
 

@@ -95,7 +95,7 @@ class DGGuildConfigSessionManager(database.DGDatabaseSession):
     
     def edit_guild(self, data: dict):
         self._exec_db_command("UPDATE guild_configs SET json=? WHERE gid=?", (_json.dumps(data), self._session.guild.id))
-
+        
 def get_guild_config(guild: _discord.Guild) -> GuildData:
     """Returns a guilds full developerconfig.
 
@@ -137,9 +137,19 @@ def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> An
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
 
 def get_config(key: str) -> Any:
-    local_config = commands_utils.check_config_yaml()
+    local_config = commands_utils.check_and_get_yaml()
     if key in local_config:
         return local_config.get(key)
     elif hasattr(developerconfig, key):
         return getattr(developerconfig, key)
-    raise exceptions.ConfigKeyError(key)        
+    raise exceptions.ConfigKeyError(key)       
+
+def get_api_key(api_key: str) -> str:
+    api_config = commands_utils.check_and_get_yaml(developerconfig.TOKEN_FILE, developerconfig.default_api_keys)
+    return api_config[api_key]
+
+def write_api_keys(keys: dict[str, str]) -> None:
+    # TODO: put `keys` into api-keys.yaml. Used for bot script. This will not include the bard api key so it must be copied
+    # TODO: from the default_api_keys then the values from `keys` must be replaced into the defaults, then other ones that 
+    # TODO: arent replaced will be left as an empty string.
+    ...

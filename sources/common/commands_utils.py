@@ -26,7 +26,7 @@ __all__ = [
     "in_correct_channel",
     "get_correct_channel",
     "fix_config",
-    "check_config_yaml"
+    "check_and_get_yaml"
 ]
 
 def to_file_fp(fp: str) -> discord.File:
@@ -94,18 +94,19 @@ def fix_config(error_message: str) -> dict[str, Any]:
         yaml.safe_dump(developerconfig.default_config_keys, yaml_file_repair)
         return developerconfig.default_config_keys
                     
-def check_config_yaml() -> dict[str, Any]:
+def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against: dict=developerconfig.default_config_keys) -> dict[str, Any]:
     """Return the bot-config.yaml file as a dictionary.
 
     Returns:
         dict[str, Any]: The configuration. (Updated when this function is called)
     """
-    if os.path.isfile(developerconfig.CONFIG_FILE):
-        with open(developerconfig.CONFIG_FILE, 'r') as yaml_file:
+    if os.path.isfile(yaml_file):
+        with open(yaml_file, 'r') as yaml_file_obj:
             try:
-                config = yaml.safe_load(yaml_file)
+                config = yaml.safe_load(yaml_file_obj)
+
                 for i1 in enumerate(dict(config).items()):
-                    if (i1[1][0] not in list(developerconfig.default_config_keys) or type(i1[1][1]) != type(developerconfig.default_config_keys[i1[1][0]])):
+                    if (i1[1][0] not in list(check_against) or type(i1[1][1]) != type(check_against[i1[1][0]])):
                         return fix_config("Invalid Configuration Value Type. Default configuration will be used. Repairing...")
                 else:
                     return config
@@ -113,3 +114,4 @@ def check_config_yaml() -> dict[str, Any]:
                 return fix_config(f"Invalid configuration key. Default configuration will be used. Repairing...")
     else:        
         return fix_config("Configuration file missing. Default configuration will be used. Repairing...")
+    

@@ -388,7 +388,7 @@ class DeveloperJoe(commands.Bot):
                 
                 await _check_integrity(0)
                 check_servers()
-                commands_utils.check_config_yaml()
+                commands_utils.check_and_get_yaml()
                 
                 common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                 

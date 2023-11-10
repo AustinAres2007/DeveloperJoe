@@ -1,4 +1,4 @@
-import tiktoken, typing, openai_async, json, tiktoken
+import tiktoken, typing, openai_async, json, tiktoken, confighandler
 
 from sources.chat import GPTConversationContext
 
@@ -113,6 +113,7 @@ class GPTModel:
     _model: str = ""
     _display_name: str = ""
     _description: str = ""
+    _api_key: str = "openai_api_key"
     
     @classmethod
     @property
@@ -160,18 +161,19 @@ class GPT3Turbo(GPTModel):
     _model: str = "gpt-3.5-turbo"
     _display_name: str = "GPT 3.5 Turbo"
     _description: str = "Good for generating text and general usage. Cost-effective."
-
+    _api_key: str = "openai_api_key"
+    
     @classmethod
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
     
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
-        return await _gpt_ask_base(query, context, api_key, role, save_message, cls.model)
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model)
     
     @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", **kwargs) -> typing.AsyncGenerator:
-        return _gpt_ask_stream_base(query, context, api_key, role, cls.tokeniser, cls.model, **kwargs)
+    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> typing.AsyncGenerator:
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
             
         
 class GPT4(GPTModel):
@@ -180,18 +182,19 @@ class GPT4(GPTModel):
     _model: str = "gpt-4"
     _display_name: str = "GPT 4"
     _description: str = "Better than GPT 3 Turbo at everything. Would stay with GPT 3 for most purposes-- Can get expensive."
+    _api_key = "openai_api_key"
     
     @classmethod 
     def __eq__(cls, __value: GPTModel) -> bool:
         return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, api_key: str, role: str = "user", save_message: bool = True, **kwargs) -> AIReply:
-        return await _gpt_ask_base(query, context, api_key, role, save_message, cls.model)
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIReply:
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model)
     
     @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str = "user", **kwargs) -> typing.AsyncGenerator:
-        return _gpt_ask_stream_base(query, context, api_key, role, cls.tokeniser, cls.model, **kwargs)
+    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> typing.AsyncGenerator:
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
     
 GPTModelType = typing.Union[GPT3Turbo, GPT4]
 registered_models = {

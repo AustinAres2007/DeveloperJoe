@@ -156,7 +156,7 @@ class DGChats:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             try:
-                ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, self.oapi, "user", save_message)
+                ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
                 replied_content = ai_reply._reply
             except KeyError:
                 print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
@@ -186,7 +186,7 @@ class DGChats:
         self.is_processing = True
         try:
             tokens = 0
-            ai_reply = self.model.__askmodelstream__(query, self.context, self.oapi, "user", **kwargs)
+            ai_reply = self.model.__askmodelstream__(query, self.context, "user", **kwargs)
             async for chunk, token in ai_reply:
                 tokens += token
                 yield chunk

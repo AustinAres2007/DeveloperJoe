@@ -17,7 +17,7 @@ if %ERRORLEVEL% EQU 0 (
     for /f "delims=" %%A in ('%PYTHON_COMMAND% -c "import platform; print(platform.python_version())"') do ( 
         set "VERSION=%%A"   
     )
-    %PYTHON_COMMAND% "%DIR%\misc\py_version.py"
+    %PYTHON_COMMAND% "%DIR%\sources\install\py_version.py"
     if ERRORLEVEL 1 (
         exit /B
     ) else (

@@ -59,14 +59,11 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.7
+## Release Notes 1.3.8
 
-1. New command: "/end" Ends all chats a user currently has.
-2. Written setup tutorials
-3. Easier bot setup (No longer need to validate voice libs with macOS and better linux setup)
-4. Can now change bot listening keyword.
-5. Renamed "/generate" to "/image".
+Added support for Google Bard (API Key required)
+Changed API Key system. 
 
 ## Todo 1.3.7
 
-Urgent: Fix bot listening.
+Make 

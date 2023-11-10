@@ -19,7 +19,7 @@ FINAL = True # This does nothing. Just indicates if the current version of the 
 VERSION = "1.3.7" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
-TOKEN_FILE = "dependencies/api-keys.key" # Where the API keys for Discord and OpenAI are located. (Reletive)
+TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and OpenAI are located. (Reletive)
 WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome text is located. (Reletive)
 ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / welcome text is located. (Reletive)
 CONFIG_FILE = "bot-config.yaml" # Where the client-configuration file is located (Reletive)
@@ -61,5 +61,10 @@ default_config_keys = {
     "timezone": "UTC",
     "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
     "voice_debug": False,
+}
+default_api_keys = {
+    "discord_api_key": "",
+    "openai_api_key": "",
+    "google_api_key": ""
 }
 
