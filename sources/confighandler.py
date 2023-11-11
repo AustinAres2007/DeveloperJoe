@@ -147,9 +147,3 @@ def get_config(key: str) -> Any:
 def get_api_key(api_key: str) -> str:
     api_config = commands_utils.check_and_get_yaml(developerconfig.TOKEN_FILE, developerconfig.default_api_keys)
     return api_config[api_key]
-
-def write_api_keys(keys: dict[str, str]) -> None:
-    # TODO: put `keys` into api-keys.yaml. Used for bot script. This will not include the bard api key so it must be copied
-    # TODO: from the default_api_keys then the values from `keys` must be replaced into the defaults, then other ones that 
-    # TODO: arent replaced will be left as an empty string.
-    ...

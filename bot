@@ -44,7 +44,7 @@ then
             $PYTHON_COMMAND -m pip install -q -r "$DIR/dependencies/requirements.txt"
         fi
 
-        if [ ! -e "$DIR/dependencies/api-keys.key" ]
+        if [ ! -e "$DIR/dependencies/api-keys.yaml" ]
         then
             echo 'I do not detect a "dependencies/api-keys.key" file. 
             You can enter the keys right now. Or leave both prompts blank and a blank key file will be made so you can fill it later.
@@ -54,14 +54,11 @@ then
             
             read -p 'Discord API Key (Most likely starting with "MT"): ' -r DISCORD_KEY
             read -p 'OpenAI API Key (Starting with "sk-"): ' -r OPENAI_KEY
-
-            $PYTHON_COMMAND "$DIR/sources/install/write_keys.py" $DISCORD_KEY $OPENAI_KEY
-            touch "$DIR/dependencies/api-keys.key"
         fi
 
 
         echo Performing bot startup..
-        $PYTHON_COMMAND "$DIR/main.py"
+        $PYTHON_COMMAND "$DIR/main.py" $DISCORD_KEY $OPENAI_KEY
 
     fi
 else

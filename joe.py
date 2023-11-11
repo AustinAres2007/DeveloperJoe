@@ -444,6 +444,7 @@ def main():
     except KeyboardInterrupt:
         pass
 
+def handle_keys
 if __name__ == "__main__":
     print(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
     

@@ -20,6 +20,7 @@ Lib/
 .DS_Store
 misc/bot_log.log
 api-keys.key
+api-keys.yaml
 bot-config.yaml
 
 ffprobe-darwin
