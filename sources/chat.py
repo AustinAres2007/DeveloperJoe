@@ -159,7 +159,7 @@ class DGChats:
                 ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
                 replied_content = ai_reply._reply
             except KeyError:
-                print(f"The provided OpenAI API key was invalid. ({self.bot._OPENAI_TOKEN})")
+                common_functions.send_fatal_error_warning(f"The Frovided OpenAI API key was invalid.")
                 await self.bot.close()
             except TimeoutError:
                 raise exceptions.GPTTimeoutError(kwargs["content"])
@@ -194,6 +194,9 @@ class DGChats:
         except exceptions.GPTReachedLimit as e:
             self.is_active = False
             raise e
+        except AttributeError:
+            self.is_active = False
+            raise exceptions.DGException("This model does not support streaming.")
         finally:
             self.is_processing = False
             

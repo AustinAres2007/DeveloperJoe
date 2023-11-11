@@ -1,13 +1,13 @@
-import tiktoken, typing, openai_async, json, tiktoken, confighandler
-
+import tiktoken, typing, openai_async, json, tiktoken
 from sources.chat import GPTConversationContext
+from sources import confighandler
 
 from .chat import GPTConversationContext
 from .common.developerconfig import GPT_REQUEST_TIMEOUT
 from .exceptions import GPTReplyError, GPTContentFilter, GPTReachedLimit, DGException
 
 __all__ = [
-    "GPTModel",
+    "AIModel",
     "GPT3Turbo",
     "GPT4",
     "GPTModelType",
@@ -108,7 +108,7 @@ class AIReply:
         self._error_code = _error_code
         self._error = _error
     
-class GPTModel:
+class AIModel:
 
     _model: str = ""
     _display_name: str = ""
@@ -155,7 +155,7 @@ class GPTModel:
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, api_key: str, role: str="user", **kwargs) -> typing.AsyncGenerator:
         raise NotImplementedError
         
-class GPT3Turbo(GPTModel):
+class GPT3Turbo(AIModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 
     _model: str = "gpt-3.5-turbo"
@@ -164,7 +164,7 @@ class GPT3Turbo(GPTModel):
     _api_key: str = "openai_api_key"
     
     @classmethod
-    def __eq__(cls, __value: GPTModel) -> bool:
+    def __eq__(cls, __value: AIModel) -> bool:
         return cls.model == __value.model
     
     @classmethod
@@ -176,7 +176,7 @@ class GPT3Turbo(GPTModel):
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
             
         
-class GPT4(GPTModel):
+class GPT4(AIModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
 
     _model: str = "gpt-4"
@@ -185,7 +185,7 @@ class GPT4(GPTModel):
     _api_key = "openai_api_key"
     
     @classmethod 
-    def __eq__(cls, __value: GPTModel) -> bool:
+    def __eq__(cls, __value: AIModel) -> bool:
         return cls.model == __value.model
 
     @classmethod
@@ -195,9 +195,25 @@ class GPT4(GPTModel):
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> typing.AsyncGenerator:
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
+
+class GoogleBard(AIModel):
     
-GPTModelType = typing.Union[GPT3Turbo, GPT4]
+    _model: str = "google-bard"
+    _display_name: str = "Google Bard"
+    _description: str = "TBD"
+    _api_key: str = "google_api_key"
+    
+    @classmethod
+    def __eq__(cls, __value: AIModel) -> bool:
+        return cls.model == __value.model
+
+    @classmethod
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIReply:
+        return AIReply("This model has not been setup yet and is a work in progress.", 0, 0, "No error.")
+    
+GPTModelType = typing.Union[GPT3Turbo, GPT4, GoogleBard]
 registered_models = {
     "gpt-4": GPT4,
-    "gpt-3.5-turbo": GPT3Turbo
+    "gpt-3.5-turbo": GPT3Turbo,
+    "google-bard": GoogleBard
 }

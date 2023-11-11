@@ -64,6 +64,6 @@ I will add to this later, and try and make a more indepth and easy to understand
 Added support for Google Bard (API Key required)
 Changed API Key system. 
 
-## Todo 1.3.7
+## Todo 1.3.8
 
-Make 
+Test Bard engine

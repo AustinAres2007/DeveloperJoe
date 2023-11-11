@@ -29,17 +29,17 @@ class Communication(commands.Cog):
     @discord.app_commands.command(name="start", description=f"Start a {confighandler.get_config('bot_name')} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
-                                   gpt_model="The model being used for the AI (GPT 3 or GPT 4)",
+                                   ai_model="The model being used for the AI (GPT 3 or GPT 4)",
                                    in_thread=f"If you want a dedicated private thread to talk with {confighandler.get_config('bot_name')} in.",
                                    speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {confighandler.get_config('bot_name')} will join and speak your replies.",
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
     )
-    @discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, gpt_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
+    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
-        actual_model = commands_utils.get_modeltype_from_name(gpt_model)
+        actual_model = commands_utils.get_modeltype_from_name(ai_model)
         
         async def command():
         
@@ -65,7 +65,7 @@ class Communication(commands.Cog):
                     await chat_thread.add_user(member)
                     await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
                     
-            chat_args = (self.client, self.client._OPENAI_TOKEN, member, actual_name, stream_conversation, name, gpt_model, chat_thread, is_private)
+            chat_args = (self.client, confighandler.get_api_key(actual_model._api_key), member, actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
             
             if speak_reply == False:
                 convo = chat.DGTextChat(*chat_args)
@@ -92,7 +92,7 @@ class Communication(commands.Cog):
     
         if self.client.get_user_has_permission(member, actual_model):
             return await command()
-        raise exceptions.ModelIsLockedError(gpt_model)
+        raise exceptions.ModelIsLockedError(ai_model)
         
     @discord.app_commands.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")

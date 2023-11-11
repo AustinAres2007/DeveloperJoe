@@ -23,6 +23,7 @@ TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and O
 WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome text is located. (Reletive)
 ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / welcome text is located. (Reletive)
 CONFIG_FILE = "bot-config.yaml" # Where the client-configuration file is located (Reletive)
+LOG_FILE = "misc/bot_log.log"
 
 MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
@@ -62,9 +63,10 @@ default_config_keys = {
     "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
     "voice_debug": False,
 }
+
 default_api_keys = {
-    "discord_api_key": "",
-    "openai_api_key": "",
-    "google_api_key": ""
+    "discord_api_key": "Put Discord Token Here!",
+    "openai_api_key": "Put OpenAI API Key (Token) here!",
+    "google_api_key": "Put Google API Key here! (Optional)"
 }
 

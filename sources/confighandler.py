@@ -1,4 +1,4 @@
-import discord as _discord, json as _json
+import discord as _discord, json as _json, yaml, os
 from typing import Union as _Union, Any
 
 from . import (
@@ -8,7 +8,8 @@ from . import (
 from .common import (
     decorators,
     developerconfig,
-    commands_utils
+    commands_utils,
+    common_functions
 )
 
 __all__ = [
@@ -137,7 +138,7 @@ def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> An
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
 
 def get_config(key: str) -> Any:
-    local_config = commands_utils.check_and_get_yaml()
+    local_config = check_and_get_yaml()
     if key in local_config:
         return local_config.get(key)
     elif hasattr(developerconfig, key):
@@ -145,5 +146,53 @@ def get_config(key: str) -> Any:
     raise exceptions.ConfigKeyError(key)       
 
 def get_api_key(api_key: str) -> str:
-    api_config = commands_utils.check_and_get_yaml(developerconfig.TOKEN_FILE, developerconfig.default_api_keys)
-    return api_config[api_key]
+    api_config = check_and_get_yaml(developerconfig.TOKEN_FILE, developerconfig.default_api_keys)
+    return api_config.get(api_key, None)
+
+def fix_config(file: str, fix_with: dict[str, Any]) -> dict[str, Any]:
+    """Resets the bot-config.yaml file to the programmed default. This function also returns the default.
+
+    Args:
+        error_message (str): The warning about the failed configuration.
+
+    Returns:
+        dict[str, Any]: _description_ The default config.
+    """
+    common_functions.warn_for_error("Invalid YAML File Type. Default configuration will be used. Repairing...")
+    with open(file, 'w+') as yaml_file_repair:
+        yaml.safe_dump(fix_with, yaml_file_repair)
+        return fix_with
+                    
+def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against: dict=developerconfig.default_config_keys) -> dict[str, Any]:
+    """Return the bot-config.yaml file as a dictionary.
+
+    Returns:
+        dict[str, Any]: The configuration. (Updated when this function is called)
+    """
+
+    if os.path.isfile(yaml_file):
+        with open(yaml_file, 'r') as yaml_file_obj:
+            try:
+                config = yaml.safe_load(yaml_file_obj)
+                
+                if config:
+                    for i1 in enumerate(dict(config).items()):
+                        if (i1[1][0] not in list(check_against) or type(i1[1][1]) != type(check_against[i1[1][0]])):
+                            return fix_config(yaml_file, check_against)
+                    else:
+                        return config
+                else:
+                    return fix_config(yaml_file, check_against)
+            except (KeyError, IndexError):
+                return fix_config(yaml_file, check_against)
+    else:        
+        return fix_config(yaml_file, check_against)
+
+def write_keys(keys: dict[str, str]) -> dict[str, str]:
+    new_keys = check_and_get_yaml(developerconfig.TOKEN_FILE, developerconfig.default_api_keys)
+    new_keys.update(keys)
+    
+    with open(developerconfig.TOKEN_FILE, "w+") as key_yaml:
+        yaml.safe_dump(new_keys, key_yaml)
+    
+    return new_keys

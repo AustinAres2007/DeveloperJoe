@@ -54,21 +54,12 @@ except IndexError as err:
 # Configuration
 
 try:
-    with open(developerconfig.TOKEN_FILE, 'r') as tk_file:
-        DISCORD_TOKEN, OPENAI_TOKEN = tk_file.readlines()[0:2]
-        DISCORD_TOKEN = DISCORD_TOKEN.strip()
-        OPENAI_TOKEN = OPENAI_TOKEN.strip()
-    
-except (FileNotFoundError, ValueError, IndexError):
-    print("Missing token file / Missing tokens within token file"); exit(1)
-
-try:
     with open(developerconfig.WELCOME_FILE, encoding="utf8") as welcome_file, open(developerconfig.ADMIN_FILE, encoding="utf8") as admin_file:
         WELCOME_TEXT = welcome_file.read()
         ADMIN_TEXT = admin_file.read()
 
 except FileNotFoundError:
-    print(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
+    common_functions.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
 
 # Main Bot Class    
 
@@ -82,8 +73,7 @@ class DeveloperJoe(commands.Bot):
     INTENTS = discord.Intents.all()
     
     def __init__(self, *args, **kwargs):
-        self._DISCORD_TOKEN = DISCORD_TOKEN
-        self._OPENAI_TOKEN = OPENAI_TOKEN
+        self.__keys__ = {}
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(confighandler.get_config("bot_name"))
         self.ADMIN_TEXT = ADMIN_TEXT.format(confighandler.get_config("bot_name"))
@@ -343,7 +333,7 @@ class DeveloperJoe(commands.Bot):
         except OSError:
             common_functions.warn_for_error(f"Opus library not found. Voice will NOT work. \n(Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {'No' if not self.__ffmpeg__ else f'Yes (At: {self.__ffmpeg__})'}\nHas FFProbe: {'No' if not self.__ffprobe__ else f'Yes (At: {self.__ffprobe__})'})")
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
-    
+        
     async def on_ready(self):
         if self.application:
             has_voice = self.is_voice_compatible
@@ -388,7 +378,7 @@ class DeveloperJoe(commands.Bot):
                 
                 await _check_integrity(0)
                 check_servers()
-                commands_utils.check_and_get_yaml()
+                confighandler.check_and_get_yaml()
                 
                 common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                 
@@ -413,9 +403,10 @@ async def _run_bot():
     """Runs the bot."""
     client = None
     try:
+        DISCORD_TOKEN, OPENAI_TOKEN = confighandler.get_api_key("discord_api_key"), confighandler.get_api_key("openai_api_key")
         print(f"\nTokens\n\nDiscord: {DISCORD_TOKEN[:6]}...{DISCORD_TOKEN[-3:]}\nOpenAI: {OPENAI_TOKEN[:6]}...{OPENAI_TOKEN[-3:]}\n")
             
-        logging_handler = logging.FileHandler("misc/bot_log.log", mode="w+")
+        logging_handler = logging.FileHandler(developerconfig.LOG_FILE, mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
         
         async with DeveloperJoe(command_prefix="whatever", intents=DeveloperJoe.INTENTS) as client:
@@ -438,13 +429,13 @@ async def _run_bot():
         common_functions.send_fatal_error_warning(f'There was an error with a command. This may occur because your bots name is too long within the "{developerconfig.CONFIG_FILE}" config file.')
         exit(1)
         
-def main():
+def main(keys: dict[str, str]):
     try:
+        confighandler.write_keys(keys)
         asyncio.run(_run_bot())
     except KeyboardInterrupt:
         pass
 
-def handle_keys
 if __name__ == "__main__":
-    print(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
+    common_functions.send_fatal_error_warning(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
     
