@@ -27,7 +27,8 @@ LOG_FILE = "misc/bot_log.log"
 
 MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
-    _Choice(name="GPT 4", value="gpt-4")
+    _Choice(name="GPT 4", value="gpt-4"),
+    _Choice(name="Google Bard", value="google-bard")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
 
 # TODO: Need to change configuration
