@@ -30,7 +30,7 @@ then
 
         if [ ! "$IN_VE" = "True" ]
         then
-            echo Installing... You may need to enter your password and confirm some prompts.
+            echo Installing... You may need to enter your password and confirm some prompts and take some time.
             
             if [ "$OSTYPE" = "linux-gnu" ]
             then 

@@ -30,6 +30,8 @@ if %ERRORLEVEL% EQU 0 (
         )
         
         if not "!INVIRTUAL!"=="True" (
+            
+            echo Installing... This may take some time.
             %PYTHON_COMMAND% -m venv %DIR% && call Scripts\activate
             %PYTHON_COMMAND% -m pip install -q --upgrade pip
             %PYTHON_COMMAND% -m pip install -q -r "dependencies\requirements.txt"
