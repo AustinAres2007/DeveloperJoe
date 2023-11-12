@@ -16,7 +16,7 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.3.8-F" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.3.8" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and OpenAI are located. (Reletive)
@@ -27,8 +27,7 @@ LOG_FILE = "misc/bot_log.log"
 
 MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
-    _Choice(name="GPT 4", value="gpt-4"),
-    _Choice(name="Google Bard", value="google-bard")
+    _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
 
 # TODO: Need to change configuration

@@ -14,37 +14,29 @@ This bot is directed towards people who want customisation. Though, this is beca
 
 ## Setup
 
-1. ### Run the installation / run script (`bot` for macOS / Linux or `install.bat` for Windows) 
-    * To start, run the installation / run script located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
+1. ### Run the installation / run script 
+    * To start, run the installation / run script, labeled "bot" located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
 
 2. ### Obtain a Discord API Key from [Discord's Developer Website.](https://discord.com/developers/applications) 
     * Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
 
-    * After you have obtained an API Key, load the file `dependencies/api-keys.key` and paste the key on line 1.
+    * After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "discord_api_key: (key)"
 
 3. ### Obtain an OpenAI API Key from [OpenAI's Website](https://platform.openai.com/account) 
     * Navigate to the "API keys" tab and register one. And warning for beginnners, using this API costs money, and you will **NEED** to add a payment method if you do not have free credits, and depending on the model and how much you use it, it can get expensive.
 
-    * Paste the OpenAI API Key in `dependencies/api-keys.key` on line 2, under the Discord API Key.
+    * After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "openai_api_key: (key)"
 
 4. ### Congratulations, you have finished the instillation.
     * Read further if you want to setup voice capabilities or instructions on how to run the bot.
 
 ## Running DeveloperJoe
 
-All you have to do is double click the file `bot` for macOS / Linux or `run.bat` for Windows after the installation. Or you can do the following command in the terminal: `./bot` for macOS and Linux.
+All you have to do is double click the file `bot` for all operating systems
 
-## Voice Support (MACOS AND LINUX ONLY!)
+## Voice Support
 
-TODO Update README: Voice support is added if you download a release.
-
-Voice support is not added by default. You will need to acquire the required libraries. You can download the respective files for your computer at [this repository.](https://github.com/AustinAres2007/developerjoe-downloads/releases) Simply drag and drop all 3 files into the `voice` directory.
-
-**Important for Apple Users**
-
-(NOTE: RUN BOT FIRST BEFORE DOING THE FOLLOWING STEPS) When you first run the bot with the libraries installed, you will likely get a warning. All you have to do is go to the libraries you downloaded and open them via the terminal. Apple will give you another warning asking if you are sure, click okay, and nothing will happen. Then restart the bot and everything will be good to go.
-
-All that does is give the system your "permission" and "acknowledgment" that you know the files are foreign (downloaded from the internet) The files are perfectly safe to use. Apple is just cautious.
+Voice support added by default if you downloaded a release from my GitHub, you do not need to do any setup at all. Just run the bot. If not, you will need to acquire the required libraries. You can download the respective files for your computer at [this repository.](https://github.com/AustinAres2007/developerjoe-downloads/releases) Simply drag and drop all 3 inside your respective ZIP folder files into the `voice` directory.
 
 **Other**
 
@@ -61,8 +53,5 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.3.8
 
+Added Windows voice support (64 Bit only)
 Changed API Key system. 
-
-## Todo 1.3.8
-
-More testing
