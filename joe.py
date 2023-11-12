@@ -1,4 +1,13 @@
-"""Main DeveloperJoe file."""
+"""Main DeveloperJoe file.
+
+Thank you to:
+    - Fabian Kuzbiel (Tester, Support, Survey)
+    - Bradley King (Tester)
+    - Emie (Testing in early stages, Survey)
+    
+    - The Developers of Opus.
+    - The Developers of FFmpeg.
+"""
 
 from __future__ import annotations
 from asyncio import CancelledError
