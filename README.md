@@ -61,9 +61,8 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.3.8
 
-Added support for Google Bard (API Key required)
 Changed API Key system. 
 
 ## Todo 1.3.8
 
-Test Bard engine
+More testing
