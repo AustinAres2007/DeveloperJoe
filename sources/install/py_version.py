@@ -6,5 +6,4 @@ if __name__ == "__main__":
     if int(MAJOR) >= 3:
         if int(MINOR) == 11:
             exit(0)
-    print(f"Only compatible with Python 3.11\nYou are using Python {MAJOR}.{MINOR}.{PATCH}")
     exit(1) # MUST BE EXIT CODE 1

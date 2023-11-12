@@ -46,7 +46,7 @@ then
 
         if [ ! -e "$DIR/dependencies/api-keys.yaml" ]
         then
-            echo 'I do not detect a "dependencies/api-keys.key" file. 
+            echo 'I do not detect a "dependencies/api-keys.yaml" file. 
             You can enter the keys right now. Or leave both prompts blank and a blank key file will be made so you can fill it later.
             
             If you have any other files to insert (Voice Libraries) do it now. If not, you can do it later.

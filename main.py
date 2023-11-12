@@ -1,7 +1,6 @@
 import sys
 
 if __name__ == "__main__":
-    
     keys = {
         "discord_api_key": sys.argv[1],
         "openai_api_key": sys.argv[2]
