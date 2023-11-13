@@ -54,6 +54,19 @@ class DGDatabaseSession:
         return fetched
     
     def init(self) -> None:
+        """Creates tables required for normal bot operation."""
+        
         self._exec_db_command("CREATE TABLE history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")
         self._exec_db_command("CREATE TABLE model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
         self._exec_db_command("CREATE TABLE guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
+    
+    def delete(self) -> None:
+        """Deletes tables that are needed. This should only be used if there is an error with the database. DGDatabaseSession.init() should be called right after this."""
+        self._exec_db_command("DROP TABLE IF EXISTS history")
+        self._exec_db_command("DROP TABLE IF EXISTS model_rules")
+        self._exec_db_command("DROP TABLE IF EXISTS guild_configs")
+    
+    def reset(self) -> None:
+        """Resets the database contents to default (Zero items) This is shorthand for delete() then init()"""
+        self.delete()
+        self.init()

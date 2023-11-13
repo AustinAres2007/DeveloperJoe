@@ -32,12 +32,12 @@ def send_affirmative_text(text: str) -> None:
     """
     print(Fore.GREEN + f"\n{text}\n" + Fore.WHITE)
 
-def send_debug_text(text: str) -> None:
-    """Prints  light cyan text to the end client.
+def send_info_text(text: str) -> None:
+    """Prints light cyan text to the end client.
 
     Args:
         text (str): The text to print.
     """
-    print(Fore.LIGHTCYAN_EX + "Debug:  " + Fore.CYAN + f"{text}\n" + Fore.WHITE)
+    print(Fore.LIGHTCYAN_EX + "Info:  " + Fore.CYAN + f"{text}\n" + Fore.WHITE)
 
 

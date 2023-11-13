@@ -270,7 +270,7 @@ class DeveloperJoe(commands.Bot):
                     return await channel.send(**kwargs) # type: ignore
                 common_functions.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 1)")
             else:
-                common_functions.warn_for_error(colorama.Fore.RED + "WARNING: " + colorama.Fore.LIGHTRED_EX + "Bug report channel ID is invalid or it does not exist. (Error 0)")
+                common_functions.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 0)")
                 
         async def send(text: str):
             if interaction.response.is_done():
@@ -365,26 +365,32 @@ class DeveloperJoe(commands.Bot):
                 
                 
                 def check_servers():
-                    print("Checking guild rule status..")
+                    common_functions.send_info_text("Checking guild rule status..")
                     g_ids = _guild_handler.get_guilds()
                     for guild in self.guilds:
                         if guild.id not in g_ids:
                             _guild_handler._add_raw_guild(guild.id)
-                            print(f"Added new guild: {guild.id}")
-                    print("Guilds all added\n")
+                            common_functions.send_info_text(f"Added new guild: {guild.id}")
+                    common_functions.send_info_text("Guilds all added\n")
 
                 async def _check_integrity(i: int):
-                    print("Performing database check..")
-                    if not i > 1:
-                        if not database_session.check():
-                            print("Database file has been modified / deleted, rebuilding..")
-                            database_session.init()
-                            return await _check_integrity(i+1)
+                    try:
+                        
+                        common_functions.send_info_text("Performing database check..")
+                        if not i > 1:
+                            if not database_session.check():
+                                common_functions.warn_for_error("Database file has been modified / deleted, rebuilding..")
+                                database_session.init()
+                                return await _check_integrity(i+1)
                             
-                        return print("Database all set.\n")
-                    common_functions.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
-                    return await self.close()
-                
+                            return common_functions.send_info_text("Database all set.\n")
+                        common_functions.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
+                        return await self.close()
+                    
+                    except sqlite3.OperationalError:
+                        common_functions.warn_for_error("Database error. Purging and resetting..")
+                        database_session.reset()
+                        
                 await _check_integrity(0)
                 check_servers()
                 confighandler.check_and_get_yaml()

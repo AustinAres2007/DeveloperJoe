@@ -56,7 +56,11 @@ I will add to this later, and try and make a more indepth and easy to understand
 Added Windows voice support (64 Bit only)
 Changed API Key system. 
 
+Bug Fixes
+
+* "Fixed" database error on some linux machine.
+
 ## Todo 1.3.9
 
-Fix database operational error (Occurs on linux VM for some reason, temp fix: Delete database file and let a new one be made. Not ideal at all)
+Database backup system (Immediate problems: Someone makes a backup of the database while it is being accessed)
 Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
