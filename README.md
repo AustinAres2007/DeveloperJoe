@@ -56,9 +56,17 @@ I will add to this later, and try and make a more indepth and easy to understand
 Added new database features (Mostly for security)
 Added new commands: /back and /load for backing up and loading your database respectively.
 
+Changes
+
+- /shutdown only works if you are bot owner (NOT ADMINISTRATOR)
+
+Bug Fixes
+
+- get_config() now defaults to developerconfig if not found within bot-config.yaml
+
 ## Todo 1.3.9
 
-Test what happens while database is being accessed and a backup is loaded.
+None
 
 ## Todo 1.4.0
 
