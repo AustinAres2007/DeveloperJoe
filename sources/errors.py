@@ -14,6 +14,7 @@ __all__ = [
 
 class GenericErrors:
     CONFIG_NO_ENTRY = "Config key does not exist within config yaml file or developer configuration."
+    USER_MISSING_PERMISSIONS = "You are missing permissions. If you are an administrator, this error is appearing because only the bot owner can do this command."
     
 class ConversationErrors:
     """Errors pertaining to general conversations."""

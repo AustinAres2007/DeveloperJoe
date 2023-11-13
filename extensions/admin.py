@@ -3,7 +3,9 @@ from discord.ext.commands import Cog as _Cog
 
 from joe import DeveloperJoe
 from sources import (
-    modelhandler
+    modelhandler,
+    exceptions,
+    database
 )
 from sources.common import (
     commands_utils,
@@ -18,10 +20,28 @@ class Administration(_Cog):
     @_discord.app_commands.command(name="shutdown", description="Shuts down bot client")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def halt(self, interaction: _discord.Interaction):
-        await interaction.response.send_message("Shutting Down")
-        await self.client.close()
+        if await self.client.is_owner(interaction.user):
+            await interaction.response.send_message("Shutting Down")
+            await self.client.close()
 
-        exit(0)
+            return exit(0)
+        raise exceptions.MissingPermissions(interaction.user)
+        
+    @_discord.app_commands.command(name="backup", description="Backs up the database file.")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    async def backup_database(self, interaction: _discord.Interaction):
+        if await self.client.is_owner(interaction.user):
+            location = database.DGDatabaseSession.backup_database()
+            return await interaction.response.send_message(f'Backed up database to "{location}"')
+        raise exceptions.MissingPermissions(interaction.user)
+    
+    @_discord.app_commands.command(name="load", description="Loads backup made with /backup")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    async def load_database(self, interaction: _discord.Interaction):
+        if await self.client.is_owner(interaction.user):
+            location = database.DGDatabaseSession.load_database_backup()
+            return await interaction.response.send_message(f'Loaded backup from "{location}"')
+        raise exceptions.MissingPermissions(interaction.user)
 
     @_discord.app_commands.command(name="lock", description="Locks a select GPT Model behind a role or permission.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)

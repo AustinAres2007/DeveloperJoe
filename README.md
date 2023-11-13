@@ -51,16 +51,18 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.8
+## Release Notes 1.3.9
 
-Added Windows voice support (64 Bit only)
-Changed API Key system. 
-
-Bug Fixes
-
-* "Fixed" database error on some linux machine.
+Added new database features (Mostly for security)
+Added new commands: /back and /load for backing up and loading your database respectively.
 
 ## Todo 1.3.9
 
-Database backup system (Immediate problems: Someone makes a backup of the database while it is being accessed)
-Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
+Test what happens while database is being accessed and a backup is loaded.
+
+## Todo 1.4.0
+
+- Transplant old version data to new database when the version is different and create defaults of what is missing.
+- Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
+- Add version checking when a backup is loaded.
+

@@ -205,3 +205,8 @@ class GPTTimeoutError(DGException):
     def __init__(self, message: str):
         """Will be raised when a query was given to DG, but the request timed out."""
         super().__init__(self.reply, message)
+
+class MissingPermissions(DGException):
+    reply = errors.GenericErrors.USER_MISSING_PERMISSIONS
+    def __init__(self, user: _discord.User | _discord.Member):
+        super().__init__(self.reply, user)

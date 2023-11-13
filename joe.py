@@ -345,63 +345,68 @@ class DeveloperJoe(commands.Bot):
         
     async def on_ready(self):
         if self.application:
-            has_voice = self.is_voice_compatible
-            
-            print(f"""
-            Version = {developerconfig.VERSION}
-            Report Channel = {self.get_channel(confighandler.get_config("bug_report_channel")) if confighandler.get_config("bug_report_channel") and str(confighandler.get_config("bug_report_channel")).isdecimal() == True else None}
-            Voice Installed = {has_voice}
-            Voice Enabled = {confighandler.get_config("allow_voice")}
-            Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
-            """)
-
-            self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
-            self.default_chats: dict[str, None | chat.DGChatType] = {}
-
-            self.start_time = datetime.datetime.now(tz=self.__tz__)
-            
-            await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
-            with (database.DGDatabaseSession() as database_session, modelhandler.DGRulesManager() as _guild_handler):
+            with database.DGDatabaseSession() as database_session:
+                has_voice = self.is_voice_compatible
+                database_age = database_session.get_seconds_since_creation()
                 
-                
-                def check_servers():
-                    common_functions.send_info_text("Checking guild rule status..")
-                    g_ids = _guild_handler.get_guilds()
-                    for guild in self.guilds:
-                        if guild.id not in g_ids:
-                            _guild_handler._add_raw_guild(guild.id)
-                            common_functions.send_info_text(f"Added new guild: {guild.id}")
-                    common_functions.send_info_text("Guilds all added\n")
+                print(f"""
+                Version = {developerconfig.VERSION}
+                Database Version = {database_session.get_version()}
+                Database Age = {database_age // 86400} Days, {database_age // 3600} Hours, {database_age // 60} Minutes, {database_age} Seconds.
+                Report Channel = {self.get_channel(confighandler.get_config("bug_report_channel")) if confighandler.get_config("bug_report_channel") and str(confighandler.get_config("bug_report_channel")).isdecimal() == True else None}
+                Voice Installed = {has_voice}
+                Voice Enabled = {confighandler.get_config("allow_voice")}
+                Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
+                """)
 
-                async def _check_integrity(i: int):
-                    try:
-                        
-                        common_functions.send_info_text("Performing database check..")
-                        if not i > 1:
-                            if not database_session.check():
-                                common_functions.warn_for_error("Database file has been modified / deleted, rebuilding..")
-                                database_session.init()
-                                return await _check_integrity(i+1)
-                            
-                            return common_functions.send_info_text("Database all set.\n")
-                        common_functions.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
-                        return await self.close()
+                self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
+                self.default_chats: dict[str, None | chat.DGChatType] = {}
+
+                self.start_time = datetime.datetime.now(tz=self.__tz__)
+                
+                await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
+                with modelhandler.DGRulesManager() as _guild_handler:
                     
-                    except sqlite3.OperationalError:
-                        common_functions.warn_for_error("Database error. Purging and resetting..")
-                        database_session.reset()
-                        
-                await _check_integrity(0)
-                check_servers()
-                confighandler.check_and_get_yaml()
-                
-                common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
-                
-            
-            self.chats = {user.id: {} for user in self.users}
-            self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
+                    
+                    def check_servers():
+                        common_functions.send_info_text("Checking guild rule status..")
+                        g_ids = _guild_handler.get_guilds()
+                        for guild in self.guilds:
+                            if guild.id not in g_ids:
+                                _guild_handler._add_raw_guild(guild.id)
+                                common_functions.send_info_text(f"Added new guild: {guild.id}")
+                        common_functions.send_info_text("Guilds all added\n")
 
-            self.tree.on_error = self.handle_error # type: ignore
+                    async def _check_integrity(i: int):
+                        try:
+                            
+                            common_functions.send_info_text("Performing database check..")
+                            if not i > 1:
+                                if not database_session.check():
+                                    common_functions.warn_for_error("Database file has been modified / deleted, rebuilding..")
+                                    database_session.init()
+                                    return await _check_integrity(i+1)
+                                
+                                return common_functions.send_info_text("Database all set.\n")
+                            common_functions.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
+                            return await self.close()
+                        
+                        except sqlite3.OperationalError:
+                            common_functions.warn_for_error("Database error. Purging and resetting..")
+                            database_session.reset()
+                            
+                    await _check_integrity(0)
+                    check_servers()
+                    confighandler.check_and_get_yaml()
+                    database_session.backup_database()
+
+                    common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
+                    
+                
+                self.chats = {user.id: {} for user in self.users}
+                self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
+
+                self.tree.on_error = self.handle_error # type: ignore
 
     async def setup_hook(self):
         print("Cogs\n")

@@ -1,11 +1,15 @@
 """General functions that assist the bot general function."""
+import datetime, pytz
 
 from colorama import Fore
+from . import developerconfig
 
 __all__ = [
     "send_fatal_error_warning",
     "warn_for_error",
-    "send_affirmative_text"
+    "send_affirmative_text",
+    "send_info_text",
+    "get_posix"
 ]
 
 def send_fatal_error_warning(text: str) -> None:
@@ -39,5 +43,9 @@ def send_info_text(text: str) -> None:
         text (str): The text to print.
     """
     print(Fore.LIGHTCYAN_EX + "Info:  " + Fore.CYAN + f"{text}\n" + Fore.WHITE)
+
+def get_posix():
+    """Returns the posix timestamp according to the timezone specified in the config."""
+    return int(datetime.datetime.now(tz=pytz.timezone(developerconfig.TIMEZONE)).timestamp())
 
 

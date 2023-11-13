@@ -1,4 +1,4 @@
-import discord as _discord, json as _json, yaml, os
+import discord as _discord, json as _json, yaml, os, pytz
 from typing import Union as _Union, Any
 
 from . import (
@@ -141,8 +141,8 @@ def get_config(key: str) -> Any:
     local_config = check_and_get_yaml()
     if key in local_config:
         return local_config.get(key)
-    elif hasattr(developerconfig, key):
-        return getattr(developerconfig, key)
+    elif hasattr(developerconfig, key.upper()):
+        return getattr(developerconfig, key.upper())
     raise exceptions.ConfigKeyError(key)       
 
 def get_api_key(api_key: str) -> str:

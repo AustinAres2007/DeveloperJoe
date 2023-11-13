@@ -1,13 +1,13 @@
-import sqlite3 as _sqlite3, json as _json
+import sqlite3 as _sqlite3, shutil, os
 from typing import Union as _Union, Any as _Any
 
-from .common.developerconfig import DATABASE_FILE
-
-database_file = DATABASE_FILE
+from .common.developerconfig import DATABASE_FILE, BACKUP_DATABASE_FILE, DATABASE_VERSION, TIMEZONE
+from .common import common_functions
 
 __all__ = [
     "DGDatabaseSession"
 ]
+
 class DGDatabaseSession:
     """
         Handles connection between the server and discord client.
@@ -21,15 +21,15 @@ class DGDatabaseSession:
         self.cursor.close() if self.cursor else None
         self.database.close()
     
-    def __init__(self):
+    def __init__(self, database: os.PathLike | None=None):
         
         """
             Handles connection between the server and discord client.
         """
 
         
-        self.database_file = database_file
-        self.database: _sqlite3.Connection = _sqlite3.connect(database_file, timeout=60)
+        self.database_file = database or DATABASE_FILE
+        self.database: _sqlite3.Connection = _sqlite3.connect(self.database_file, timeout=60)
         self.cursor: _Union[_sqlite3.Cursor, None] = self.database.cursor()
 
     def check(self) -> bool:
@@ -37,7 +37,9 @@ class DGDatabaseSession:
             self._exec_db_command("SELECT * FROM history")
             self._exec_db_command("SELECT * FROM model_rules")
             self._exec_db_command("SELECT * FROM guild_configs")
-            return True
+            self._exec_db_command("SELECT * FROM database_file")
+
+            return True and self.get_version() == DATABASE_VERSION
         except _sqlite3.OperationalError:
             return False
 
@@ -59,14 +61,47 @@ class DGDatabaseSession:
         self._exec_db_command("CREATE TABLE history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")
         self._exec_db_command("CREATE TABLE model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
         self._exec_db_command("CREATE TABLE guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
-    
+        self._exec_db_command("CREATE TABLE database_file (version TEXT NOT NULL, creation_date INTEGER NOT NULL)")
+        
+        self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
+            DATABASE_VERSION, 
+            common_functions.get_posix()
+            )
+        )
     def delete(self) -> None:
         """Deletes tables that are needed. This should only be used if there is an error with the database. DGDatabaseSession.init() should be called right after this."""
+        
         self._exec_db_command("DROP TABLE IF EXISTS history")
         self._exec_db_command("DROP TABLE IF EXISTS model_rules")
         self._exec_db_command("DROP TABLE IF EXISTS guild_configs")
+        self._exec_db_command("DROP TABLE IF EXISTS database_file")
     
     def reset(self) -> None:
         """Resets the database contents to default (Zero items) This is shorthand for delete() then init()"""
         self.delete()
         self.init()
+    
+    def get_version(self) -> str:
+        """Gets database version."""
+        return str(self._exec_db_command("SELECT version FROM database_file")[0][0])
+
+    def get_creation_date(self) -> int:
+        """Gets the POSIX timestamp when the database was created."""
+        timestamp = str(self._exec_db_command("SELECT creation_date FROM database_file")[0][0])
+        return int(timestamp if timestamp.isdecimal() else 0)
+
+    def get_seconds_since_creation(self) -> int:
+        """Gets the seconds since the database was created."""
+        return common_functions.get_posix() - self.get_creation_date() 
+    
+    @staticmethod
+    def backup_database() -> str:
+        shutil.copy(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        return BACKUP_DATABASE_FILE
+    
+    @staticmethod
+    def load_database_backup() -> str:
+        os.remove(DATABASE_FILE)
+        shutil.copy(BACKUP_DATABASE_FILE, DATABASE_FILE)
+        
+        return BACKUP_DATABASE_FILE

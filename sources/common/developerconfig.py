@@ -5,6 +5,8 @@ from discord.app_commands import Choice as _Choice
 
 from .voice_checks import _get_voice_paths
 
+TIMEZONE = "UTC"
+
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
     
 GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to crash
@@ -17,8 +19,12 @@ CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
 VERSION = "1.3.9-Z" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+DATABASE_VERSION = "1.0.0"
 
-DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
+DATABASE_EXTENSION = "db"
+DATABASE_FILENAME = "dg_database"
+DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}.{DATABASE_EXTENSION}" # Where the SQLite3 Database file is located. (Reletive)
+BACKUP_DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}-backupfile.{DATABASE_EXTENSION}"
 TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and OpenAI are located. (Reletive)
 WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome text is located. (Reletive)
 ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / welcome text is located. (Reletive)
@@ -59,7 +65,6 @@ default_config_keys = {
     "listening_timeout": 2.5,
     "voice_speedup_multiplier": 1.17,
     "allow_voice": True,
-    "timezone": "UTC",
     "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
     "voice_debug": False,
 }
