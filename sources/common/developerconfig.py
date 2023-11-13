@@ -15,8 +15,8 @@ STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictate
 CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be more than 14.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
-FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.3.8" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
+VERSION = "1.3.9-Z" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 
 DATABASE_FILE = "dependencies/dg_database.db" # Where the SQLite3 Database file is located. (Reletive)
 TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and OpenAI are located. (Reletive)
