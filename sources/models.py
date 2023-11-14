@@ -168,8 +168,8 @@ class GPT3Turbo(AIModel):
         return cls.model == __value.model
     
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model)
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> typing.AsyncGenerator:
@@ -190,7 +190,7 @@ class GPT4(AIModel):
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIReply:
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model)
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> typing.AsyncGenerator:
@@ -209,7 +209,7 @@ class GoogleBard(AIModel):
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIReply:
-        return AIReply("This model has not been setup yet and is a work in progress.", 0, 0, "No error.")
+        return AIReply("This model has not been setup yet and is a work in progress.", 0, 0, "No error.", **kwargs)
     
 GPTModelType = typing.Union[GPT3Turbo, GPT4, GoogleBard]
 registered_models = {
