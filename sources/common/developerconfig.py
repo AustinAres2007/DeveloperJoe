@@ -17,9 +17,9 @@ STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictate
 CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be more than 14.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
-FINAL = True # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.3.9" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
-DATABASE_VERSION = "1.0.0"
+FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
+VERSION = "1.4.0-Z" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+DATABASE_VERSION = "1.0.1"
 
 DATABASE_EXTENSION = "db"
 DATABASE_FILENAME = "dg_database"
@@ -64,6 +64,7 @@ default_config_keys = {
     "listening_keyword": "assistant",
     "listening_timeout": 2.5,
     "voice_speedup_multiplier": 1.3,
+    "voice_volume": 1.0,
     "allow_voice": True,
     "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
     "voice_debug": False,

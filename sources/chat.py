@@ -386,13 +386,17 @@ class DGTextChat(DGChats):
                 
         return reply
             
-    async def start(self) -> str:
+    async def start(self, silent: bool=True) -> str | None:
         """Sends a start query to GPT.
 
         Returns:
             str: The welcome message.
         """
-        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
+        self.bot.add_conversation(self.user, self.name, self)
+        self.bot.set_default_conversation(self.user, self.name)
+        
+        if not silent:
+            return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
@@ -520,8 +524,8 @@ class DGVoiceChat(DGTextChat):
                 except _speech_recognition.UnknownValueError:
                     pass
                 else:
-                    prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword").lower()
-                
+                    prefix = confighandler.get_guild_config_attribute(member.guild, "voice-keyword").lower()
+
                     if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
         
                         text = text.lower().split(prefix)[1].lstrip()
@@ -562,8 +566,14 @@ class DGVoiceChat(DGTextChat):
             def _play_voice(index: int, error: _Any=None):
                 if not error:
                     if not (index >= len(self.voice_tss_queue)):
-                        speed: int = confighandler.get_guild_config_attribute(self.bot, new_voice.guild, "speed")
-                        return new_voice.play(_discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True), after=lambda error: _play_voice(index + 1, error))
+                        speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
+                        volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
+                        
+                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                        volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
+                        volume_source.volume = volume
+                        
+                        return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
                         
                     self.voice_tss_queue.clear()
                 else:

@@ -14,6 +14,7 @@ class DGDatabaseSession:
     """
 
     def __enter__(self):
+        self.check()
         return self
     
     def __exit__(self, type_, value_, traceback_):

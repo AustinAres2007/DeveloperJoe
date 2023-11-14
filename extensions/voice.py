@@ -1,3 +1,4 @@
+from click import command
 import discord
 from discord.ext.commands import Cog
 
@@ -21,11 +22,17 @@ class Voice(Cog):
     async def set_speed(self, interaction: discord.Interaction, speed: float):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             if not speed < 1.0 and speed < 4.0: # Arbituary limit on 4.0, if anything less than 1 it becomes glitchy if I remember correctly
-                confighandler.edit_guild_config(guild, "speed", speed)
-                await interaction.response.send_message(f"Changed voice speed to {speed}")
+                confighandler.edit_guild_config(guild, "voice-speed", speed)
+                await interaction.response.send_message(f"Changed voice speed to {speed}.")
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0 or more than 4.0.")
     
+    @discord.app_commands.command(name="volume", description="Sets the volume")
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def set_volume(self, interaction: discord.Interaction, volume: float):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
+            confighandler.edit_guild_config(guild, "voice-volume")
+            await interaction.response.send_message(f"Changed voice volume to {volume}.")
     @discord.app_commands.command(name="shutup", description=f"If you have a {confighandler.get_config('bot_name')} voice chat and you want it to stop talking a reply, execute this command.")
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)

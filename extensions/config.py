@@ -53,7 +53,7 @@ class Configuration(_Cog):
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def config_voice(self, interaction: discord.Interaction, allow_voice: bool):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            confighandler.edit_guild_config(guild, "voice", allow_voice)
+            confighandler.edit_guild_config(guild, "voice-enabled", allow_voice)
             return await interaction.response.send_message(f"Users {'cannot' if allow_voice == False else 'can'} use voice.")
             
     @discord.app_commands.command(name="reset", description=f"Reset this servers configuration back to default.")

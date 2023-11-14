@@ -30,12 +30,13 @@ class Communication(commands.Cog):
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    ai_model="The model being used for the AI (GPT 3 or GPT 4)",
-                                   in_thread=f"If you want a dedicated private thread to talk with {confighandler.get_config('bot_name')} in.",
+                                   in_thread=f"If you want a dedi   cated private thread to talk with {confighandler.get_config('bot_name')} in.",
                                    speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {confighandler.get_config('bot_name')} will join and speak your replies.",
-                                   is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
+                                   is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default.",
+                                   silent="Dictates weather a welcome message will be provided upon /start being sent. By default it is true and a welcome message will not be sent. Chats will start a lot quicker."
     )
     @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, silent: bool=True):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
@@ -71,7 +72,7 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             elif speak_reply and self.client.is_voice_compatible == False:
                 raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
-            elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(self.client, interaction.guild, "voice") == False:
+            elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(interaction.guild, "voice-enabled") == False:
                 raise exceptions.VoiceIsLockedError()
             elif speak_reply and self.client.is_voice_compatible:
                 convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
@@ -79,16 +80,13 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
-            ai_welcome = await convo.start()
+            ai_welcome = await convo.start(silent)
             
-            if len(ai_welcome) > 1500:
+            if not ai_welcome or len(ai_welcome) > 1500:
                 ai_welcome = "Started chat."
                 
             welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
             await interaction.followup.send(welcome, ephemeral=False)
-
-            self.client.add_conversation(member, name, convo)
-            self.client.set_default_conversation(member, name)
     
         if self.client.get_user_has_permission(member, actual_model):
             return await command()

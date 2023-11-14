@@ -96,7 +96,7 @@ class DeveloperJoe(commands.Bot):
         return (datetime.datetime.now(tz=self.__tz__) - self.start_time)
     
     @decorators.user_has_chat
-    def get_user_conversation(self, member: discord.Member, chat_name: str) -> chat.DGChatType | None:
+    def get_user_conversation(self, member: discord.Member | discord.User, chat_name: str) -> chat.DGChatType | None:
         """ Get the specified members current chat.
 
         Args:
@@ -190,7 +190,7 @@ class DeveloperJoe(commands.Bot):
         del self.chats[member.id][conversation_name]
 
     @decorators.chat_not_exist
-    def add_conversation(self, member: discord.Member, name: str, conversation: chat.DGChatType) -> None:
+    def add_conversation(self, member: discord.Member | discord.User, name: str, conversation: chat.DGChatType) -> None:
         """Adds a conversation to a users chat database.
 
         Args:
@@ -201,7 +201,7 @@ class DeveloperJoe(commands.Bot):
         self.chats[member.id][name] = conversation
 
     @decorators.user_has_chat
-    def set_default_conversation(self, member: discord.Member, name: str) -> None:
+    def set_default_conversation(self, member: discord.Member | discord.User, name: str) -> None:
         """Sets a users default chat.
 
         Args:
@@ -346,25 +346,6 @@ class DeveloperJoe(commands.Bot):
     async def on_ready(self):
         if self.application:
             with database.DGDatabaseSession() as database_session:
-                has_voice = self.is_voice_compatible
-                database_age = database_session.get_seconds_since_creation()
-                
-                print(f"""
-                Version = {developerconfig.VERSION}
-                Database Version = {database_session.get_version()}
-                Database Age = {database_age // 86400} Days, {database_age // 3600} Hours, {database_age // 60} Minutes, {database_age} Seconds.
-                Report Channel = {self.get_channel(confighandler.get_config("bug_report_channel")) if confighandler.get_config("bug_report_channel") and str(confighandler.get_config("bug_report_channel")).isdecimal() == True else None}
-                Voice Installed = {has_voice}
-                Voice Enabled = {confighandler.get_config("allow_voice")}
-                Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
-                """)
-
-                self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
-                self.default_chats: dict[str, None | chat.DGChatType] = {}
-
-                self.start_time = datetime.datetime.now(tz=self.__tz__)
-                
-                await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
                 with modelhandler.DGRulesManager() as _guild_handler:
                     
                     
@@ -400,6 +381,26 @@ class DeveloperJoe(commands.Bot):
                     confighandler.check_and_get_yaml()
                     database_session.backup_database()
 
+                    has_voice = self.is_voice_compatible
+                    database_age = database_session.get_seconds_since_creation()
+                    
+                    print(f"""
+                    Version = {developerconfig.VERSION}
+                    Database Version = {database_session.get_version()}
+                    Database Age = {database_age // 86400} Days, {database_age // 3600} Hours, {database_age // 60} Minutes, {database_age} Seconds.
+                    Report Channel = {self.get_channel(confighandler.get_config("bug_report_channel")) if confighandler.get_config("bug_report_channel") and str(confighandler.get_config("bug_report_channel")).isdecimal() == True else None}
+                    Voice Installed = {has_voice}
+                    Voice Enabled = {confighandler.get_config("allow_voice")}
+                    Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
+                    """)
+
+                    self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
+                    self.default_chats: dict[str, None | chat.DGChatType] = {}
+
+                    self.start_time = datetime.datetime.now(tz=self.__tz__)
+                    
+                    await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
+                
                     common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     
                 
@@ -414,7 +415,9 @@ class DeveloperJoe(commands.Bot):
             if file.endswith(".py"):
                 await self.load_extension(f"extensions.{file[:-3]}")
         
+        print("\nConnecting to discord..")
         await self.tree.sync()
+        print("Synced.")
         return await super().setup_hook()
 
 # Driver Code

@@ -1,4 +1,4 @@
-import discord as _discord, json as _json, yaml, os, pytz
+import discord as _discord, json as _json, yaml, os
 from typing import Union as _Union, Any
 
 from . import (
@@ -24,11 +24,11 @@ __all__ = [
 
 def generate_config_key():
     return {
-        "speed": get_config("voice_speedup_multiplier"),
         "timezone": get_config("timezone"),
-        "voice": True,
-        "voice-keyword": 
-            get_config("listening_keyword")
+        "voice-enabled": True,
+        "voice-speed": get_config("voice_speedup_multiplier"),
+        "voice-keyword": get_config("listening_keyword"),
+        "voice-volume": get_config("voice_volume")
     }
 
 class GuildData:
@@ -118,7 +118,7 @@ def reset_guild_config(guild: _discord.Guild) -> None:
     return edit_guild_config(guild, **generate_config_key())
         
     
-def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> Any:
+def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> Any:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
     Args:
@@ -130,10 +130,9 @@ def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> An
     """
     with DGGuildConfigSession(guild) as cs:
         cf = cs.get_guild().config_data
+        
         if attribute in cf:
             return cf[attribute]
-        elif attribute in list(bot.config):
-            return bot.config.get(attribute)
         else:
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
 
