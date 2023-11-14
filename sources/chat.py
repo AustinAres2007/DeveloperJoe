@@ -520,16 +520,17 @@ class DGVoiceChat(DGTextChat):
                 except _speech_recognition.UnknownValueError:
                     pass
                 else:
-                    prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword")
-                    
+                    prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword").lower()
+                
                     if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
-                        text = text.split(confighandler.get_config('listening_keyword'))[1].lstrip()
+        
+                        text = text.lower().split(prefix)[1].lstrip()
                         usr_voice_convo = self.bot.get_default_voice_conversation(member)
                         
                         if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
                             await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
                             
-        except Exception as error:
+        except KeyError as error:
             common_functions.send_fatal_error_warning(str(error))
         finally:
             self.proc_packet = False
@@ -607,7 +608,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_isnt_listening
     async def listen(self):
         """Starts the listening events for a users voice conversation."""
-        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 2.5)) # type: ignore Checks done with decorators.
+        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 1.0)) # type: ignore Checks done with decorators.
     
     @decorators.check_enabled
     @decorators.has_voice_with_error

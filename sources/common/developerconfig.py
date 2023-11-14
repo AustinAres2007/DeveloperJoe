@@ -63,7 +63,7 @@ default_config_keys = {
     "default_gpt_model": "gpt-3.5-turbo",
     "listening_keyword": "assistant",
     "listening_timeout": 2.5,
-    "voice_speedup_multiplier": 1.17,
+    "voice_speedup_multiplier": 1.3,
     "allow_voice": True,
     "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
     "voice_debug": False,

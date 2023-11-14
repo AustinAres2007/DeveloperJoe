@@ -63,6 +63,7 @@ Changes
 Bug Fixes
 
 - get_config() now defaults to developerconfig if not found within bot-config.yaml
+- Fixed bug where if a name was detected as a keyword with voice recognition, the name wouldn't work due to a logic error (Thank you Bradley)
 
 ## Todo 1.3.9
 
@@ -70,7 +71,15 @@ None
 
 ## Todo 1.4.0
 
+- When using /start, add a parameter so you don't have to wait for the bot to generate text
+- @ing bot makes it talk to you.
+- Add volume slider for bot
 - Transplant old version data to new database when the version is different and create defaults of what is missing.
 - Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
 - Add version checking when a backup is loaded.
+- Add static reduction when listening for voice
+
+Bugs
+
+- When using /shutup, there is a good chance an error will appear regarding a closed IO object
 
