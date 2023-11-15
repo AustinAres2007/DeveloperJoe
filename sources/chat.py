@@ -593,7 +593,8 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_is_speaking
     async def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
-        self.client_voice.stop() # type: ignore Checks done with decorators.
+        self.client_voice.pause() # type: ignore Checks done with decorators.
+        #self.client_voice.stop_playing() # type: ignore Checks done with decorators.
     
     @decorators.check_enabled
     @decorators.has_voice_with_error

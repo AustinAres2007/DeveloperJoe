@@ -29,8 +29,8 @@ class DGRulesManager(database.DGDatabaseSession):
     def __exit__(self, t_, v_, tr_):
         return super().__exit__(t_, v_, tr_)
 
-    def __init__(self, database_path: os.PathLike | str=developerconfig.DATABASE_FILE):
-        super().__init__(database_path)
+    def __init__(self, database_path: str=developerconfig.DATABASE_FILE, reset_if_failed_check: bool=True):
+        super().__init__(database_path, reset_if_failed_check)
     
     def get_guilds(self) -> list[int]:
         guilds_database_reply = self._exec_db_command("SELECT gid FROM model_rules")

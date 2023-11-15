@@ -345,16 +345,16 @@ class DeveloperJoe(commands.Bot):
         
     async def on_ready(self):
         if self.application:
-            with database.DGDatabaseSession(reset_if_failed_check=True) as database_session:
-                with modelhandler.DGRulesManager() as _guild_handler:
-                    
+            try:
+                with modelhandler.DGRulesManager() as guild_handler:
                     
                     def check_servers():
                         common_functions.send_info_text("Checking guild rule status..")
-                        g_ids = _guild_handler.get_guilds()
+                        g_ids = guild_handler.get_guilds()
+                        
                         for guild in self.guilds:
                             if guild.id not in g_ids:
-                                _guild_handler._add_raw_guild(guild.id)
+                                guild_handler._add_raw_guild(guild.id)
                                 common_functions.send_info_text(f"Added new guild: {guild.id}")
                         common_functions.send_info_text("Guilds all added\n")
 
@@ -363,9 +363,9 @@ class DeveloperJoe(commands.Bot):
                             
                             common_functions.send_info_text("Performing database check..")
                             if not i > 1:
-                                if not database_session.check():
+                                if not guild_handler.check():
                                     common_functions.warn_for_error("Database file has been modified / deleted, rebuilding..")
-                                    database_session.init()
+                                    guild_handler.init()
                                     return await _check_integrity(i+1)
                                 
                                 return common_functions.send_info_text("Database all set.\n")
@@ -374,26 +374,26 @@ class DeveloperJoe(commands.Bot):
                         
                         except sqlite3.OperationalError:
                             common_functions.warn_for_error("Database error. Purging and resetting..")
-                            database_session.reset()
+                            guild_handler.reset()
                         
                         except sqlite3.DatabaseError:
                             common_functions.warn_for_error("Incorrect database version.")
-                            database_session.reset()
+                            guild_handler.reset()
                             
                     await _check_integrity(0)
                     check_servers()
                     confighandler.check_and_get_yaml()
                     
                     if confighandler.get_config("backup_upon_start") == True:
-                        location = database_session.backup_database()
+                        location = guild_handler.backup_database()
                         common_functions.send_info_text(f'Backed up database to "{location}"')
                     
                     has_voice = self.is_voice_compatible
-                    database_age = database_session.get_seconds_since_creation()
+                    database_age = guild_handler.get_seconds_since_creation()
                     
                     print(f"""
                     Version = {developerconfig.VERSION}
-                    Database Version = {database_session.get_version()}
+                    Database Version = {guild_handler.get_version()}
                     Database Age = {database_age // 86400} Days, {database_age // 3600} Hours, {database_age // 60} Minutes, {database_age} Seconds.
                     Report Channel = {self.get_channel(confighandler.get_config("bug_report_channel")) if confighandler.get_config("bug_report_channel") and str(confighandler.get_config("bug_report_channel")).isdecimal() == True else None}
                     Voice Installed = {has_voice}
@@ -410,12 +410,15 @@ class DeveloperJoe(commands.Bot):
                 
                     common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     
+                    
+                    self.chats = {user.id: {} for user in self.users}
+                    self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
+
+                    self.tree.on_error = self.handle_error # type: ignore
+                    
+            except Exception as err:
+                common_functions.send_fatal_error_warning(str(err))
                 
-                self.chats = {user.id: {} for user in self.users}
-                self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
-
-                self.tree.on_error = self.handle_error # type: ignore
-
     async def setup_hook(self):
         print("Cogs\n")
         for file in os.listdir(f"extensions"):

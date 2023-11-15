@@ -41,15 +41,12 @@ class Administration(_Cog):
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def load_database(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):
-            with database.DGDatabaseSession() as old_database:
+            with database.DGDatabaseSession(reset_if_failed_check=False) as old_database:
                 try:
-                
                     location = old_database.load_database_backup()
                     return await interaction.response.send_message(f'Loaded backup from "{location}"')
                 except DatabaseError:
-                    with database.DGDatabaseSession() as old_database:
-                        old_database.reset()
-                    return await interaction.response.send_message(f'You cannot load this backup as it is too old. A new database has been made and all data has been lost.')
+                    return await interaction.response.send_message(f'You cannot load this backup as it is too old. The backup has been kept.')
                 
         raise exceptions.MissingPermissions(interaction.user)
 

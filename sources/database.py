@@ -3,7 +3,7 @@ from typing import Union as _Union, Any as _Any
 
 from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION, TIMEZONE
 from .common import common_functions
-from . import exceptions, errors
+from . import errors
 
 __all__ = [
     "DGDatabaseSession"
@@ -25,18 +25,25 @@ class DGDatabaseSession:
         self.database.close()
     
     def __init__(self, database: str=DATABASE_FILE, reset_if_failed_check: bool=True):
-        
-        """
-            Handles connection between the server and discord client.
+        """Handles connections between the database and the client.
+
+        Args:
+            database (str, optional): The database that will be used. Defaults to DATABASE_FILE.
+            reset_if_failed_check (bool, optional): Weather you want to reset the database if the check fails. Defaults to True.
         """
 
         self._context_manager_reset = reset_if_failed_check
         self.database_file = database
-        self.database_file_backup = self.database_file + "backup"
+        self.database_file_backup = self.database_file.replace(os.path.splitext(self.database_file)[-1], ".sqlite3")
         self.database: _sqlite3.Connection = _sqlite3.connect(self.database_file, timeout=60)
         self.cursor: _Union[_sqlite3.Cursor, None] = self.database.cursor()
 
     def check(self) -> bool:
+        """Checks if all required tables exist and the version is correct for normal bot usage.
+
+        Returns:
+            bool: Weather the check succeeded or failed.
+        """
         try:
             self._exec_db_command("SELECT * FROM history")
             self._exec_db_command("SELECT * FROM model_rules")
@@ -50,6 +57,15 @@ class DGDatabaseSession:
             return False
 
     def _exec_db_command(self, query: str, args: tuple=()) -> list[_Any]:
+        """Execute an SQLite3 database command.
+
+        Args:
+            query (str): The SQLite3 database command.
+            args (tuple, optional): Any variable values. Defaults to ().
+
+        Returns:
+            list[_Any]: The response from the database
+        """
         
         self.cursor = self.database.cursor()
 
@@ -102,13 +118,29 @@ class DGDatabaseSession:
         return common_functions.get_posix() - self.get_creation_date() 
     
     def backup_database(self) -> str:
+        """Backs up the database by simply copy and pasting the file.
+
+        Returns:
+            str: The path where the backup is.
+        """
         shutil.copy(self.database_file, self.database_file_backup)
         return self.database_file_backup
-        
-    def load_database_backup(self) -> str:    
-        if self.check() == True:
-            os.remove(self.database_file)
-            shutil.copy(self.database_file_backup, self.database_file)
+    
+    # TODO: Test saving and loading of backups.
+    
+    def load_database_backup(self) -> str:  
+        """Loads the database backup. This includes doing the check() method on it (Version checking, table checking, etc)
+
+        Raises:
+            _sqlite3.DatabaseError: If the database is corrupted at all (check() Fails)
+
+        Returns:
+            str: The path of the backup that was used.
+        """
+        with DGDatabaseSession(self.database_file_backup, False) as db_backup:
+            if db_backup.check() == True:
+                os.remove(self.database_file)
+                shutil.copy(self.database_file_backup, self.database_file)
             
-            return self.database_file_backup
-        raise _sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
+                return self.database_file_backup
+            raise _sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)

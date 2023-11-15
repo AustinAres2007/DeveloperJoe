@@ -174,8 +174,11 @@ def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against
         with open(yaml_file, 'r') as yaml_file_obj:
             try:
                 config = yaml.safe_load(yaml_file_obj)
-                
+                                        
                 if config:
+                    if set(check_against).difference(config):
+                        return fix_config(yaml_file, check_against)
+                    
                     for i1 in enumerate(dict(config).items()):
                         if (i1[1][0] not in list(check_against) or type(i1[1][1]) != type(check_against[i1[1][0]])):
                             return fix_config(yaml_file, check_against)
