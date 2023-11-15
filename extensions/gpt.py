@@ -131,7 +131,7 @@ class Communication(commands.Cog):
     async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=False):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         
-        async def func(gpt: chat.DGTextChat):
+        async def func(gpt: chat.DGChatType):
             reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {developerconfig.QUERY_TIMEOUT} seconds, and "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
             if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
                 return await interaction.followup.send("Cancelled action.", ephemeral=False)

@@ -1,8 +1,9 @@
 import sqlite3 as _sqlite3, shutil, os
 from typing import Union as _Union, Any as _Any
 
-from .common.developerconfig import DATABASE_FILE, BACKUP_DATABASE_FILE, DATABASE_VERSION, TIMEZONE
+from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION, TIMEZONE
 from .common import common_functions
+from . import exceptions, errors
 
 __all__ = [
     "DGDatabaseSession"
@@ -14,7 +15,6 @@ class DGDatabaseSession:
     """
 
     def __enter__(self):
-        self.check()
         return self
     
     def __exit__(self, type_, value_, traceback_):
@@ -22,14 +22,15 @@ class DGDatabaseSession:
         self.cursor.close() if self.cursor else None
         self.database.close()
     
-    def __init__(self, database: os.PathLike | None=None):
+    def __init__(self, database: str=DATABASE_FILE):
         
         """
             Handles connection between the server and discord client.
         """
 
         
-        self.database_file = database or DATABASE_FILE
+        self.database_file = database
+        self.database_file_backup = self.database_file + "backup"
         self.database: _sqlite3.Connection = _sqlite3.connect(self.database_file, timeout=60)
         self.cursor: _Union[_sqlite3.Cursor, None] = self.database.cursor()
 
@@ -39,8 +40,12 @@ class DGDatabaseSession:
             self._exec_db_command("SELECT * FROM model_rules")
             self._exec_db_command("SELECT * FROM guild_configs")
             self._exec_db_command("SELECT * FROM database_file")
-
-            return True and self.get_version() == DATABASE_VERSION
+            
+            current_version = self.get_version()
+            if current_version != DATABASE_VERSION:
+                raise _sqlite3.DatabaseError(f"Database version do not match. Needed: {DATABASE_VERSION} Has: {current_version}")
+            
+            return True 
         except _sqlite3.OperationalError:
             return False
 
@@ -69,6 +74,7 @@ class DGDatabaseSession:
             common_functions.get_posix()
             )
         )
+        
     def delete(self) -> None:
         """Deletes tables that are needed. This should only be used if there is an error with the database. DGDatabaseSession.init() should be called right after this."""
         
@@ -95,14 +101,14 @@ class DGDatabaseSession:
         """Gets the seconds since the database was created."""
         return common_functions.get_posix() - self.get_creation_date() 
     
-    @staticmethod
-    def backup_database() -> str:
-        shutil.copy(DATABASE_FILE, BACKUP_DATABASE_FILE)
-        return BACKUP_DATABASE_FILE
-    
-    @staticmethod
-    def load_database_backup() -> str:
-        os.remove(DATABASE_FILE)
-        shutil.copy(BACKUP_DATABASE_FILE, DATABASE_FILE)
+    def backup_database(self) -> str:
+        shutil.copy(self.database_file, self.database_file_backup)
+        return self.database_file_backup
         
-        return BACKUP_DATABASE_FILE
+    def load_database_backup(self) -> str:    
+        if self.check() == True:
+            os.remove(self.database_file)
+            shutil.copy(self.database_file_backup, self.database_file)
+            
+            return BACKUP_DATABASE_FILE
+        raise _sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, BACKUP_DATABASE_FILE)

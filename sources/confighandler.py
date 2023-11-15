@@ -137,6 +137,7 @@ def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> Any:
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
 
 def get_config(key: str) -> Any:
+    
     local_config = check_and_get_yaml()
     if key in local_config:
         return local_config.get(key)

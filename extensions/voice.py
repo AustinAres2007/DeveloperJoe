@@ -27,12 +27,13 @@ class Voice(Cog):
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0 or more than 4.0.")
     
-    @discord.app_commands.command(name="volume", description="Sets the volume")
+    @discord.app_commands.command(name="volume", description="Sets bots voice volume. Use values between 0.0 - 1.0")
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def set_volume(self, interaction: discord.Interaction, volume: float):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            confighandler.edit_guild_config(guild, "voice-volume")
+            confighandler.edit_guild_config(guild, "voice-volume", volume)
             await interaction.response.send_message(f"Changed voice volume to {volume}.")
+            
     @discord.app_commands.command(name="shutup", description=f"If you have a {confighandler.get_config('bot_name')} voice chat and you want it to stop talking a reply, execute this command.")
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)

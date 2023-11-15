@@ -1,4 +1,5 @@
 import json as _json, discord as _discord
+import os
 from typing import (
     Union as _Union, 
     Any as _Any
@@ -10,7 +11,8 @@ from . import (
     models
 )
 from .common import (
-    commands_utils
+    commands_utils,
+    developerconfig
 )
 
 __all__ = [
@@ -27,8 +29,8 @@ class DGRulesManager(database.DGDatabaseSession):
     def __exit__(self, t_, v_, tr_):
         return super().__exit__(t_, v_, tr_)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, database_path: os.PathLike | str=developerconfig.DATABASE_FILE):
+        super().__init__(database_path)
     
     def get_guilds(self) -> list[int]:
         guilds_database_reply = self._exec_db_command("SELECT gid FROM model_rules")

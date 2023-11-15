@@ -375,11 +375,18 @@ class DeveloperJoe(commands.Bot):
                         except sqlite3.OperationalError:
                             common_functions.warn_for_error("Database error. Purging and resetting..")
                             database_session.reset()
+                        
+                        except sqlite3.DatabaseError:
+                            common_functions.warn_for_error("Incorrect database version.")
+                            database_session.reset()
                             
                     await _check_integrity(0)
                     check_servers()
                     confighandler.check_and_get_yaml()
-                    database_session.backup_database()
+                    
+                    if confighandler.get_config("backup_upon_start") == True:
+                        common_functions.send_info_text("Backing up database..")
+                        database_session.backup_database()
 
                     has_voice = self.is_voice_compatible
                     database_age = database_session.get_seconds_since_creation()

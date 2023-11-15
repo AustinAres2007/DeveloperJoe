@@ -30,13 +30,14 @@ class Listeners(commands.Cog):
             
             async def respond_to_mention():
                 model = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
-                print("mention")
+                
                 if self.client.get_user_has_permission(member, model):
-                    ai_reply = await model.__askmodel__(message.clean_content, None, "user", False)
+                    async with message.channel.typing():
+                        ai_reply = await model.__askmodel__(message.clean_content, None, "user", False)
                     
-                    if len(reply := ai_reply._reply) >= 2000:
-                        return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
-                    return await message.channel.send(reply)
+                        if len(reply := ai_reply._reply + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                            return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                        return await message.channel.send(reply)
                 
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:

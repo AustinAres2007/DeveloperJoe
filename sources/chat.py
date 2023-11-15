@@ -205,16 +205,18 @@ class DGChats:
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
         
-    def ask_stream(self, query: str) -> _AsyncGenerator:
+    async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
         raise NotImplementedError
     
-    async def start(self) -> str:
-        raise NotImplementedError
+    async def start(self) -> None:
+        print("Adding", self.bot, f"USR: {self.user}", f"NAME: {self.name}", f"instance: {self}")
+        self.bot.add_conversation(self.user, self.display_name, self)
+        self.bot.set_default_conversation(self.user, self.display_name)
 
     def clear(self) -> None:
         raise NotImplementedError
     
-    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: str) -> str:
+    async def stop(self, interaction: _discord.Interaction, save_history: bool) -> str:
         raise NotImplementedError
 
     @property
@@ -392,9 +394,7 @@ class DGTextChat(DGChats):
         Returns:
             str: The welcome message.
         """
-        self.bot.add_conversation(self.user, self.name, self)
-        self.bot.set_default_conversation(self.user, self.name)
-        
+        await super().start()
         if not silent:
             return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
 
@@ -662,4 +662,4 @@ class DGChatTypesEnum(_Enum):
     TEXT = 1
     VOICE = 2
 
-DGChatType = DGTextChat | DGVoiceChat
+DGChatType = DGTextChat | DGVoiceChat | DGChats

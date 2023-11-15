@@ -1,3 +1,4 @@
+from sqlite3 import DatabaseError
 import discord as _discord
 from discord.ext.commands import Cog as _Cog
 
@@ -39,8 +40,16 @@ class Administration(_Cog):
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def load_database(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):
-            location = database.DGDatabaseSession.load_database_backup()
-            return await interaction.response.send_message(f'Loaded backup from "{location}"')
+            with database.DGDatabaseSession() as old_database:
+                try:
+                
+                    location = database.DGDatabaseSession.load_database_backup()
+                    return await interaction.response.send_message(f'Loaded backup from "{location}"')
+                except DatabaseError:
+                    with database.DGDatabaseSession() as old_database:
+                        old_database.reset()
+                    return await interaction.response.send_message(f'You cannot load this backup as it is too old. A new database has been made and all data has been lost.')
+                
         raise exceptions.MissingPermissions(interaction.user)
 
     @_discord.app_commands.command(name="lock", description="Locks a select GPT Model behind a role or permission.")

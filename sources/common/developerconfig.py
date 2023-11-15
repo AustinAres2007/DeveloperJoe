@@ -24,7 +24,7 @@ DATABASE_VERSION = "1.0.1"
 DATABASE_EXTENSION = "db"
 DATABASE_FILENAME = "dg_database"
 DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}.{DATABASE_EXTENSION}" # Where the SQLite3 Database file is located. (Reletive)
-BACKUP_DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}-backupfile.{DATABASE_EXTENSION}"
+
 TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and OpenAI are located. (Reletive)
 WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome text is located. (Reletive)
 ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / welcome text is located. (Reletive)
@@ -68,6 +68,7 @@ default_config_keys = {
     "allow_voice": True,
     "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
     "voice_debug": False,
+    "backup_upon_start": False
 }
 
 default_api_keys = {

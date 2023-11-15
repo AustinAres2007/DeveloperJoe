@@ -459,6 +459,7 @@ class OpusEventAudioReader(_ReaderBase):
     def stop(self):
         self._end.set()
 
+
     def run(self):
         try:
             self._do_run()
