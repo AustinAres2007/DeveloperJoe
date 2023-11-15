@@ -32,8 +32,9 @@ class Administration(_Cog):
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def backup_database(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):
-            location = database.DGDatabaseSession.backup_database()
-            return await interaction.response.send_message(f'Backed up database to "{location}"')
+            with database.DGDatabaseSession() as new_database:
+                location = new_database.backup_database()
+                return await interaction.response.send_message(f'Backed up database to "{location}"')
         raise exceptions.MissingPermissions(interaction.user)
     
     @_discord.app_commands.command(name="load", description="Loads backup made with /backup")
@@ -43,7 +44,7 @@ class Administration(_Cog):
             with database.DGDatabaseSession() as old_database:
                 try:
                 
-                    location = database.DGDatabaseSession.load_database_backup()
+                    location = old_database.load_database_backup()
                     return await interaction.response.send_message(f'Loaded backup from "{location}"')
                 except DatabaseError:
                     with database.DGDatabaseSession() as old_database:

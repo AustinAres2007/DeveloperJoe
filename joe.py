@@ -345,7 +345,7 @@ class DeveloperJoe(commands.Bot):
         
     async def on_ready(self):
         if self.application:
-            with database.DGDatabaseSession() as database_session:
+            with database.DGDatabaseSession(reset_if_failed_check=True) as database_session:
                 with modelhandler.DGRulesManager() as _guild_handler:
                     
                     
@@ -385,9 +385,9 @@ class DeveloperJoe(commands.Bot):
                     confighandler.check_and_get_yaml()
                     
                     if confighandler.get_config("backup_upon_start") == True:
-                        common_functions.send_info_text("Backing up database..")
-                        database_session.backup_database()
-
+                        location = database_session.backup_database()
+                        common_functions.send_info_text(f'Backed up database to "{location}"')
+                    
                     has_voice = self.is_voice_compatible
                     database_age = database_session.get_seconds_since_creation()
                     

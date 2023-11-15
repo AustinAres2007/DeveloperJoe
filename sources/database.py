@@ -15,6 +15,8 @@ class DGDatabaseSession:
     """
 
     def __enter__(self):
+        if self.check() == False and self._context_manager_reset == True:
+            self.reset()
         return self
     
     def __exit__(self, type_, value_, traceback_):
@@ -22,13 +24,13 @@ class DGDatabaseSession:
         self.cursor.close() if self.cursor else None
         self.database.close()
     
-    def __init__(self, database: str=DATABASE_FILE):
+    def __init__(self, database: str=DATABASE_FILE, reset_if_failed_check: bool=True):
         
         """
             Handles connection between the server and discord client.
         """
 
-        
+        self._context_manager_reset = reset_if_failed_check
         self.database_file = database
         self.database_file_backup = self.database_file + "backup"
         self.database: _sqlite3.Connection = _sqlite3.connect(self.database_file, timeout=60)
@@ -42,10 +44,8 @@ class DGDatabaseSession:
             self._exec_db_command("SELECT * FROM database_file")
             
             current_version = self.get_version()
-            if current_version != DATABASE_VERSION:
-                raise _sqlite3.DatabaseError(f"Database version do not match. Needed: {DATABASE_VERSION} Has: {current_version}")
             
-            return True 
+            return True and current_version == DATABASE_VERSION
         except _sqlite3.OperationalError:
             return False
 
@@ -110,5 +110,5 @@ class DGDatabaseSession:
             os.remove(self.database_file)
             shutil.copy(self.database_file_backup, self.database_file)
             
-            return BACKUP_DATABASE_FILE
-        raise _sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, BACKUP_DATABASE_FILE)
+            return self.database_file_backup
+        raise _sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
