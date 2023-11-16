@@ -26,7 +26,7 @@ class Listeners(commands.Cog):
     async def on_message(self, message: discord.Message):   
         convo = None
         try:
-            member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
+            
             
             async def respond_to_mention():
                 model = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
@@ -41,7 +41,9 @@ class Listeners(commands.Cog):
                 
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
-    
+                
+                member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
+                
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if isinstance(channel := message.channel, discord.Thread):
                         if self.client.get_user_has_permission(member, convo.model):

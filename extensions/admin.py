@@ -18,7 +18,7 @@ class Administration(_Cog):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
-    @_discord.app_commands.command(name="shutdown", description="Shuts down bot client")
+    @_discord.app_commands.command(name="stopbot", description="Shuts down bot client")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def halt(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):

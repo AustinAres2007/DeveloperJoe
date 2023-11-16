@@ -1,14 +1,75 @@
 # -*- coding: utf-8 -*-
 
+from typing import Any, Callable, Optional
 import discord
 import threading
 
-from discord.errors import DiscordException, ClientException
+from discord import AudioSource, opus
+from discord.errors import ClientException
 from discord.gateway import DiscordVoiceWebSocket
 from .gateway import hook
 from .reader import AudioReader, AudioSink
 
-class VoiceRecvClient(discord.VoiceClient):
+class BodgedAudioPlayer(discord.player.AudioPlayer):
+    def run(self) -> None:
+        try:
+            self._do_run()
+        except Exception as exc:
+            self._current_error = exc
+            print("EXC FROM BAP ", exc)
+            self.stop()
+        finally:
+            self._call_after()
+
+class BodgedVoiceClient(discord.VoiceClient):
+    def play(self, source: BodgedAudioPlayer, *, after: Optional[Callable[[Optional[Exception]], Any]] = None) -> None:
+        """Plays an :class:`AudioSource`.
+
+        The finalizer, ``after`` is called after the source has been exhausted
+        or an error occurred.
+
+        If an error happens while the audio player is running, the exception is
+        caught and the audio player is then stopped.  If no after callback is
+        passed, any caught exception will be logged using the library logger.
+
+        .. versionchanged:: 2.0
+            Instead of writing to ``sys.stderr``, the library's logger is used.
+
+        Parameters
+        -----------
+        source: :class:`AudioSource`
+            The audio source we're reading from.
+        after: Callable[[Optional[:class:`Exception`]], Any]
+            The finalizer that is called after the stream is exhausted.
+            This function must have a single parameter, ``error``, that
+            denotes an optional exception that was raised during playing.
+
+        Raises
+        -------
+        ClientException
+            Already playing audio or not connected.
+        TypeError
+            Source is not a :class:`AudioSource` or after is not a callable.
+        OpusNotLoaded
+            Source is not opus encoded and opus is not loaded.
+        """
+
+        if not self.is_connected():
+            raise ClientException('Not connected to voice.')
+
+        if self.is_playing():
+            raise ClientException('Already playing audio.')
+
+        if not isinstance(source, AudioSource):
+            raise TypeError(f'source must be an AudioSource not {source.__class__.__name__}')
+
+        if not self.encoder and not source.is_opus():
+            self.encoder = opus.Encoder()
+
+        self._player = BodgedAudioPlayer(source, self, after=after)
+        self._player.start()
+        
+class VoiceRecvClient(BodgedVoiceClient):
     def __init__(self, client, channel):
         super().__init__(client, channel)
 
@@ -104,11 +165,6 @@ class VoiceRecvClient(discord.VoiceClient):
         if self._player:
             self._player.stop()
             self._player = None
-
-    def stop(self):
-        """Stops playing and receiving audio."""
-        self.stop_playing()
-        self.stop_listening()
 
     @property
     def sink(self):

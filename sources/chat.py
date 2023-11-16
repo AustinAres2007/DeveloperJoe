@@ -6,6 +6,7 @@ import datetime as _datetime, discord as _discord, openai as _openai, random as 
 
 from enum import Enum as _Enum
 from typing import (
+    TextIO,
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator,
@@ -209,7 +210,6 @@ class DGChats:
         raise NotImplementedError
     
     async def start(self) -> None:
-        print("Adding", self.bot, f"USR: {self.user}", f"NAME: {self.name}", f"instance: {self}")
         self.bot.add_conversation(self.user, self.display_name, self)
         self.bot.set_default_conversation(self.user, self.display_name)
 
@@ -564,21 +564,26 @@ class DGVoiceChat(DGTextChat):
             new_voice = await self.manage_voice()
             
             def _play_voice(index: int, error: _Any=None):
-                if not error:
-                    if not (index >= len(self.voice_tss_queue)):
-                        speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
-                        volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
-                        
-                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
-                        volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
-                        volume_source.volume = volume
-                        
-                        return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
-                        
-                    self.voice_tss_queue.clear()
-                else:
-                    raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
-                
+                try:
+                    if not error:
+                        if not (index >= len(self.voice_tss_queue)):
+                            speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
+                            volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
+                            
+                            ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                            volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
+                            volume_source.volume = volume
+                            
+                            return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
+                            
+                        self.voice_tss_queue.clear()
+                    else:
+                        raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
+                except Exception as e:
+                    print(e)
+            
+            if new_voice.is_paused():
+                new_voice.stop()
             _play_voice(0)
             
         except _discord.ClientException:
@@ -593,8 +598,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_is_speaking
     async def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
-        self.client_voice.pause() # type: ignore Checks done with decorators.
-        #self.client_voice.stop_playing() # type: ignore Checks done with decorators.
+        self.client_voice.stop_playing() # type: ignore checks in decorators
     
     @decorators.check_enabled
     @decorators.has_voice_with_error
