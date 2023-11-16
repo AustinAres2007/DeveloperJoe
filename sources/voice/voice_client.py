@@ -118,7 +118,7 @@ class VoiceRecvClient(BodgedVoiceClient):
     def cleanup(self):
         super().cleanup()
         self.stop()
-
+    
     # TODO: copy over new functions
     # add/remove/get ssrc
 

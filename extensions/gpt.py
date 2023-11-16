@@ -114,10 +114,12 @@ class Communication(commands.Cog):
             raise exceptions.ModelIsLockedError(conversation.model.model)
 
     @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
-    async def enabled_listening(self, interaction: discord.Interaction, listen: bool):
+    async def enabled_listening(self, interaction: discord.Interaction, listen: bool | None=None):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         if vc_chat := self.client.get_default_voice_conversation(member):
-            if listen == True:
+            if listen == None:
+                await interaction.response.send_message(f"Bot is currently{' not' if vc_chat.is_listening != True else ''} listening.")
+            elif listen == True:
                 await vc_chat.listen()
                 await interaction.response.send_message("Listening to voice..")
             else:

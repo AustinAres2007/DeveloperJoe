@@ -1,6 +1,7 @@
-import discord
+import asyncio
+import discord, random
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 from typing import Union
 
 from joe import DeveloperJoe
@@ -14,14 +15,18 @@ from sources import (
 )
 from sources.common import (
     commands_utils,
-    developerconfig
+    developerconfig,
+    common_functions
 )
 
 class Listeners(commands.Cog):
     def __init__(self, _client: DeveloperJoe):
+        
         self.client = _client
+        self.change_status.start() if confighandler.get_config("enable_status_scrolling") else None
+        
         print(f"{self.__cog_name__} Loaded")
-
+        
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
         convo = None
@@ -63,10 +68,10 @@ class Listeners(commands.Cog):
                         else:
                             raise exceptions.ModelIsLockedError(convo.model.model)
                         
-                    elif self.client.user and message.mentions[0].id == self.client.user.id:
+                    elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                         await respond_to_mention()
                         
-                elif self.client.user and message.mentions[0].id == self.client.user.id:
+                elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                     await respond_to_mention()
 
         except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
@@ -126,6 +131,18 @@ class Listeners(commands.Cog):
                                 
                         else: # No fucking clue what happened. Panic disconnect!
                             await _manage_bot_disconnect(convo)
+
+    @tasks.loop(seconds=confighandler.get_config("status_scrolling_change_interval"))
+    async def change_status(self):
+        try:
+            status_to_use = random.choice(list(self.client.statuses))
+            status_type = self.client.statuses[status_to_use]
             
+            if status_type < -1 or status_type > 5:
+                common_functions.warn_for_error(f'A status has been incorrectly configured in {developerconfig.CONFIG_FILE}. Wrong status is "{status_to_use}". The value is {status_type} when it should only be more more than -2 and less than 6!')
+            await self.client.change_presence(activity=discord.Activity(type=status_type, name=status_to_use))
+        except AttributeError:
+            pass # Still loading!
+        
 async def setup(client: DeveloperJoe):
     await client.add_cog(Listeners(client))

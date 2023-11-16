@@ -81,6 +81,8 @@ class DeveloperJoe(commands.Bot):
 
     INTENTS = discord.Intents.all()
     
+    
+        
     def __init__(self, *args, **kwargs):
         self.__keys__ = {}
 
@@ -89,7 +91,9 @@ class DeveloperJoe(commands.Bot):
         self.__tzs__ = pytz.all_timezones
         self.__tz__ = pytz.timezone(confighandler.get_config("timezone"))
         self.config = None
-        
+        self.statuses: dict[str, int] = confighandler.get_config('status_scrolling_options')
+        self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
+            
         super().__init__(*args, **kwargs)
     
     def get_uptime(self) -> datetime.timedelta:
@@ -344,6 +348,10 @@ class DeveloperJoe(commands.Bot):
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
         
     async def on_ready(self):
+        
+        self.chats = {user.id: {} for user in self.users}
+        self.default_chats: dict[str, chat.DGChatType | None] = {f"{user.id}-latest": None for user in self.users if not user.bot}
+    
         if self.application:
             try:
                 with modelhandler.DGRulesManager() as guild_handler:
@@ -399,36 +407,33 @@ class DeveloperJoe(commands.Bot):
                     Voice Installed = {has_voice}
                     Voice Enabled = {confighandler.get_config("allow_voice")}
                     Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
+                    Status Scrolling = {confighandler.get_config("enable_status_scrolling")}
                     """)
 
-                    self.chats: dict[int, dict[str, chat.DGChatType] | dict] = {}
-                    self.default_chats: dict[str, None | chat.DGChatType] = {}
-
                     self.start_time = datetime.datetime.now(tz=self.__tz__)
-                    
                     await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
-                
+                    self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored.
+                    
                     common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
-                    
-                    
-                    self.chats = {user.id: {} for user in self.users}
-                    self.default_chats = {f"{user.id}-latest": None for user in self.users if not user.bot}
-
-                    self.tree.on_error = self.handle_error # type: ignore
                     
             except Exception as err:
                 common_functions.send_fatal_error_warning(str(err))
                 
     async def setup_hook(self):
+                
         print("Cogs\n")
         for file in os.listdir(f"extensions"):
             if file.endswith(".py"):
                 await self.load_extension(f"extensions.{file[:-3]}")
         
         print("\nConnecting to discord..")
+        
         await self.tree.sync()
+        await super().setup_hook()
+        
         print("Synced.")
-        return await super().setup_hook()
+        
+        
 
 # Driver Code
 

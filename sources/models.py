@@ -1,3 +1,4 @@
+from httpx import ReadTimeout
 import tiktoken, typing, openai_async, json, tiktoken
 from sources.chat import GPTConversationContext
 from sources import confighandler
@@ -21,8 +22,12 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
         "model": __model,
         "messages": temp_context
     }
-    _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
-    json_reply = _reply.json()
+    try:
+        _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+        json_reply = _reply.json()
+    except (TimeoutError, ReadTimeout):
+        return AIReply("Generic timeout! Please ask your query again.", 0, 1, "timeouterror")
+    
     try:
         reply = json_reply["choices"][0]
         usage = json_reply["usage"]

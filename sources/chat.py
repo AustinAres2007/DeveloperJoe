@@ -496,6 +496,10 @@ class DGVoiceChat(DGTextChat):
         return self.client_voice.is_playing() if self.client_voice else False
     
     @property
+    def is_listening(self) -> bool:
+        return self.client_voice.is_listening() if self.client_voice else False
+    
+    @property
     def client_voice(self) -> voice_client.VoiceRecvClient | None:
         return self._client_voice_instance
     
@@ -509,32 +513,36 @@ class DGVoiceChat(DGTextChat):
     
     async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
         try:
-            
-            # TODO: Fix voice here
-            
             if self.proc_packet == False:
                 self.proc_packet = True
                 
                 recogniser = _speech_recognition.Recognizer()
-                
+
                 try:
                     with _speech_recognition.AudioFile(voice) as wav_file:
+                        
+                        recogniser.adjust_for_ambient_noise(wav_file, 0.7) # type: ignore float values can be used but that package does not have annotations                  
                         data = recogniser.record(wav_file)
                         text = recogniser.recognize_google(data, pfilter=0)
+                        
                 except _speech_recognition.UnknownValueError:
                     pass
                 else:
                     prefix = confighandler.get_guild_config_attribute(member.guild, "voice-keyword").lower()
 
-                    if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
-        
-                        text = text.lower().split(prefix)[1].lstrip()
-                        usr_voice_convo = self.bot.get_default_voice_conversation(member)
+                    if prefix and isinstance(text, str) and self.last_channel: # Recognise keyword
+                        text = text.lower()
+                        if keyword_index := text.find(prefix) != -1:
+                            text = text[keyword_index + len(prefix):].lstrip()
+                            usr_voice_convo = self.bot.get_default_voice_conversation(member)
                         
-                        if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
-                            await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
-                            
-        except KeyError as error:
+                            if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
+                                await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
+                                ...
+                                
+        except _speech_recognition.RequestError:
+            common_functions.send_fatal_error_warning("The connection has been lost, or the operation failed.")       
+        except Exception as error:
             common_functions.send_fatal_error_warning(str(error))
         finally:
             self.proc_packet = False
@@ -623,7 +631,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_isnt_listening
     async def listen(self):
         """Starts the listening events for a users voice conversation."""
-        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 1.0)) # type: ignore Checks done with decorators.
+        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 0.7)) # type: ignore Checks done with decorators.
     
     @decorators.check_enabled
     @decorators.has_voice_with_error

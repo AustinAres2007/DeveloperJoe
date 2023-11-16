@@ -18,7 +18,7 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.4.0-Z" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
+VERSION = "1.4.0-P" # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 DATABASE_VERSION = "1.0.1"
 
 DATABASE_EXTENSION = "db"
@@ -60,6 +60,9 @@ default_config_keys = {
     "bug_report_channel": 0,
     "status_type": 2,
     "status_text": "/help and answering lifes biggest questions.",
+    "status_scrolling_change_interval": 10,
+    "enable_status_scrolling": False,
+    "status_scrolling_options": {"/help and different peoples!": 2, "/help and documentries.": 3, "/help and math tournaments!": 5, "/help and monoply :(": 0},
     "default_gpt_model": "gpt-3.5-turbo",
     "listening_keyword": "assistant",
     "listening_timeout": 2.5,
