@@ -1,7 +1,7 @@
 import discord
 
 from discord.ext.commands import Cog as _Cog
-from pkg_resources import DEVELOP_DIST
+from .ui import modals
 
 from sources import (
     models,
@@ -55,5 +55,9 @@ class General(_Cog):
         [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
         await interaction.response.send_message(embed=embed)
     
+    @discord.app_commands.command(name="modaltest", description="Sends a modal.")
+    async def s_modal(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(modals.TestModal())
+        
 async def setup(client):
     await client.add_cog(General(client))
