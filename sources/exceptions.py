@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import discord as _discord, httpx as _httpx
 from typing import Any as _Any, Union as _Union, TYPE_CHECKING
 
@@ -196,7 +197,7 @@ class CannotTalkInChannel(DGException):
     
 class ConfigKeyError(DGException):
     reply = errors.GenericErrors.CONFIG_NO_ENTRY
-    def __init__(self, missing_key):
+    def __init__(self, missing_key: str):
         """Will be raised when a config key has been specified, but does not exist."""
         super().__init__(self.reply, missing_key)
 

@@ -1,3 +1,4 @@
+from httpx import ReadTimeout
 import tiktoken, typing, openai_async, json, tiktoken
 from sources.chat import GPTConversationContext
 from sources import confighandler
@@ -21,8 +22,12 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
         "model": __model,
         "messages": temp_context
     }
-    _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
-    json_reply = _reply.json()
+    try:
+        _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+        json_reply = _reply.json()
+    except (TimeoutError, ReadTimeout):
+        return AIReply("Generic timeout! Please ask your query again.", 0, 1, "timeouterror")
+    
     try:
         reply = json_reply["choices"][0]
         usage = json_reply["usage"]
@@ -102,11 +107,16 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
         context.add_conversation_entry(query, replied_content, role)
         
 class AIReply:
-    def __init__(self, _reply: str, _tokens: int, _error_code: int, _error: str) -> None:
-        self._reply = _reply
-        self._tokens = _tokens
-        self._error_code = _error_code
-        self._error = _error
+    def __init__(self, _reply: str, _tokens: int, _error_code: int, _error: str | None, _image: str | None=None, timestamp: int=0) -> None:
+        self.reply = _reply
+        self.tokens = _tokens
+        self.error_code = _error_code
+        self.error = _error
+        self.image = _image
+        self.timestamp = timestamp
+    
+    def __str__(self) -> str:
+        return self.reply
     
 class AIModel:
 
@@ -168,8 +178,8 @@ class GPT3Turbo(AIModel):
         return cls.model == __value.model
     
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, __model: str | None=None, **kwargs) -> AIReply:
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model)
+    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIReply:
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> typing.AsyncGenerator:
@@ -190,7 +200,7 @@ class GPT4(AIModel):
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIReply:
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model)
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> typing.AsyncGenerator:
@@ -209,7 +219,7 @@ class GoogleBard(AIModel):
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIReply:
-        return AIReply("This model has not been setup yet and is a work in progress.", 0, 0, "No error.")
+        return AIReply("This model has not been setup yet and is a work in progress.", 0, 0, "No error.", **kwargs)
     
 GPTModelType = typing.Union[GPT3Turbo, GPT4, GoogleBard]
 registered_models = {

@@ -33,9 +33,11 @@ class Configuration(_Cog):
     @discord.app_commands.command(name="timezone", description="Changes the bots timezone in this server.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
-    async def change_tz(self, interaction: discord.Interaction, timezone: str):
+    async def change_tz(self, interaction: discord.Interaction, timezone: str | None=None):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            if timezone in self.client.__tzs__:
+            if timezone == None:
+                return await interaction.response.send_message(f"Current timezone is {confighandler.get_guild_config_attribute(guild, 'timezone')}")
+            elif timezone in self.client.__tzs__:
                 confighandler.edit_guild_config(guild, "timezone", timezone)
                 return await interaction.response.send_message(f"Changed bots timezone to {timezone}.")
             await interaction.response.send_message(f"Unknown timezone: {timezone}")
@@ -43,17 +45,21 @@ class Configuration(_Cog):
     @discord.app_commands.command(name="keyword", description='Changes the bots listening keyword in this server. (E.G. "Alexa" or "Siri" for example)')
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
-    async def change_keyword(self, interaction: discord.Interaction, keyword: str):
+    async def change_keyword(self, interaction: discord.Interaction, keyword: str | None=None):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
+            if keyword == None:
+                return await interaction.response.send_message(f'Current voice keyword is "{confighandler.get_guild_config_attribute(guild, "voice-keyword")}"')
             confighandler.edit_guild_config(guild, "voice-keyword", keyword)
             await interaction.response.send_message(f'Changed this servers listening keyword to: "{keyword}"')
         
     @discord.app_commands.command(name="voice", description=f"Configure if users can have spoken {confighandler.get_config('bot_name')} chats.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
-    async def config_voice(self, interaction: discord.Interaction, allow_voice: bool):
+    async def config_voice(self, interaction: discord.Interaction, allow_voice: bool | None=None):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            confighandler.edit_guild_config(guild, "voice", allow_voice)
+            if allow_voice == None:
+                return await interaction.response.send_message(f"Users {'cannot' if confighandler.get_guild_config_attribute(guild, 'voice-enabled') == False else 'can'} use voice.")
+            confighandler.edit_guild_config(guild, "voice-enabled", allow_voice)
             return await interaction.response.send_message(f"Users {'cannot' if allow_voice == False else 'can'} use voice.")
             
     @discord.app_commands.command(name="reset", description=f"Reset this servers configuration back to default.")

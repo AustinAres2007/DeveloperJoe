@@ -1,6 +1,7 @@
-import discord
+import asyncio
+import discord, random
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 from typing import Union
 
 from joe import DeveloperJoe
@@ -14,22 +15,40 @@ from sources import (
 )
 from sources.common import (
     commands_utils,
-    developerconfig
+    developerconfig,
+    common_functions
 )
 
 class Listeners(commands.Cog):
     def __init__(self, _client: DeveloperJoe):
+        
         self.client = _client
+        self.change_status.start() if confighandler.get_config("enable_status_scrolling") else None
+        
         print(f"{self.__cog_name__} Loaded")
-
+        
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
         convo = None
         try:
+            
+            
+            async def respond_to_mention():
+                model = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
+                
+                if self.client.get_user_has_permission(member, model):
+                    async with message.channel.typing():
+                        ai_reply = await model.__askmodel__(message.clean_content, None, "user", False)
+                    
+                        if len(reply := ai_reply.reply + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                            return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                        return await message.channel.send(reply)
+                
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
+                
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
-    
+                
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if isinstance(channel := message.channel, discord.Thread):
                         if self.client.get_user_has_permission(member, convo.model):
@@ -48,6 +67,12 @@ class Listeners(commands.Cog):
                                 raise exceptions.DGException(f"{confighandler.get_config('bot_name')} is still processing your last request.")
                         else:
                             raise exceptions.ModelIsLockedError(convo.model.model)
+                        
+                    elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
+                        await respond_to_mention()
+                        
+                elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
+                    await respond_to_mention()
 
         except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
             await message.channel.send(error.message)
@@ -63,7 +88,7 @@ class Listeners(commands.Cog):
             #[await owner.send(self.client.ADMIN_TEXT[.CHARACTER_LIMIT * t:]) for t in range(ceil(len(self.client.ADMIN_TEXT) / .CHARACTER_LIMIT))]
             await owner.send(file=commands_utils.to_file(self.client.ADMIN_TEXT, "admin-introduction.md"))
 
-        with modelhandler.DGRulesManager(guild) as _guild_handler:
+        with modelhandler.DGRulesManager() as _guild_handler:
             _guild_handler._add_raw_guild(guild.id)
     
     @commands.Cog.listener()
@@ -106,6 +131,18 @@ class Listeners(commands.Cog):
                                 
                         else: # No fucking clue what happened. Panic disconnect!
                             await _manage_bot_disconnect(convo)
+
+    @tasks.loop(seconds=confighandler.get_config("status_scrolling_change_interval"))
+    async def change_status(self):
+        try:
+            status_to_use = random.choice(list(self.client.statuses))
+            status_type = self.client.statuses[status_to_use]
             
+            if status_type < -1 or status_type > 5:
+                common_functions.warn_for_error(f'A status has been incorrectly configured in {developerconfig.CONFIG_FILE}. Wrong status is "{status_to_use}". The value is {status_type} when it should only be more more than -2 and less than 6!')
+            await self.client.change_presence(activity=discord.Activity(type=status_type, name=status_to_use))
+        except AttributeError:
+            pass # Still loading!
+        
 async def setup(client: DeveloperJoe):
     await client.add_cog(Listeners(client))

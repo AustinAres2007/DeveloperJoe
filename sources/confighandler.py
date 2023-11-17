@@ -1,4 +1,4 @@
-import discord as _discord, json as _json, yaml, os, pytz
+import discord as _discord, json as _json, yaml, os
 from typing import Union as _Union, Any
 
 from . import (
@@ -8,7 +8,6 @@ from . import (
 from .common import (
     decorators,
     developerconfig,
-    commands_utils,
     common_functions
 )
 
@@ -24,11 +23,12 @@ __all__ = [
 
 def generate_config_key():
     return {
-        "speed": get_config("voice_speedup_multiplier"),
         "timezone": get_config("timezone"),
-        "voice": True,
-        "voice-keyword": 
-            get_config("listening_keyword")
+        "voice-enabled": True,
+        "voice-speed": get_config("voice_speedup_multiplier"),
+        "voice-keyword": get_config("listening_keyword"),
+        "voice-volume": get_config("voice_volume"),
+        "default-ai-model": get_config("default_gpt_model")
     }
 
 class GuildData:
@@ -118,7 +118,7 @@ def reset_guild_config(guild: _discord.Guild) -> None:
     return edit_guild_config(guild, **generate_config_key())
         
     
-def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> Any:
+def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> Any:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
     Args:
@@ -130,14 +130,14 @@ def get_guild_config_attribute(bot, guild: _discord.Guild, attribute: str) -> An
     """
     with DGGuildConfigSession(guild) as cs:
         cf = cs.get_guild().config_data
+        
         if attribute in cf:
             return cf[attribute]
-        elif attribute in list(bot.config):
-            return bot.config.get(attribute)
         else:
             raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
 
 def get_config(key: str) -> Any:
+    
     local_config = check_and_get_yaml()
     if key in local_config:
         return local_config.get(key)
@@ -174,8 +174,11 @@ def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against
         with open(yaml_file, 'r') as yaml_file_obj:
             try:
                 config = yaml.safe_load(yaml_file_obj)
-                
+                                        
                 if config:
+                    if set(check_against).difference(config):
+                        return fix_config(yaml_file, check_against)
+                    
                     for i1 in enumerate(dict(config).items()):
                         if (i1[1][0] not in list(check_against) or type(i1[1][1]) != type(check_against[i1[1][0]])):
                             return fix_config(yaml_file, check_against)

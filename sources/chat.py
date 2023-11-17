@@ -6,11 +6,14 @@ import datetime as _datetime, discord as _discord, openai as _openai, random as 
 
 from enum import Enum as _Enum
 from typing import (
+    TextIO,
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator,
     TYPE_CHECKING
 )
+
+from sources import models
 from . import (
     exceptions, 
     confighandler, 
@@ -144,11 +147,10 @@ class DGChats:
         if save_message and query_type == "query":
             self.tokens += tokens
             
-    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
+    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> models.AIReply:
             
-        replied_content = ""
+        replied_content = models.AIReply("No reply.", 0, 0, "Unknown")
         self.is_processing = True
-        ai_reply = models.AIReply("No reply.", 0, 0, "Unknown")
         
         if query_type == "query":
             
@@ -156,10 +158,10 @@ class DGChats:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             try:
-                ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
-                replied_content = ai_reply._reply
+                replied_content: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
+                
             except KeyError:
-                common_functions.send_fatal_error_warning(f"The Frovided OpenAI API key was invalid.")
+                common_functions.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
                 await self.bot.close()
             except TimeoutError:
                 raise exceptions.GPTTimeoutError(kwargs["content"])
@@ -170,15 +172,15 @@ class DGChats:
                 image_request: dict = dict(_openai.Image.create(**kwargs))
                 if isinstance(image_request, dict) == True:
                     image_url = image_request['data'][0]['url']
-                    replied_content = f"Created Image at {_datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
 
+                    replied_content = models.AIReply("", 0, 0, None, image_url, image_request["created"])
                     self.context.add_image_entry(kwargs["prompt"], image_url)
                 else:
                     raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
             except _openai.InvalidRequestError:
                 raise exceptions.GPTContentFilter(kwargs["prompt"])
 
-        self.__manage_tokens__(query_type, save_message, ai_reply._tokens)
+        self.__manage_tokens__(query_type, save_message, replied_content.tokens)
         self.is_processing = False
         return replied_content
 
@@ -205,16 +207,20 @@ class DGChats:
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
         
-    def ask_stream(self, query: str) -> _AsyncGenerator:
+    async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
         raise NotImplementedError
     
-    async def start(self) -> str:
+    async def generate_image(self, prompt: str, resolution: str="512x512") -> models.AIReply:
         raise NotImplementedError
+        
+    async def start(self) -> None:
+        self.bot.add_conversation(self.user, self.display_name, self)
+        self.bot.set_default_conversation(self.user, self.display_name)
 
     def clear(self) -> None:
         raise NotImplementedError
     
-    async def stop(self, interaction: _discord.Interaction, history: history.DGHistorySession, save_history: str) -> str:
+    async def stop(self, interaction: _discord.Interaction, save_history: bool) -> str:
         raise NotImplementedError
 
     @property
@@ -373,9 +379,13 @@ class DGTextChat(DGChats):
             return message
     
     @decorators.check_enabled
+    async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIReply:
+        return await self.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1)
+    
+    @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
         async with channel.typing():
-            reply = await self.__send_query__(query_type="query", role="user", content=query)
+            reply = str(await self.__send_query__(query_type="query", role="user", content=query))
             final_user_reply = f"## {self.header}\n\n{reply}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
@@ -386,13 +396,15 @@ class DGTextChat(DGChats):
                 
         return reply
             
-    async def start(self) -> str:
+    async def start(self, silent: bool=True) -> str | None:
         """Sends a start query to GPT.
 
         Returns:
             str: The welcome message.
         """
-        return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
+        await super().start()
+        if not silent:
+            return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
@@ -492,6 +504,10 @@ class DGVoiceChat(DGTextChat):
         return self.client_voice.is_playing() if self.client_voice else False
     
     @property
+    def is_listening(self) -> bool:
+        return self.client_voice.is_listening() if self.client_voice else False
+    
+    @property
     def client_voice(self) -> voice_client.VoiceRecvClient | None:
         return self._client_voice_instance
     
@@ -505,32 +521,36 @@ class DGVoiceChat(DGTextChat):
     
     async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
         try:
-            
-            # TODO: Fix voice here
-            
             if self.proc_packet == False:
                 self.proc_packet = True
                 
                 recogniser = _speech_recognition.Recognizer()
-                
+
                 try:
                     with _speech_recognition.AudioFile(voice) as wav_file:
+                        
+                        recogniser.adjust_for_ambient_noise(wav_file, 0.7) # type: ignore float values can be used but that package does not have annotations                  
                         data = recogniser.record(wav_file)
                         text = recogniser.recognize_google(data, pfilter=0)
+                        
                 except _speech_recognition.UnknownValueError:
                     pass
                 else:
-                    prefix = confighandler.get_guild_config_attribute(self.bot, member.guild, "voice-keyword").lower()
-                
-                    if prefix and isinstance(text, str) and text.lower().startswith(prefix) and self.last_channel: # Recognise keyword
-        
-                        text = text.lower().split(prefix)[1].lstrip()
-                        usr_voice_convo = self.bot.get_default_voice_conversation(member)
+                    prefix = confighandler.get_guild_config_attribute(member.guild, "voice-keyword").lower()
+
+                    if prefix and isinstance(text, str) and self.last_channel: # Recognise keyword
+                        text = text.lower()
+                        if keyword_index := text.find(prefix) != -1:
+                            text = text[keyword_index + len(prefix):].lstrip()
+                            usr_voice_convo = self.bot.get_default_voice_conversation(member)
                         
-                        if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
-                            await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
-                            
-        except KeyError as error:
+                            if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
+                                await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
+                                ...
+                                
+        except _speech_recognition.RequestError:
+            common_functions.send_fatal_error_warning("The connection has been lost, or the operation failed.")       
+        except Exception as error:
             common_functions.send_fatal_error_warning(str(error))
         finally:
             self.proc_packet = False
@@ -560,15 +580,26 @@ class DGVoiceChat(DGTextChat):
             new_voice = await self.manage_voice()
             
             def _play_voice(index: int, error: _Any=None):
-                if not error:
-                    if not (index >= len(self.voice_tss_queue)):
-                        speed: int = confighandler.get_guild_config_attribute(self.bot, new_voice.guild, "speed")
-                        return new_voice.play(_discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True), after=lambda error: _play_voice(index + 1, error))
-                        
-                    self.voice_tss_queue.clear()
-                else:
-                    raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
-                
+                try:
+                    if not error:
+                        if not (index >= len(self.voice_tss_queue)):
+                            speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
+                            volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
+                            
+                            ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                            volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
+                            volume_source.volume = volume
+                            
+                            return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
+                            
+                        self.voice_tss_queue.clear()
+                    else:
+                        raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
+                except Exception as e:
+                    print(e)
+            
+            if new_voice.is_paused():
+                new_voice.stop()
             _play_voice(0)
             
         except _discord.ClientException:
@@ -583,7 +614,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_is_speaking
     async def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
-        self.client_voice.stop() # type: ignore Checks done with decorators.
+        self.client_voice.stop_playing() # type: ignore checks in decorators
     
     @decorators.check_enabled
     @decorators.has_voice_with_error
@@ -608,12 +639,11 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_isnt_listening
     async def listen(self):
         """Starts the listening events for a users voice conversation."""
-        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 1.0)) # type: ignore Checks done with decorators.
+        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 0.7)) # type: ignore Checks done with decorators.
     
     @decorators.check_enabled
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel
-    @decorators.dg_isnt_speaking
     @decorators.dg_is_listening
     async def stop_listening(self):
         """Stops the listening events for a users voice conversation"""
@@ -625,11 +655,11 @@ class DGVoiceChat(DGTextChat):
         
         text = await super().ask(query, channel)
         if isinstance(channel, developerconfig.InteractableChannel):
-            await self.speak(text, channel)
+            await self.speak(str(text), channel)
         else:
             raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
         
-        return text
+        return str(text)
 
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> str:
 
@@ -652,4 +682,4 @@ class DGChatTypesEnum(_Enum):
     TEXT = 1
     VOICE = 2
 
-DGChatType = DGTextChat | DGVoiceChat
+DGChatType = DGTextChat | DGVoiceChat | DGChats

@@ -1,3 +1,5 @@
+from sqlite3 import DatabaseError
+from click import command
 import discord as _discord
 from discord.ext.commands import Cog as _Cog
 
@@ -5,7 +7,8 @@ from joe import DeveloperJoe
 from sources import (
     modelhandler,
     exceptions,
-    database
+    database,
+    confighandler
 )
 from sources.common import (
     commands_utils,
@@ -17,7 +20,7 @@ class Administration(_Cog):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
-    @_discord.app_commands.command(name="shutdown", description="Shuts down bot client")
+    @_discord.app_commands.command(name="stopbot", description="Shuts down bot client")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def halt(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):
@@ -31,16 +34,22 @@ class Administration(_Cog):
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def backup_database(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):
-            location = database.DGDatabaseSession.backup_database()
-            return await interaction.response.send_message(f'Backed up database to "{location}"')
+            with database.DGDatabaseSession() as new_database:
+                location = new_database.backup_database()
+                return await interaction.response.send_message(f'Backed up database to "{location}"')
         raise exceptions.MissingPermissions(interaction.user)
     
     @_discord.app_commands.command(name="load", description="Loads backup made with /backup")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def load_database(self, interaction: _discord.Interaction):
         if await self.client.is_owner(interaction.user):
-            location = database.DGDatabaseSession.load_database_backup()
-            return await interaction.response.send_message(f'Loaded backup from "{location}"')
+            with database.DGDatabaseSession(reset_if_failed_check=False) as old_database:
+                try:
+                    location = old_database.load_database_backup()
+                    return await interaction.response.send_message(f'Loaded backup from "{location}"')
+                except DatabaseError:
+                    return await interaction.response.send_message(f'You cannot load this backup as it is too old. The backup has been kept.')
+                
         raise exceptions.MissingPermissions(interaction.user)
 
     @_discord.app_commands.command(name="lock", description="Locks a select GPT Model behind a role or permission.")
@@ -87,6 +96,19 @@ class Administration(_Cog):
                 text = '\n'.join(model_texts) if models else no_roles
 
                 await interaction.response.send_message(text)
-                
+    
+    @_discord.app_commands.command(name="model", description="Changes the default model that will be used in certain circumstances.")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    @_discord.app_commands.check(commands_utils.in_correct_channel)
+    @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    async def change_default_model_for_server(self, interaction: _discord.Interaction, ai_model: str | None=None):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, _discord.Guild):
+            if ai_model == None:
+                current_model_object = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(guild, 'default-ai-model'))
+                return await interaction.response.send_message(f"Current default AI Model is {current_model_object.display_name}. {current_model_object.description}")
+            model_object = commands_utils.get_modeltype_from_name(ai_model)
+            confighandler.edit_guild_config(guild, "default-ai-model", ai_model)
+            await interaction.response.send_message(f"Changed default AI Model to {model_object.display_name}.")
+            
 async def setup(client):
     await client.add_cog(Administration(client))
