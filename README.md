@@ -51,41 +51,27 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.3.9
+## Release Notes 1.4.0
 
-Added new database features (Mostly for security)
-Added new commands: /back and /load for backing up and loading your database respectively.
+New Features
 
-Changes
+- Can now change bot volume with /volume
+- New Scrolling status-- enable it with the configuration option `enable_status_scrolling` and add more via `status_scrolling_options`!
 
-- /shutdown only works if you are bot owner (NOT ADMINISTRATOR)
+Changes 
 
-Bug Fixes
+- When using /start, the `silent` parameter (set to True by default) will start the chat instantly instead of thinking of a response.
+- @ing the bot now makes it talk to you. Like /inquire-- context is not saved.
+- Added version checking when a backup is loaded.
+- Better voice recognition-- You can now ask the bots listening keyword anywhere within a sentence and it will recognise any words you say after the keyword!
+- When using a command that changes the config, you can now leave the value default to view the current config value.
 
-- get_config() now defaults to developerconfig if not found within bot-config.yaml
-- Fixed bug where if a name was detected as a keyword with voice recognition, the name wouldn't work due to a logic error (Thank you Bradley)
+Fixed Bugs
 
-## Todo 1.4.0
-
-- ~~When using /start, add a parameter so you don't have to wait for the bot to generate text~~
-- ~~@ing bot makes it talk to you.~~
-- ~~ Add volume slider for bot ~~
-- ~~Add version checking when a backup is loaded.~~
-- ~~Add static reduction when listening for voice~~ Cannot do since I only aquire the data after it has been recorded
-- ~~Add better voice recognition (Example; Instead of starting a sentence with they keyword, it can be anywhere within the sentence and any words onwards will be counted as the query)~~
-- ~~Add status scrolling and add duration and options to configuration~~
-- ~~When using a command that changes the config, leave the value default to view the current config value.~~
-- ~~Add image generate function for /image that also opens the possibility of using /image without a conversation (Uses raw openai API with \__send_query__)~~
-Bugs
-
-- ~~When using /shutup, there is a good chance an error will appear regarding a closed IO object~~ Fixed in a way I am not proud of
-- ~~/image gives a server bug (thinking it is in dms)~~
-- ~~If voicestate is being updated while the bot is coming online, loads of errors will be made (define chat objects before on_ready)~~ Hopefully fixed. I cannot think of a way to replicate this bug and test if it still exists
-- ~~Another stupid fucking IO error when moving channels.~~ Seems to be gone. Keep an eye on it
-
-Test
-
-- ~~Test conversations across different servers (See if they still work)~~
+- When using /shutup, there was a good chance an error will appear regarding a closed IO object. This now no longer happens.
+- /image gave an error thinking it is in direct messages even in a server. This is fixed.
+- If a users voicestate was updated while the bot is coming online, loads of errors would be added to the log. Hopefully fixed as far as my minimal tests go.
+- There was another IO error when moving voice channels while the bot was speaking. This is now fixed.
 
 ## Todo 1.4.1
 
