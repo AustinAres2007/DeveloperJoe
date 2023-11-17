@@ -107,11 +107,16 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
         context.add_conversation_entry(query, replied_content, role)
         
 class AIReply:
-    def __init__(self, _reply: str, _tokens: int, _error_code: int, _error: str) -> None:
-        self._reply = _reply
-        self._tokens = _tokens
-        self._error_code = _error_code
-        self._error = _error
+    def __init__(self, _reply: str, _tokens: int, _error_code: int, _error: str | None, _image: str | None=None, timestamp: int=0) -> None:
+        self.reply = _reply
+        self.tokens = _tokens
+        self.error_code = _error_code
+        self.error = _error
+        self.image = _image
+        self.timestamp = timestamp
+    
+    def __str__(self) -> str:
+        return self.reply
     
 class AIModel:
 

@@ -12,6 +12,8 @@ from typing import (
     AsyncGenerator as _AsyncGenerator,
     TYPE_CHECKING
 )
+
+from sources import models
 from . import (
     exceptions, 
     confighandler, 
@@ -145,11 +147,10 @@ class DGChats:
         if save_message and query_type == "query":
             self.tokens += tokens
             
-    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs):
+    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> models.AIReply:
             
-        replied_content = ""
+        replied_content = models.AIReply("No reply.", 0, 0, "Unknown")
         self.is_processing = True
-        ai_reply = models.AIReply("No reply.", 0, 0, "Unknown")
         
         if query_type == "query":
             
@@ -157,10 +158,10 @@ class DGChats:
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
             try:
-                ai_reply: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
-                replied_content = ai_reply._reply
+                replied_content: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
+                
             except KeyError:
-                common_functions.send_fatal_error_warning(f"The Frovided OpenAI API key was invalid.")
+                common_functions.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
                 await self.bot.close()
             except TimeoutError:
                 raise exceptions.GPTTimeoutError(kwargs["content"])
@@ -171,15 +172,15 @@ class DGChats:
                 image_request: dict = dict(_openai.Image.create(**kwargs))
                 if isinstance(image_request, dict) == True:
                     image_url = image_request['data'][0]['url']
-                    replied_content = f"Created Image at {_datetime.datetime.fromtimestamp(image_request['created'])}\nImage Link: {image_url}"
 
+                    replied_content = models.AIReply("", 0, 0, None, image_url, image_request["created"])
                     self.context.add_image_entry(kwargs["prompt"], image_url)
                 else:
                     raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
             except _openai.InvalidRequestError:
                 raise exceptions.GPTContentFilter(kwargs["prompt"])
 
-        self.__manage_tokens__(query_type, save_message, ai_reply._tokens)
+        self.__manage_tokens__(query_type, save_message, replied_content.tokens)
         self.is_processing = False
         return replied_content
 
@@ -209,6 +210,9 @@ class DGChats:
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
         raise NotImplementedError
     
+    async def generate_image(self, prompt: str, resolution: str="512x512") -> models.AIReply:
+        raise NotImplementedError
+        
     async def start(self) -> None:
         self.bot.add_conversation(self.user, self.display_name, self)
         self.bot.set_default_conversation(self.user, self.display_name)
@@ -375,9 +379,13 @@ class DGTextChat(DGChats):
             return message
     
     @decorators.check_enabled
+    async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIReply:
+        return await self.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1)
+    
+    @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
         async with channel.typing():
-            reply = await self.__send_query__(query_type="query", role="user", content=query)
+            reply = str(await self.__send_query__(query_type="query", role="user", content=query))
             final_user_reply = f"## {self.header}\n\n{reply}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
@@ -636,7 +644,6 @@ class DGVoiceChat(DGTextChat):
     @decorators.check_enabled
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel
-    @decorators.dg_isnt_speaking
     @decorators.dg_is_listening
     async def stop_listening(self):
         """Stops the listening events for a users voice conversation"""
@@ -648,11 +655,11 @@ class DGVoiceChat(DGTextChat):
         
         text = await super().ask(query, channel)
         if isinstance(channel, developerconfig.InteractableChannel):
-            await self.speak(text, channel)
+            await self.speak(str(text), channel)
         else:
             raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
         
-        return text
+        return str(text)
 
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> str:
 

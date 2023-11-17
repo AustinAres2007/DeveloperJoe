@@ -1,3 +1,4 @@
+from email.mime import image
 import discord, datetime
 
 from discord.ext import commands
@@ -176,7 +177,8 @@ class Communication(commands.Cog):
 
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        result = str(await convo.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1))
+        image = await convo.generate_image(prompt, resolution)
+        result = f"Created Image at {datetime.datetime.fromtimestamp(image.timestamp)}\nImage Link: {image.image}"
         return await interaction.followup.send(result, ephemeral=False)
 
     @discord.app_commands.command(name="info", description=f"Displays information about your current {confighandler.get_config('bot_name')} Chat.")
@@ -231,7 +233,7 @@ class Communication(commands.Cog):
         
         if self.client.get_user_has_permission(member, actual_model):
             asked = await actual_model.__askmodel__(query, None, "user", False)
-            reply = asked._reply
+            reply = asked.reply
             
             if len(reply) >= 2000:
                 return await interaction.response.send_message(file=commands_utils.to_file(reply, "reply.txt"))

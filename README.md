@@ -70,24 +70,28 @@ Bug Fixes
 - ~~When using /start, add a parameter so you don't have to wait for the bot to generate text~~
 - ~~@ing bot makes it talk to you.~~
 - ~~ Add volume slider for bot ~~
-- Transplant old version data to new database when the version is different and create defaults of what is missing. (Going to be difficult)
-- Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
 - ~~Add version checking when a backup is loaded.~~
 - ~~Add static reduction when listening for voice~~ Cannot do since I only aquire the data after it has been recorded
 - ~~Add better voice recognition (Example; Instead of starting a sentence with they keyword, it can be anywhere within the sentence and any words onwards will be counted as the query)~~
 - ~~Add status scrolling and add duration and options to configuration~~
 - ~~When using a command that changes the config, leave the value default to view the current config value.~~
-- Add image generate function for /image that also opens the possibility of using /image without a conversation (Uses raw openai API with \__send_query__)
+- ~~Add image generate function for /image that also opens the possibility of using /image without a conversation (Uses raw openai API with \__send_query__)~~
 Bugs
 
 - ~~When using /shutup, there is a good chance an error will appear regarding a closed IO object~~ Fixed in a way I am not proud of
 - ~~/image gives a server bug (thinking it is in dms)~~
 - ~~If voicestate is being updated while the bot is coming online, loads of errors will be made (define chat objects before on_ready)~~ Hopefully fixed. I cannot think of a way to replicate this bug and test if it still exists
-- Another stupid fucking IO error when moving channels.
+- ~~Another stupid fucking IO error when moving channels.~~ Seems to be gone. Keep an eye on it
 
 Test
 
 - ~~Test conversations across different servers (See if they still work)~~
+
+## Todo 1.4.1
+
+- Transplant old version data to new database when the version is different and create defaults of what is missing. (Going to be difficult)
+- Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
+- When asking a question, append the query onto `DeveloperJoe.statuses` while the query is being answered so it can appear on DJ's status if chosen. 
 
 ## Todo 1.4.x
 
