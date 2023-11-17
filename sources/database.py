@@ -8,7 +8,10 @@ from . import errors
 __all__ = [
     "DGDatabaseSession"
 ]
-
+database_tables = {
+    "history": "(uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))"
+}
+# TODO: Data transfer to new database file (use .check() and detect if a table is missing and replace with parameters that will be specified in a dictionary)
 class DGDatabaseSession:
     """
         Handles connection between the server and discord client.
