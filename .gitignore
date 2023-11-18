@@ -6,12 +6,14 @@ lib64
 share/
 Scripts/
 Lib/
+include/
 
 *.cfg
 *.pyc
 *.log
 *.db
 *.db-journal
+*.sqlite3
 *.jar
 *.dylib
 *.so
