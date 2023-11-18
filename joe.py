@@ -71,10 +71,6 @@ except FileNotFoundError:
     common_functions.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
 
 # Main Bot Class    
-
-class OpusWarning(Warning):
-    ...
-    
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
@@ -371,7 +367,7 @@ class DeveloperJoe(commands.Bot):
                             
                             common_functions.send_info_text("Performing database check..")
                             if not i > 1:
-                                if not guild_handler.check():
+                                if not guild_handler.check(warn_if_incompatible_versions=True):
                                     common_functions.warn_for_error("Database file has been modified / deleted, rebuilding..")
                                     guild_handler.init()
                                     return await _check_integrity(i+1)
@@ -416,7 +412,7 @@ class DeveloperJoe(commands.Bot):
                     
                     common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     
-            except Exception as err:
+            except ConnectionError as err:
                 common_functions.send_fatal_error_warning(str(err))
                 
     async def setup_hook(self):
@@ -436,8 +432,11 @@ class DeveloperJoe(commands.Bot):
         
 
 # Driver Code
+global client
 
-async def _run_bot():
+client: DeveloperJoe | None = None
+
+async def _run_bot() -> DeveloperJoe | None:
     """Runs the bot."""
     client = None
     try:
@@ -446,9 +445,9 @@ async def _run_bot():
             
         logging_handler = logging.FileHandler(developerconfig.LOG_FILE, mode="w+")
         discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
-        
+            
         async with DeveloperJoe(command_prefix="whatever", intents=DeveloperJoe.INTENTS) as client:
-            await client.start(DISCORD_TOKEN)
+            await client.start(DISCORD_TOKEN)    
             
     except KeyboardInterrupt:
         if client:

@@ -1,16 +1,14 @@
-import sqlite3 as _sqlite3, shutil, os
-from typing import Union as _Union, Any as _Any
+import sqlite3, shutil, os
+from typing import Any
 
-from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION, TIMEZONE
+from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION
 from .common import common_functions
 from . import errors
 
 __all__ = [
     "DGDatabaseSession"
 ]
-database_tables = {
-    "history": "(uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))"
-}
+
 # TODO: Data transfer to new database file (use .check() and detect if a table is missing and replace with parameters that will be specified in a dictionary)
 class DGDatabaseSession:
     """
@@ -36,30 +34,44 @@ class DGDatabaseSession:
         """
 
         self._context_manager_reset = reset_if_failed_check
+        self._required_tables = ["history", "model_rules", "guild_configs", "database_file"]
+        
         self.database_file = database
         self.database_file_backup = self.database_file.replace(os.path.splitext(self.database_file)[-1], ".sqlite3")
-        self.database: _sqlite3.Connection = _sqlite3.connect(self.database_file, timeout=60)
-        self.cursor: _Union[_sqlite3.Cursor, None] = self.database.cursor()
+        self.database: sqlite3.Connection = sqlite3.connect(self.database_file, timeout=60)
+        self.cursor: sqlite3.Cursor | None = self.database.cursor()
 
-    def check(self) -> bool:
+    def table_exists(self, table: str) -> bool:
+        try:
+            __has_table = self._exec_db_command("SELECT * FROM {}".format(table))
+            return True
+        except sqlite3.OperationalError:
+            return False
+        
+    def check(self, fix_if_broken: bool=True, warn_if_fixable_corruption: bool=True, warn_if_incompatible_versions: bool=False) -> bool:
         """Checks if all required tables exist and the version is correct for normal bot usage.
 
         Returns:
             bool: Weather the check succeeded or failed.
         """
         try:
-            self._exec_db_command("SELECT * FROM history")
-            self._exec_db_command("SELECT * FROM model_rules")
-            self._exec_db_command("SELECT * FROM guild_configs")
-            self._exec_db_command("SELECT * FROM database_file")
-            
-            current_version = self.get_version()
-            
-            return True and current_version == DATABASE_VERSION
-        except _sqlite3.OperationalError:
+            version = self.get_version()
+            if version != DATABASE_VERSION and warn_if_incompatible_versions == True:
+                common_functions.warn_for_error(f"Database version is different than specified. (Needs: {DATABASE_VERSION} Has: {version})")
+                
+            for tb in self._required_tables:
+                if not self.table_exists(tb) and fix_if_broken:
+                    common_functions.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Repairing..') if warn_if_fixable_corruption == True else None
+                    self.init()
+                    return self.check()
+                elif not self.table_exists(tb) and fix_if_broken == False and warn_if_fixable_corruption == True:
+                    common_functions.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Not repaired.')
+                    return False
+            return True
+        except sqlite3.OperationalError:
             return False
 
-    def _exec_db_command(self, query: str, args: tuple=()) -> list[_Any]:
+    def _exec_db_command(self, query: str, args: tuple=()) -> list[Any]:
         """Execute an SQLite3 database command.
 
         Args:
@@ -67,7 +79,7 @@ class DGDatabaseSession:
             args (tuple, optional): Any variable values. Defaults to ().
 
         Returns:
-            list[_Any]: The response from the database
+            list[Any]: The response from the database
         """
         
         self.cursor = self.database.cursor()
@@ -80,13 +92,13 @@ class DGDatabaseSession:
 
         return fetched
     
-    def init(self) -> None:
+    def init(self, override: bool=False) -> None:
         """Creates tables required for normal bot operation."""
         
-        self._exec_db_command("CREATE TABLE history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")
-        self._exec_db_command("CREATE TABLE model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
-        self._exec_db_command("CREATE TABLE guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
-        self._exec_db_command("CREATE TABLE database_file (version TEXT NOT NULL, creation_date INTEGER NOT NULL)")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} database_file (version TEXT NOT NULL, creation_date INTEGER NOT NULL)")
         
         self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
             DATABASE_VERSION, 
@@ -105,17 +117,25 @@ class DGDatabaseSession:
     def reset(self) -> None:
         """Resets the database contents to default (Zero items) This is shorthand for delete() then init()"""
         self.delete()
-        self.init()
+        self.init(override=True)
     
     def get_version(self) -> str:
         """Gets database version."""
-        return str(self._exec_db_command("SELECT version FROM database_file")[0][0])
-
+        try:
+            return str(self._exec_db_command("SELECT version FROM database_file")[0][0])
+        except sqlite3.OperationalError:
+            self.init()
+            return self.get_version()
+        
     def get_creation_date(self) -> int:
         """Gets the POSIX timestamp when the database was created."""
-        timestamp = str(self._exec_db_command("SELECT creation_date FROM database_file")[0][0])
-        return int(timestamp if timestamp.isdecimal() else 0)
-
+        try:
+            timestamp = str(self._exec_db_command("SELECT creation_date FROM database_file")[0][0])
+            return int(timestamp if timestamp.isdecimal() else 0)
+        except sqlite3.OperationalError:
+            self.init()
+            return self.get_creation_date()
+        
     def get_seconds_since_creation(self) -> int:
         """Gets the seconds since the database was created."""
         return common_functions.get_posix() - self.get_creation_date() 
@@ -135,7 +155,7 @@ class DGDatabaseSession:
         """Loads the database backup. This includes doing the check() method on it (Version checking, table checking, etc)
 
         Raises:
-            _sqlite3.DatabaseError: If the database is corrupted at all (check() Fails)
+            sqlite3.DatabaseError: If the database is corrupted at all (check() Fails)
 
         Returns:
             str: The path of the backup that was used.
@@ -146,4 +166,4 @@ class DGDatabaseSession:
                 shutil.copy(self.database_file_backup, self.database_file)
             
                 return self.database_file_backup
-            raise _sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
+            raise sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
