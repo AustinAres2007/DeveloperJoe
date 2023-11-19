@@ -100,18 +100,20 @@ class Communication(commands.Cog):
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
             conversation = self.client.manage_defaults(member, name)
+            status = f'/help and "{message}"'
             
             if self.client.get_user_has_permission(member, conversation.model): # If user has model permission
 
                 await interaction.response.send_message("Thinking..")
                 
-                self.client.statuses[message] = 2
+                self.client.add_status(status, 2)
                 if stream or conversation.stream == True:
                     
                     await conversation.ask_stream(message, channel)
                 else:
                     await conversation.ask(message, channel)
-                    
+                
+                self.client.remove_status(status)
                 return await interaction.delete_original_response()
             
             raise exceptions.ModelIsLockedError(conversation.model.model)

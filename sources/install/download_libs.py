@@ -62,7 +62,7 @@ def download_file(url: str) -> str | None:
         shutil.rmtree(without_ext)
         
         print("Finished Downloading Voice Libraries.")
-        return voice_zip_location
+        return str(voice_zip_location)
     else:
         print("Voice libraries already installed.")
     

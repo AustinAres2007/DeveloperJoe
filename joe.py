@@ -87,11 +87,20 @@ class DeveloperJoe(commands.Bot):
         self.__tzs__ = pytz.all_timezones
         self.__tz__ = pytz.timezone(confighandler.get_config("timezone"))
         self.config = None
-        self.statuses: dict[str, int] = confighandler.get_config('status_scrolling_options')
+        self.statuses: dict[str, int | discord.ActivityType] = confighandler.get_config('status_scrolling_options')
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
             
         super().__init__(*args, **kwargs)
     
+    def add_status(self, text: str, activity_type: discord.ActivityType | int=discord.ActivityType.listening):
+        self.statuses[text] = activity_type
+        
+    def remove_status(self, text: str):
+        try:
+            del self.statuses[text]
+        except KeyError:
+            pass
+        
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=self.__tz__) - self.start_time)
     
