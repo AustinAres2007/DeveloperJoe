@@ -19,6 +19,7 @@ include/
 *.so
 *.dll
 *.exe
+*.zip
 
 @eaDir
 .DS_Store

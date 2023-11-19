@@ -3,8 +3,10 @@ import requests, os, shutil
 
 from platform import machine
 from sys import platform
+from pathlib import Path
 
 arch = machine().lower()
+voice_path = Path("voice").absolute()
 
 libs = {
     "arm64": {
@@ -12,6 +14,10 @@ libs = {
         "linux": "https://github.com/AustinAres2007/developerjoe-downloads/releases/download/v1.0.1-linux/linux-arm64.zip"   
     },
     "x86_64": {
+        "linux": "https://github.com/AustinAres2007/developerjoe-downloads/releases/download/v1.0.1-linux/linux-amd64.zip",
+        "win32": "https://github.com/AustinAres2007/developerjoe-downloads/releases/download/1.0.0-win/windows-amd64.zip"
+    },
+    "amd64": {
         "linux": "https://github.com/AustinAres2007/developerjoe-downloads/releases/download/v1.0.1-linux/linux-amd64.zip",
         "win32": "https://github.com/AustinAres2007/developerjoe-downloads/releases/download/1.0.0-win/windows-amd64.zip"
     }
@@ -27,10 +33,10 @@ def download_file(url: str) -> str | None:
         str: The path of the file locally.
     """
     
-    if len(os.listdir("voice/")) < 3:
+    if len(os.listdir(voice_path)) < 3:
         
         filename = os.path.split(url)[1]
-        voice_zip_location = f"voice/{filename}"
+        voice_zip_location = Path(voice_path, filename)
         without_ext = os.path.splitext(voice_zip_location)[0]
         
         print(f"Downloading {url} to {voice_zip_location}..")
@@ -46,11 +52,11 @@ def download_file(url: str) -> str | None:
                         return 
                         
         print(f"Extracting to {without_ext}..")   
-        shutil.unpack_archive(voice_zip_location, "voice/")
+        shutil.unpack_archive(voice_zip_location, voice_path)
         
-        print(f"Moving from {without_ext} to voice/")
+        print(f"Moving from {without_ext} to voice")
         for f in os.listdir(without_ext):
-            shutil.move(f"{without_ext}/{f}", "voice/")
+            shutil.move(f"{without_ext}/{f}", voice_path)
         
         os.remove(voice_zip_location)
         shutil.rmtree(without_ext)
@@ -69,6 +75,7 @@ def get_download_path() -> str | None:
     try:
         return libs[arch][platform]
     except KeyError:
+        print(arch, platform)
         print("Your system does not support voice.")
 
 if __name__ == "__main__":
