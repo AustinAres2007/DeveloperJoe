@@ -30,18 +30,21 @@ then
 
         if [ ! "$IN_VE" = "True" ]
         then
-            echo Installing... You may need to enter your password and confirm some prompts and take some time.
+            echo Installing... You may need to enter your password, and take some time.
             
             if [ "$OSTYPE" = "linux-gnu" ]
             then 
                 sudo apt install python3.11-venv
-                sudo apt-get install flac
+                sudo apt-get -y install flac
             fi
 
+            echo Creating enviroment. Please wait...
+            
             PYTHON_PATH=$(which $PYTHON_COMMAND)
             $PYTHON_PATH -m venv $DIR && . "$DIR/bin/activate"
             $PYTHON_COMMAND -m pip install -q --upgrade pip
             $PYTHON_COMMAND -m pip install -q -r "$DIR/dependencies/requirements.txt"
+            $PYTHON_COMMAND "$DIR/sources/install/download_libs.py"
         fi
 
         if [ ! -e "$DIR/dependencies/api-keys.yaml" ]

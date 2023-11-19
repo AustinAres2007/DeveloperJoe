@@ -35,6 +35,7 @@ if %ERRORLEVEL% EQU 0 (
             %PYTHON_COMMAND% -m venv %DIR% && call Scripts\activate
             %PYTHON_COMMAND% -m pip install -q --upgrade pip
             %PYTHON_COMMAND% -m pip install -q -r "dependencies\requirements.txt"
+            %PYTHON_COMMAND% "%DIR%\sources\install\download_libs.py"
         )
         
         if not exist "dependencies\api-keys.yaml" (

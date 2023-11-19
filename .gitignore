@@ -6,17 +6,20 @@ lib64
 share/
 Scripts/
 Lib/
+include/
 
 *.cfg
 *.pyc
 *.log
 *.db
 *.db-journal
+*.sqlite3
 *.jar
 *.dylib
 *.so
 *.dll
 *.exe
+*.zip
 
 @eaDir
 .DS_Store
