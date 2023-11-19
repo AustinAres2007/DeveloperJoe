@@ -7,7 +7,7 @@ from . import (
     common_functions
 )
 
-arch = machine().lower()
+arch = machine().lower() 
 
 class OSTypes:
     MacOS = "darwin"
@@ -17,8 +17,8 @@ class OSTypes:
     
 class Archs:
     arm64 = "arm64"
-    x64 = ""
-    
+    x64 = "x86_64"
+
 def _get_path_according_to_specs(library: str) -> str:
     if platform == OSTypes.MacOS and arch == Archs.x64:
         common_functions.warn_for_error("You are using an Intel processor on a Mac machine. This is not supported. Voice has been disabled.")
