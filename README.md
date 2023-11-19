@@ -51,33 +51,13 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.4.0
+## Release Notes 1.4.1
 
-New Features
+Changes
 
-- Can now change bot volume with /volume
-- New Scrolling status-- enable it with the configuration option `enable_status_scrolling` and add more via `status_scrolling_options`!
-
-Changes 
-
-- When using /start, the `silent` parameter (set to True by default) will start the chat instantly instead of thinking of a response.
-- @ing the bot now makes it talk to you. Like /inquire-- context is not saved.
-- Added version checking when a backup is loaded.
-- Better voice recognition-- You can now ask the bots listening keyword anywhere within a sentence and it will recognise any words you say after the keyword!
-- When using a command that changes the config, you can now leave the value default to view the current config value.
-
-Fixed Bugs
-
-- When using /shutup, there was a good chance an error will appear regarding a closed IO object. This now no longer happens.
-- /image gave an error thinking it is in direct messages even in a server. This is fixed.
-- If a users voicestate was updated while the bot is coming online, loads of errors would be added to the log. Hopefully fixed as far as my minimal tests go.
-- There was another IO error when moving voice channels while the bot was speaking. This is now fixed.
-
-## Todo 1.4.1
-
-- Transplant old version data to new database when the version is different and create defaults of what is missing. (Going to be difficult)
-- Add script that installs voice libraries for respective systems. (Keep in mind of OS, and system arch)
-- When asking a question, append the query onto `DeveloperJoe.statuses` while the query is being answered so it can appear on DJ's status if chosen. 
+- Added database safety catches if incorrect version
+- When installing from bot script, voice libraries are also now installed according to your system.
+- Any queries that are asked are now added to the scrolling status list to be displayed, but it is still random. 
 
 ## Todo 1.4.x
 
