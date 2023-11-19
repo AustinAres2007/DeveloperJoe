@@ -104,8 +104,10 @@ class Communication(commands.Cog):
             if self.client.get_user_has_permission(member, conversation.model): # If user has model permission
 
                 await interaction.response.send_message("Thinking..")
-                    
+                
+                self.client.statuses[message] = 2
                 if stream or conversation.stream == True:
+                    
                     await conversation.ask_stream(message, channel)
                 else:
                     await conversation.ask(message, channel)

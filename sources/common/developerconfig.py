@@ -18,7 +18,7 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.4.1-Z" 
+VERSION = "1.4.1-D" 
 # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 # If it is "ARC" that means it is a release-candidate. The "A" refering to the logic above and "RC" meaning release-candidate.
 # It's really cool to have your own custom version scheme isn't it? But to others it is probably very confusing and unnessersary.
