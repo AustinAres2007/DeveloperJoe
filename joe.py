@@ -100,7 +100,13 @@ class DeveloperJoe(commands.Bot):
             del self.statuses[text]
         except KeyError:
             pass
-        
+    
+    def get_command_via_name(self, name: str) -> discord.app_commands.Command:
+        for cmd in self.tree.walk_commands():
+            if cmd.name == name and isinstance(cmd, discord.app_commands.Command):
+                return cmd
+        raise exceptions.DGException(f"Command not found: {name}", name)
+    
     def get_uptime(self) -> datetime.timedelta:
         return (datetime.datetime.now(tz=self.__tz__) - self.start_time)
     

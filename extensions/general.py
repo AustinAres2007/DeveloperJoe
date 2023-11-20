@@ -54,10 +54,6 @@ class General(_Cog):
         embed = self.client.get_embed("GPT Models")
         [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
         await interaction.response.send_message(embed=embed)
-    
-    @discord.app_commands.command(name="modaltest", description="Sends a modal.")
-    async def s_modal(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(modals.TestModal())
         
 async def setup(client):
     await client.add_cog(General(client))
