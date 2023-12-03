@@ -167,3 +167,6 @@ class DGDatabaseSession:
             
                 return self.database_file_backup
             raise sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
+
+    def get_rules(self):
+        ...

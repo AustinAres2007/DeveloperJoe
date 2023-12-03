@@ -1,12 +1,11 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 from __future__ import annotations
-from collections.abc import Iterator
+
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
-from enum import Enum as _Enum
+from enum import Enum
 from typing import (
-    TextIO,
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator,
@@ -39,6 +38,13 @@ __all__ = [
     "DGVoiceChat"
 ]
 
+class ChatFunctions(Enum):
+    VOICE = 0
+    TEXT = 1
+    LISTEN = 3
+    
+    def __int__(self) -> int:
+        return self.value
 class GPTConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
@@ -73,6 +79,10 @@ class GPTConversationContext:
         return _temp_context
         
 class DGChats:
+    
+    def __user_has_permission__(self, permission_type: ChatFunctions) -> bool:
+        ...
+        
     def __init__(self, 
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
@@ -80,7 +90,7 @@ class DGChats:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                 model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None

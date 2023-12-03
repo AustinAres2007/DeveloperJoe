@@ -24,7 +24,7 @@ libs = {
 }
     
 def download_file(url: str) -> str | None:
-    """Downloads a specified file from the internet.
+    """Downloads voice libraries from the internet.
 
     Args:
         url (str): The URL of the download.

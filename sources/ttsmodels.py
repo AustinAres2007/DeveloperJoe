@@ -77,4 +77,7 @@ class GTTSModel(TTSModel):
         else:
             return speed_up.speedup(playback_speed=speed).export(self.emulated_file_object)
         
+        return _temp_file
+        
+        
         

@@ -20,8 +20,12 @@ from sources.common import (
 )
 
 class Listeners(commands.Cog):
+    """Contains discord.py listener methods.
+
+    Args:
+        commands (_type_): _description_
+    """
     def __init__(self, _client: DeveloperJoe):
-        
         self.client = _client
         self.change_status.start() if confighandler.get_config("enable_status_scrolling") else None
         
@@ -29,6 +33,21 @@ class Listeners(commands.Cog):
         
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):   
+        """This listener does what the function name suggests.
+            In the context of DeveloperJoe, it listens for Thread messages and replies to them if the user is in a private thread alone.
+            or, if the user @ed the bot.
+
+        Args:
+            message (discord.Message): The message the user sent
+
+        Raises:
+            exceptions.DGException: Generic
+            exceptions.ModelIsLockedError: If the model the user wants to user is locked.
+            exceptions.ChatChannelDoesntExist: Raised if the bot doesn't have access to a thread channel
+
+        Returns:
+            _type_: None
+        """
         convo = None
         try:
             
@@ -81,6 +100,11 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
+        """When the bot joins a guild, a welcome message will be sent to general users and the server owner.
+
+        Args:
+            guild (discord.Guild): The guild the bot joined.
+        """
         if system := guild.system_channel:
             #[await system.send(self.client.WELCOME_TEXT[.CHARACTER_LIMIT * (t - 1) : .CHARACTER_LIMIT * t]) for t in range(1, ceil(len(self.client.WELCOME_TEXT) / .CHARACTER_LIMIT) + 1)]
             await system.send(file=commands_utils.to_file(self.client.WELCOME_TEXT, "welcome.md"))
@@ -93,6 +117,14 @@ class Listeners(commands.Cog):
     
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        """This function listens to if a user has joined a voice channel. This is done to update a VoiceChat instance if the user has one. Read the given comments for more.
+
+        Args:
+            member (discord.Member): Which member invoked this listener
+            before (discord.VoiceState): The users old voice state
+            after (discord.VoiceState): The users new voice state
+        """
+        
         bot_voice: voice.VoiceRecvClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
         b_channel = getattr(before, "channel", None)
@@ -134,11 +166,13 @@ class Listeners(commands.Cog):
 
     @tasks.loop(seconds=confighandler.get_config("status_scrolling_change_interval"))
     async def change_status(self):
+        """This task loop changes the bots status every set amount of seconds. If enabled in config YAML file.
+        """
         try:
             status_to_use = random.choice(list(self.client.statuses))
             status_type = self.client.statuses[status_to_use]
             
-            if status_type < -1 or status_type > 5:
+            if status_type < -1 or status_type > 5: # type: ignore because it is a type alias 
                 common_functions.warn_for_error(f'A status has been incorrectly configured in {developerconfig.CONFIG_FILE}. Wrong status is "{status_to_use}". The value is {status_type} when it should only be more more than -2 and less than 6!')
             await self.client.change_presence(activity=discord.Activity(type=status_type, name=status_to_use))
         except AttributeError:
