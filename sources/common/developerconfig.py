@@ -23,7 +23,7 @@ VERSION = "1.4.1"
 # If it is "ARC" that means it is a release-candidate. The "A" refering to the logic above and "RC" meaning release-candidate.
 # It's really cool to have your own custom version scheme isn't it? But to others it is probably very confusing and unnessersary.
 
-DATABASE_VERSION = "1.0.1"
+DATABASE_VERSION = "1.0.2"
 
 DATABASE_EXTENSION = "db"
 DATABASE_FILENAME = "dg_database"

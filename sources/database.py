@@ -34,7 +34,7 @@ class DGDatabaseSession:
         """
 
         self._context_manager_reset = reset_if_failed_check
-        self._required_tables = ["history", "model_rules", "guild_configs", "database_file"]
+        self._required_tables = ["history", "model_rules", "guild_configs", "database_file", "permissions"]
         
         self.database_file = database
         self.database_file_backup = self.database_file.replace(os.path.splitext(self.database_file)[-1], ".sqlite3")
@@ -95,10 +95,38 @@ class DGDatabaseSession:
     def init(self, override: bool=False) -> None:
         """Creates tables required for normal bot operation."""
         
+        # Common Terminology
+        # gid = Guild ID (Integer)
+        # uid = User / Member ID (Integer)
+        # *_json = Json-formatted data
+        
+        """model_rules `jsontables` format
+        
+        
+            {
+                "<model-code-name>: List[role_id]",
+                ...
+            }
+            
+            Where `role_id` is the role that can use the model specified in model-code-name
+            
+            For example: 
+            {
+                "gpt-4": [1132623433230975076]
+            }
+            
+            permissions `permission_json` format
+            
+            {
+                
+            } 
+        """
+        
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} model_rules (gid INTEGER NOT NULL UNIQUE, jsontables TEXT NOT NULL)")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} database_file (version TEXT NOT NULL, creation_date INTEGER NOT NULL)")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} permissions (gid INTEGER NOT NULL UNIQUE, permission_json TEXT NOT NULL)")
         
         self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
             DATABASE_VERSION, 
@@ -123,7 +151,7 @@ class DGDatabaseSession:
         """Gets database version."""
         try:
             return str(self._exec_db_command("SELECT version FROM database_file")[0][0])
-        except sqlite3.OperationalError:
+        except (sqlite3.OperationalError, IndexError):
             self.init()
             return self.get_version()
         

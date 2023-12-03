@@ -687,7 +687,7 @@ class DGVoiceChat(DGTextChat):
     def __str__(self) -> str:
         return self.display_name
     
-class DGChatTypesEnum(_Enum):
+class DGChatTypesEnum(Enum):
     """Enums for chat types (text or voice)"""
     TEXT = 1
     VOICE = 2
