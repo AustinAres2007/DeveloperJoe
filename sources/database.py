@@ -1,14 +1,18 @@
 import sqlite3, shutil, os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION
-from .common import common_functions
+from .common import (
+    common_functions,
+    enums
+)
+
 from . import errors
 
 __all__ = [
     "DGDatabaseSession"
 ]
-
+    
 # TODO: Data transfer to new database file (use .check() and detect if a table is missing and replace with parameters that will be specified in a dictionary)
 class DGDatabaseSession:
     """
@@ -97,12 +101,12 @@ class DGDatabaseSession:
         
         # Common Terminology
         # gid = Guild ID (Integer)
-        # uid = User / Member ID (Integer)
+        # uid / oid = Owning User / Member ID  of value
         # *_json = Json-formatted data
         
         """model_rules `jsontables` format
         
-        
+            For context, in my server "1132623433230975076" is a VIP role.
             {
                 "<model-code-name>: List[role_id]",
                 ...
@@ -114,11 +118,16 @@ class DGDatabaseSession:
             {
                 "gpt-4": [1132623433230975076]
             }
-            
+        """
+        ### ~~~
+        """
             permissions `permission_json` format
             
+            It uses integers to represent different functions. For a list, refer to `chat.ChatFunctions (An Enum)`
             {
-                
+                0: [], # 0 = Text function. An empty list meaning everyone can use it
+                1: [], # 1 = Bot Speaking Function. An empty list meaning everyone can use it.
+                2: [1132623433230975076] # 2 = Bot-Listening-to-user-voice-queries function. Anyone who wants to use it must have the VIP role (1132623433230975076) or higher in the role hierarchy.
             } 
         """
         
@@ -137,10 +146,13 @@ class DGDatabaseSession:
     def delete(self) -> None:
         """Deletes tables that are needed. This should only be used if there is an error with the database. DGDatabaseSession.init() should be called right after this."""
         
-        self._exec_db_command("DROP TABLE IF EXISTS history")
-        self._exec_db_command("DROP TABLE IF EXISTS model_rules")
-        self._exec_db_command("DROP TABLE IF EXISTS guild_configs")
-        self._exec_db_command("DROP TABLE IF EXISTS database_file")
+        for table in self._required_tables:
+            self._exec_db_command(f"DROP TABLE IF EXISTS {table}") # I know. Do not say it.
+            
+        #self._exec_db_command("DROP TABLE IF EXISTS database_file")
+        #self._exec_db_command("DROP TABLE IF EXISTS database_file")
+        #self._exec_db_command("DROP TABLE IF EXISTS model_rules")
+        #self._exec_db_command("DROP TABLE IF EXISTS guild_configs")
     
     def reset(self) -> None:
         """Resets the database contents to default (Zero items) This is shorthand for delete() then init()"""
@@ -196,5 +208,10 @@ class DGDatabaseSession:
                 return self.database_file_backup
             raise sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
 
-    def get_rules(self):
-        ...
+    def get_rules_for_guild(self, guild_id: int) -> dict[enums.ChatFunctions, list] | None:
+        _rules_for_guild = self._exec_db_command("SELECT * FROM permissions WHERE gid=?", (guild_id,))
+        return _rules_for_guild if isinstance(_rules_for_guild, dict) else None # NOTE: Temporary. Data checking will be done with try/except.
+
+if __name__ == "__main__":
+    db = DGDatabaseSession()
+    

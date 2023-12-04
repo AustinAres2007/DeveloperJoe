@@ -36,6 +36,8 @@ class DGRulesManager(database.DGDatabaseSession):
         guilds_database_reply = self._exec_db_command("SELECT gid FROM model_rules")
         return [id[0] for id in guilds_database_reply]
 
+    # TODO: Make function that lists all guilds within `permissions` table in database. This is done for database integrity checking in joe.py
+    
     def _add_raw_guild(self, guild: _Union[_discord.Guild, int]) -> None:
         self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild.id if isinstance(guild, _discord.Guild) else guild, _json.dumps({})))
         

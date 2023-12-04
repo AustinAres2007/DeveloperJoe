@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
-from enum import Enum
 from typing import (
+    TypeAlias,
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator,
@@ -24,7 +24,8 @@ from .common import (
     decorators,
     commands_utils,
     developerconfig,
-    common_functions
+    common_functions,
+    enums
 )
 
 if TYPE_CHECKING:
@@ -38,13 +39,6 @@ __all__ = [
     "DGVoiceChat"
 ]
 
-class ChatFunctions(Enum):
-    VOICE = 0
-    TEXT = 1
-    LISTEN = 3
-    
-    def __int__(self) -> int:
-        return self.value
 class GPTConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
@@ -80,7 +74,7 @@ class GPTConversationContext:
         
 class DGChats:
     
-    def __user_has_permission__(self, permission_type: ChatFunctions) -> bool:
+    def __user_has_permission__(self, permission_type: enums.ChatFunctions) -> bool:
         ...
         
     def __init__(self, 
@@ -243,7 +237,7 @@ class DGChats:
     
     @property
     def type(self):
-        return DGChatTypesEnum.VOICE
+        return enums.DGChatTypesEnum.VOICE
 
     @property
     def is_speaking(self) -> bool:
@@ -329,7 +323,7 @@ class DGTextChat(DGChats):
     
     @property
     def type(self):
-        return DGChatTypesEnum.TEXT
+        return enums.DGChatTypesEnum.TEXT
     
     @property
     def is_active(self) -> bool:
@@ -507,7 +501,7 @@ class DGVoiceChat(DGTextChat):
     
     @property
     def type(self):
-        return DGChatTypesEnum.VOICE
+        return enums.DGChatTypesEnum.VOICE
 
     @property
     def is_speaking(self) -> bool:
@@ -686,10 +680,5 @@ class DGVoiceChat(DGTextChat):
     
     def __str__(self) -> str:
         return self.display_name
-    
-class DGChatTypesEnum(Enum):
-    """Enums for chat types (text or voice)"""
-    TEXT = 1
-    VOICE = 2
 
-DGChatType = DGTextChat | DGVoiceChat | DGChats
+DGChatType: TypeAlias = DGTextChat | DGVoiceChat | DGChats
