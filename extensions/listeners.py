@@ -112,7 +112,7 @@ class Listeners(commands.Cog):
             #[await owner.send(self.client.ADMIN_TEXT[.CHARACTER_LIMIT * t:]) for t in range(ceil(len(self.client.ADMIN_TEXT) / .CHARACTER_LIMIT))]
             await owner.send(file=commands_utils.to_file(self.client.ADMIN_TEXT, "admin-introduction.md"))
 
-        with modelhandler.DGRulesManager() as _guild_handler:
+        with modelhandler.DGDatabaseManager() as _guild_handler:
             _guild_handler._add_raw_guild(guild.id)
     
     @commands.Cog.listener()

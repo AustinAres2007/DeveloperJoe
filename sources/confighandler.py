@@ -86,6 +86,7 @@ class DGGuildConfigSessionManager(database.DGDatabaseSession):
         self._session = session
     
     def get_guild(self, gid: _Union[int, None]=None) -> GuildData:
+        # BUG: Guild may not exist within `guild_configs`
         return GuildData(self._exec_db_command("SELECT * FROM guild_configs WHERE gid=?", (gid if isinstance(gid, int) else self._session.guild.id,)))
     
     def has_guild(self, gid: _Union[int, None]=None) -> bool:

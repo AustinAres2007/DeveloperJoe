@@ -1,5 +1,5 @@
 import sqlite3, shutil, os
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION
 from .common import (
@@ -207,11 +207,4 @@ class DGDatabaseSession:
             
                 return self.database_file_backup
             raise sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
-
-    def get_rules_for_guild(self, guild_id: int) -> dict[enums.ChatFunctions, list] | None:
-        _rules_for_guild = self._exec_db_command("SELECT * FROM permissions WHERE gid=?", (guild_id,))
-        return _rules_for_guild if isinstance(_rules_for_guild, dict) else None # NOTE: Temporary. Data checking will be done with try/except.
-
-if __name__ == "__main__":
-    db = DGDatabaseSession()
     

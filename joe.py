@@ -359,16 +359,18 @@ class DeveloperJoe(commands.Bot):
     
         if self.application:
             try:
-                with modelhandler.DGRulesManager() as guild_handler:
+                with modelhandler.DGDatabaseManager() as guild_handler:
+                    
+                    # NOTE: Guild ID must be present in all required SQL tables (guild_configs, model_rules, permissions)
+                    # TODO: Make function that checks all above (Within DGDatabaseManager)
                     
                     def check_servers():
                         common_functions.send_info_text("Checking guild rule status..")
-                        g_ids = guild_handler.get_guilds()
-                        
                         for guild in self.guilds:
-                            if guild.id not in g_ids:
+                            if guild_handler.check_if_guild_in_all(guild):
                                 guild_handler._add_raw_guild(guild.id)
-                                common_functions.send_info_text(f"Added new guild: {guild.id}")
+                                common_functions.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
+                            
                         common_functions.send_info_text("Guilds all added\n")
 
                     async def _check_integrity(i: int):
