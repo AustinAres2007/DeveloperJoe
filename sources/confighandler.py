@@ -1,5 +1,7 @@
-import discord as _discord, json as _json, yaml, os
-from typing import Union as _Union, Any
+from ast import TypeAlias
+import attr
+import discord, json, yaml, os
+from typing import Any, overload, override
 
 from . import (
     database, 
@@ -8,13 +10,14 @@ from . import (
 from .common import (
     decorators,
     developerconfig,
-    common_functions
+    common_functions,
+    enums
 )
+# XXX: Must make DGGuildModelSession (For init())
 
 __all__ = [
     "GuildData",
-    "DGGuildConfigSession",
-    "DGGuildConfigSessionManager",
+    "DGGuildDatabaseConfigHandler",
     "get_guild_config",
     "edit_guild_config",
     "get_guild_config_attribute",
@@ -31,111 +34,125 @@ def generate_config_key():
         "default-ai-model": get_config("default_gpt_model")
     }
 
-class GuildData:
+class GuildData:    
+    
     def __init__(self, data: list):
         try:
-            self.guild_id = data[0][0]
-            self.author_id = data[0][1]
-            self.config_data: dict = _json.loads(data[0][2])
-        except IndexError: 
-            self.author_id = self.guild_id = 0
-            self.config_data = {}
+            if not isinstance(data, list):
+                raise TypeError("Got type {}, expect List.".format(type(data)))
             
-class DGGuildConfigSession:
+            self._raw_data = data
+        except IndexError: 
+            raise ValueError("Incorrect database response.")
+    
+    def _get_data_from_raw(self, index: int) -> Any:
+        try:
+            if isinstance(index, int):
+                return self.raw[0][index]
+            raise TypeError("index must be an Integer. Got {}".format(type(index)))
+        except IndexError:
+            raise ValueError("Incorrect / Corrupt database response.")
+        
+    @property
+    def guild_id(self) -> int:
+        return self._get_data_from_raw(0) # 0 = Guild ID
+    
+    @property
+    def author_id(self) -> int:
+        return self._get_data_from_raw(1) # 1 = Author ID
+    
+    def get_local_guild_config_key(self, key: str) -> enums.NoKey | Any:
+        if isinstance(key, str) == True:
+            return self.raw_config_data.get(key, enums.NoKey)
+        raise TypeError("key must be a String. Not {}".format(type(key)))
+    
+    @property
+    def raw_config_data(self) -> dict:
+        return json.loads(self._get_data_from_raw(2)) # 2 = Raw JSON Model rule text.
+    
+    @property
+    def raw(self) -> list:
+        return self._raw_data
+            
+class DGGuildDatabaseConfigHandler(database.DGDatabaseSession):
+    # Old: DGGuildConfigSession
     def __enter__(self):
         return self
 
     def __exit__(self, type_, value_, traceback_):
-        self._manager.database.commit()
-        self._manager.database.close()
+        self.database.commit()
+        self.database.close()
     
-    def __init__(self, guild: _discord.Guild):
+    def __init__(self, guild: discord.Guild):
         super().__init__()
         self._guild = guild
-        self._manager = DGGuildConfigSessionManager(self)
 
     @property
-    def guild(self) -> _discord.Guild:
+    def guild(self) -> discord.Guild:
         return self._guild
     
     @decorators.has_config
     def edit_guild(self, **keys):
         
         if keys and set(keys.keys()).issubset(set(generate_config_key().keys())):
-            data: GuildData = self._manager.get_guild()
-            data.config_data.update(keys)
-            self._manager.edit_guild(data.config_data)
+            data: GuildData = self.get_guild()
+            
+            _raw = data.raw_config_data.copy()
+            _raw.update(keys)
+            self._exec_db_command("UPDATE guild_configs SET json=? WHERE gid=?", (json.dumps(_raw), self.guild.id))
         elif not keys:
             raise exceptions.DGException(f"Empty keys would make no change.")
         else:
             raise exceptions.DGException(f"Unknown configuration key(s): {list(keys)}")
-        
+
+    
     @decorators.has_config
-    def get_guild(self) -> GuildData:
-        return self._manager.get_guild()
-    
-    async def get_config(self, attribute: str):
-        config: dict = self.get_guild().config_data
-        if attribute in config:
-            return config[attribute]
-        return config
-        
-class DGGuildConfigSessionManager(database.DGDatabaseSession):
-    def __init__(self, session) -> None:
-        super().__init__()
-        self._session = session
-    
-    def get_guild(self, gid: _Union[int, None]=None) -> GuildData:
+    def get_guild(self, gid: int | None=None) -> GuildData:
         # BUG: Guild may not exist within `guild_configs`
-        return GuildData(self._exec_db_command("SELECT * FROM guild_configs WHERE gid=?", (gid if isinstance(gid, int) else self._session.guild.id,)))
+        return GuildData(self._exec_db_command("SELECT * FROM guild_configs WHERE gid=?", (gid if isinstance(gid, int) else self.guild.id,)))
     
-    def has_guild(self, gid: _Union[int, None]=None) -> bool:
-        return bool(self.get_guild(gid if isinstance(gid, int) else self._session.guild.id).guild_id)
+    def has_guild(self, gid: int | None=None) -> bool:
+        return bool(self.get_guild(gid if isinstance(gid, int) else self.guild.id).guild_id)
     
     def add_guild(self):
-        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self._session.guild.id, self._session.guild.owner_id, _json.dumps(generate_config_key()),))
-    
-    def edit_guild(self, data: dict):
-        self._exec_db_command("UPDATE guild_configs SET json=? WHERE gid=?", (_json.dumps(data), self._session.guild.id))
+        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self.guild.id, self.guild.owner_id, json.dumps(generate_config_key()),))
         
-def get_guild_config(guild: _discord.Guild) -> GuildData:
+def get_guild_config(guild: discord.Guild) -> GuildData:
     """Returns a guilds full developerconfig.
 
     Args:
-        guild (_discord.Guild): The guild.
+        guild (discord.Guild): The guild.
 
     Returns:
         GuildData: _description_
     """
-    with DGGuildConfigSession(guild) as cs:
+    with DGGuildDatabaseConfigHandler(guild) as cs:
         return cs.get_guild()
 
-def edit_guild_config(guild: _discord.Guild, key: str | None=None, value: Any | None=None, **kwargs) -> None:
-    with DGGuildConfigSession(guild) as cs:
+def edit_guild_config(guild: discord.Guild, key: str | None=None, value: Any | None=None, **kwargs) -> None:
+    with DGGuildDatabaseConfigHandler(guild) as cs:
         actual_data = {key: value} if key != None and value != None else kwargs
         return cs.edit_guild(**actual_data)
 
-def reset_guild_config(guild: _discord.Guild) -> None:
+def reset_guild_config(guild: discord.Guild) -> None:
     return edit_guild_config(guild, **generate_config_key())
         
     
-def get_guild_config_attribute(guild: _discord.Guild, attribute: str) -> Any:
+def get_guild_config_attribute(guild: discord.Guild, attribute: str) -> Any:
     """Will return the localised guild config value of the specified guild. Will return the global default if the guild has an outdated config.
 
     Args:
-        guild (_discord.Guild): The guild in question
+        guild (discord.Guild): The guild in question
         attribute (str): The attribute of the guild config you want.
 
     Returns:
         _Union[_Any, None]: The value, or None.
     """
-    with DGGuildConfigSession(guild) as cs:
-        cf = cs.get_guild().config_data
-        
-        if attribute in cf:
-            return cf[attribute]
-        else:
-            raise exceptions.DGException(f"No such key in guild defaults or guild: {attribute}")
+    with DGGuildDatabaseConfigHandler(guild) as cs:
+        val = cs.get_guild().get_local_guild_config_key(attribute)
+        if val != enums.NoKey:
+            return attr
+        raise KeyError('No config key named "{}"'.format(attribute))
 
 def get_config(key: str) -> Any:
     
@@ -163,7 +180,9 @@ def fix_config(file: str, fix_with: dict[str, Any]) -> dict[str, Any]:
     with open(file, 'w+') as yaml_file_repair:
         yaml.safe_dump(fix_with, yaml_file_repair)
         return fix_with
-                    
+
+# TODO: Refactor check_and_get and fix_config
+         
 def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against: dict=developerconfig.default_config_keys) -> dict[str, Any]:
     """Return the bot-config.yaml file as a dictionary.
 

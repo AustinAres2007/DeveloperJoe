@@ -21,7 +21,7 @@ if %ERRORLEVEL% EQU 0 (
     %PYTHON_COMMAND% "%DIR%\sources\install\py_version.py"    
 
     if ERRORLEVEL 1 (
-        echo You cannot run this script. Python version is too old. ^(Python 3.11 and above. Do the command `%PYTHON_COMMAND% --version` to get your version.^) You can download Python 3.11 at https://python.org
+        echo You cannot run this script. Python version is too old. ^(Python 3.12 and above. Do the command `%PYTHON_COMMAND% --version` to get your version.^) You can download Python 3.12 at https://python.org
         exit /B
     ) else (
         call Scripts\activate > nul 2>&1

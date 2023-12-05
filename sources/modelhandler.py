@@ -14,49 +14,10 @@ from .common import (
 )
 
 __all__ = [
-    "DGDatabaseManager",
-    "DGRules"
+    "DGGuildDatabaseModelHandler"
 ]
-_get_ids_as_list = lambda db_reply : [gid[0] for gid in db_reply]
-
-# TODO: Move DGDatabaseManager into database.py
-class DGDatabaseManager(database.DGDatabaseSession):
-    """Performs static operations on the database."""
-    
-    def __enter__(self):
-        return super().__enter__()
-    
-    def __exit__(self, t_, v_, tr_):
-        return super().__exit__(t_, v_, tr_)
-
-    def __init__(self, database_path: str=developerconfig.DATABASE_FILE, reset_if_failed_check: bool=True):
-        super().__init__(database_path, reset_if_failed_check)
-    
-    def get_guilds_in_models(self) -> list[int]:
-        guilds_database_reply = self._exec_db_command("SELECT gid FROM model_rules")
-        return _get_ids_as_list(guilds_database_reply)
-
-    def get_guilds_in_config(self) -> list[int]:
-        guilds_database_reply = self._exec_db_command("SELECT gid FROM guild_configs")
-        return _get_ids_as_list(guilds_database_reply)
-    
-    def get_guilds_in_permissions(self) -> list[int]:
-        guilds_database_reply = self._exec_db_command("SELECT gid FROM permissions")
-        return _get_ids_as_list(guilds_database_reply)
-        
-    def check_if_guild_in_all(self, guild_id: discord.Guild | int):
-        gid = guild_id.id if isinstance(guild_id, discord.Guild) else int(guild_id)
-        gid_is_in_all_tables: bool = len([ids for ids in [self.get_guilds_in_models(), self.get_guilds_in_config(), self.get_guilds_in_config()] if gid in ids]) == 3
-        
-        return gid_is_in_all_tables
-    
-    # TODO: Make function that lists all guilds within `permissions` table in database. This is done for database integrity checking in joe.py
-    
-    def _add_raw_guild(self, guild: discord.Guild | int) -> None:
-        self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild.id if isinstance(guild, discord.Guild) else guild, json.dumps({})))
-        # XXX: Update database with all required tables (permissions and guild_configs)
-        
-class DGRules(database.DGDatabaseSession):
+class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
+    # Old: DGRules
     """Database connection that manages model permissions (Model Lock List, or MLL, etc..) maybe more in the future."""
 
     def __enter__(self):

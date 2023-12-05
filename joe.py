@@ -11,12 +11,13 @@ Thank you to:
 
 from __future__ import annotations
 from asyncio import CancelledError
+import shutil
 import sys, os
 
 v_info = sys.version_info
 
-if not (v_info.major >= 3 and v_info.minor >= 11):
-    print(f'You must run this bot with Python 3.11 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
+if not (v_info.major >= 3 and v_info.minor >= 12):
+    print(f'You must run this bot with Python 3.12 and above.\nYou are using Python {v_info.major}.{v_info.minor}\nYou may install python at "https://www.python.org/downloads/" and download the latest version.')
     exit(1)
 
 try:
@@ -26,8 +27,6 @@ try:
     import discord, logging, asyncio, datetime, traceback, aiohttp
     from discord.ext import commands
     from typing import Union
-    
-    from distutils.spawn import find_executable
     
 except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
@@ -143,7 +142,7 @@ class DeveloperJoe(commands.Bot):
             bool: True if the user has correct permissions, False if not.
         """
         if isinstance(member, discord.Member):
-            with modelhandler.DGRules(member.guild) as check_rules:
+            with modelhandler.DGGuildDatabaseModelHandler(member.guild) as check_rules:
                 return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
         else:
             raise TypeError("member must be discord.Member, not {}".format(member.__class__))
@@ -345,8 +344,8 @@ class DeveloperJoe(commands.Bot):
     @property
     def is_voice_compatible(self) -> bool:
         try:
-            self.__ffmpeg__ = find_executable(developerconfig.FFMPEG)
-            self.__ffprobe__ = find_executable(developerconfig.FFPROBE)
+            self.__ffmpeg__ = shutil.which(developerconfig.FFMPEG)
+            self.__ffprobe__ = shutil.which(developerconfig.FFPROBE)
             discord.opus.load_opus(developerconfig.LIBOPUS)
         except OSError:
             common_functions.warn_for_error(f"Opus library not found. Voice will NOT work. \n(Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {'No' if not self.__ffmpeg__ else f'Yes (At: {self.__ffmpeg__})'}\nHas FFProbe: {'No' if not self.__ffprobe__ else f'Yes (At: {self.__ffprobe__})'})")
@@ -359,7 +358,7 @@ class DeveloperJoe(commands.Bot):
     
         if self.application:
             try:
-                with modelhandler.DGDatabaseManager() as guild_handler:
+                with database.DGDatabaseManager() as guild_handler:
                     
                     # NOTE: Guild ID must be present in all required SQL tables (guild_configs, model_rules, permissions)
                     # TODO: Make function that checks all above (Within DGDatabaseManager)
@@ -367,9 +366,10 @@ class DeveloperJoe(commands.Bot):
                     def check_servers():
                         common_functions.send_info_text("Checking guild rule status..")
                         for guild in self.guilds:
-                            if guild_handler.check_if_guild_in_all(guild):
-                                guild_handler._add_raw_guild(guild.id)
-                                common_functions.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
+                            if guild_handler.check_if_guild_in_all(guild) == False:
+                                print("wafpn")
+                                guild_handler.add_guild_to_database(guild.id)
+                                #common_functions.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
                             
                         common_functions.send_info_text("Guilds all added\n")
 
@@ -473,6 +473,10 @@ async def _run_bot() -> DeveloperJoe | None:
         common_functions.send_fatal_error_warning("You are not connected to WiFi.")
         exit(1)
     
+    except aiohttp.ClientConnectorCertificateError:
+        common_functions.send_fatal_error_warning("You have not got a valid SSL Certificate. If you are running macOS, go to where Python is installed (Applications > Python 3.12) and run `Install Certificates.command` file and run the bot again!")
+        exit(1)
+        
     except discord.app_commands.errors.CommandSyncFailure:
         common_functions.send_fatal_error_warning(f'There was an error with a command. This may occur because your bots name is too long within the "{developerconfig.CONFIG_FILE}" config file.')
         exit(1)

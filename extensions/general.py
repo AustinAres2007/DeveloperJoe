@@ -1,7 +1,6 @@
 import discord
 
 from discord.ext.commands import Cog as _Cog
-from pkg_resources import DEVELOP_DIST
 
 from sources import (
     models,

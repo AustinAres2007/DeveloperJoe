@@ -58,7 +58,7 @@ class Administration(_Cog):
     @_discord.app_commands.describe(gpt_model="The GPT model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def lock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
-        with modelhandler.DGRules(role.guild) as rules:
+        with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             _gpt_model = commands_utils.get_modeltype_from_name(gpt_model)
             rules.upload_guild_model(_gpt_model, role)
             await interaction.response.send_message(f"Added {gpt_model} behind role {role.mention}.")
@@ -69,7 +69,7 @@ class Administration(_Cog):
     @_discord.app_commands.describe(gpt_model="The GPT model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
     @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def unlock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
-        with modelhandler.DGRules(role.guild) as rules:
+        with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             model = commands_utils.get_modeltype_from_name(gpt_model)
             new_rules = rules.remove_guild_model(model, role)
             await interaction.response.send_message(f"Removed requirement role {role.mention} from {gpt_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
@@ -84,7 +84,7 @@ class Administration(_Cog):
                 role = guild.get_role(role_id)
                 return role.mention if role else "Deleted role."
             
-            with modelhandler.DGRules(guild) as rules:
+            with modelhandler.DGGuildDatabaseModelHandler(guild) as rules:
                 models = rules.get_guild_models()
                 no_roles = "No added roles. \n\n"
 

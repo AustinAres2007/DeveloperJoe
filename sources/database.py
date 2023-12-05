@@ -1,5 +1,8 @@
+import json
 import sqlite3, shutil, os
 from typing import Any
+
+import discord
 
 from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION
 from .common import (
@@ -12,7 +15,16 @@ from . import errors
 __all__ = [
     "DGDatabaseSession"
 ]
-    
+
+def generate_config_key():
+    return {
+        "timezone": get_config("timezone"),
+        "voice-enabled": True,
+        "voice-speed": get_config("voice_speedup_multiplier"),
+        "voice-keyword": get_config("listening_keyword"),
+        "voice-volume": get_config("voice_volume"),
+        "default-ai-model": get_config("default_gpt_model")
+    }
 # TODO: Data transfer to new database file (use .check() and detect if a table is missing and replace with parameters that will be specified in a dictionary)
 class DGDatabaseSession:
     """
@@ -207,4 +219,57 @@ class DGDatabaseSession:
             
                 return self.database_file_backup
             raise sqlite3.DatabaseError(errors.DatabaseErrors.DATABASE_CORRUPTED, self.database_file_backup)
+
+_get_ids_as_list = lambda db_reply : [gid[0] for gid in db_reply]
+class DGDatabaseManager(DGDatabaseSession):
+    """Performs static operations on the database."""
+    
+    def __enter__(self):
+        return super().__enter__()
+    
+    def __exit__(self, t_, v_, tr_):
+        return super().__exit__(t_, v_, tr_)
+
+    def __init__(self, database_path: str=DATABASE_FILE, reset_if_failed_check: bool=True):
+        super().__init__(database_path, reset_if_failed_check)
+    
+    def get_guilds_in_models(self) -> list[int]:
+        guilds_database_reply = self._exec_db_command("SELECT gid FROM model_rules")
+        return _get_ids_as_list(guilds_database_reply)
+
+    def get_guilds_in_config(self) -> list[int]:
+        guilds_database_reply = self._exec_db_command("SELECT gid FROM guild_configs")
+        return _get_ids_as_list(guilds_database_reply)
+    
+    def get_guilds_in_permissions(self) -> list[int]:
+        guilds_database_reply = self._exec_db_command("SELECT gid FROM permissions")
+        return _get_ids_as_list(guilds_database_reply)
+        
+    def check_if_guild_in_all(self, guild_id: discord.Guild | int):
+        gid = guild_id.id if isinstance(guild_id, discord.Guild) else int(guild_id)
+        gid_is_in_all_tables: bool = len([ids for ids in [self.get_guilds_in_models(), self.get_guilds_in_config(), self.get_guilds_in_config()] if gid in ids]) == 3
+        
+        print(gid_is_in_all_tables)
+        return gid_is_in_all_tables
+    
+    # TODO: Make function that lists all guilds within `permissions` table in database. This is done for database integrity checking in joe.py
+    
+    def create_model_rules_schema(self, guild_id: int) -> None:
+        self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild_id, json.dumps({})))
+    
+    def create_config_schema(self, guild_id: int) -> None:
+        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (guild_id, 0, json.dumps(generate_config_key()),))
+    
+    def create_permissions_schema(self, guild_id: int) -> None:
+        ...
+        
+    def add_guild_to_database(self, guild: discord.Guild | int) -> None:
+        actual_guild_id: int = guild.id if isinstance(guild, discord.Guild) else guild
+        
+        self.create_model_rules_schema(actual_guild_id)
+        self.create_config_schema(actual_guild_id)
+        self.create_permissions_schema(actual_guild_id)
+        
+        # XXX: Update database with all required tables (permissions and guild_configs)
+
     

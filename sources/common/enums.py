@@ -17,3 +17,4 @@ class DGChatTypesEnum(Enum):
     def __int__(self) -> int:
         return self.value
     
+type NoKey = None
