@@ -38,7 +38,8 @@ try:
         decorators,
         developerconfig,
         common_functions,
-        voice_checks
+        voice_checks,
+        enums
     )
     
     from sources import (
@@ -367,9 +368,8 @@ class DeveloperJoe(commands.Bot):
                         common_functions.send_info_text("Checking guild rule status..")
                         for guild in self.guilds:
                             if guild_handler.check_if_guild_in_all(guild) == False:
-                                print("wafpn")
                                 guild_handler.add_guild_to_database(guild.id)
-                                #common_functions.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
+                                common_functions.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
                             
                         common_functions.send_info_text("Guilds all added\n")
 
@@ -397,7 +397,7 @@ class DeveloperJoe(commands.Bot):
                             
                     await _check_integrity(0)
                     check_servers()
-                    confighandler.check_and_get_yaml()
+                    database.check_and_get_yaml()
                     
                     if confighandler.get_config("backup_upon_start") == True:
                         location = guild_handler.backup_database()

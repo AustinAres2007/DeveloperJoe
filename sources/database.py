@@ -3,11 +3,11 @@ import sqlite3, shutil, os
 from typing import Any
 
 import discord
+import yaml
 
-from .common.developerconfig import DATABASE_FILE, DATABASE_VERSION
 from .common import (
     common_functions,
-    enums
+    developerconfig
 )
 
 from . import errors
@@ -16,15 +16,6 @@ __all__ = [
     "DGDatabaseSession"
 ]
 
-def generate_config_key():
-    return {
-        "timezone": get_config("timezone"),
-        "voice-enabled": True,
-        "voice-speed": get_config("voice_speedup_multiplier"),
-        "voice-keyword": get_config("listening_keyword"),
-        "voice-volume": get_config("voice_volume"),
-        "default-ai-model": get_config("default_gpt_model")
-    }
 # TODO: Data transfer to new database file (use .check() and detect if a table is missing and replace with parameters that will be specified in a dictionary)
 class DGDatabaseSession:
     """
@@ -41,11 +32,11 @@ class DGDatabaseSession:
         self.cursor.close() if self.cursor else None
         self.database.close()
     
-    def __init__(self, database: str=DATABASE_FILE, reset_if_failed_check: bool=True):
+    def __init__(self, database: str=developerconfig.DATABASE_FILE, reset_if_failed_check: bool=True):
         """Handles connections between the database and the client.
 
         Args:
-            database (str, optional): The database that will be used. Defaults to DATABASE_FILE.
+            database (str, optional): The database that will be used. Defaults to developerconfig.DATABASE_FILE.
             reset_if_failed_check (bool, optional): Weather you want to reset the database if the check fails. Defaults to True.
         """
 
@@ -72,8 +63,8 @@ class DGDatabaseSession:
         """
         try:
             version = self.get_version()
-            if version != DATABASE_VERSION and warn_if_incompatible_versions == True:
-                common_functions.warn_for_error(f"Database version is different than specified. (Needs: {DATABASE_VERSION} Has: {version})")
+            if version != developerconfig.DATABASE_VERSION and warn_if_incompatible_versions == True:
+                common_functions.warn_for_error(f"Database version is different than specified. (Needs: {developerconfig.DATABASE_VERSION} Has: {version})")
                 
             for tb in self._required_tables:
                 if not self.table_exists(tb) and fix_if_broken:
@@ -135,7 +126,7 @@ class DGDatabaseSession:
         """
             permissions `permission_json` format
             
-            It uses integers to represent different functions. For a list, refer to `chat.ChatFunctions (An Enum)`
+            It uses integers to represent different functions. For a list, refer to `sources.common.enum.ChatFunctions (An Enum)`
             {
                 0: [], # 0 = Text function. An empty list meaning everyone can use it
                 1: [], # 1 = Bot Speaking Function. An empty list meaning everyone can use it.
@@ -150,7 +141,7 @@ class DGDatabaseSession:
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} permissions (gid INTEGER NOT NULL UNIQUE, permission_json TEXT NOT NULL)")
         
         self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
-            DATABASE_VERSION, 
+            developerconfig.DATABASE_VERSION, 
             common_functions.get_posix()
             )
         )
@@ -230,7 +221,7 @@ class DGDatabaseManager(DGDatabaseSession):
     def __exit__(self, t_, v_, tr_):
         return super().__exit__(t_, v_, tr_)
 
-    def __init__(self, database_path: str=DATABASE_FILE, reset_if_failed_check: bool=True):
+    def __init__(self, database_path: str=developerconfig.DATABASE_FILE, reset_if_failed_check: bool=True):
         super().__init__(database_path, reset_if_failed_check)
     
     def get_guilds_in_models(self) -> list[int]:
@@ -249,20 +240,28 @@ class DGDatabaseManager(DGDatabaseSession):
         gid = guild_id.id if isinstance(guild_id, discord.Guild) else int(guild_id)
         gid_is_in_all_tables: bool = len([ids for ids in [self.get_guilds_in_models(), self.get_guilds_in_config(), self.get_guilds_in_config()] if gid in ids]) == 3
         
-        print(gid_is_in_all_tables)
         return gid_is_in_all_tables
     
     # TODO: Make function that lists all guilds within `permissions` table in database. This is done for database integrity checking in joe.py
     
     def create_model_rules_schema(self, guild_id: int) -> None:
-        self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild_id, json.dumps({})))
+        try:
+            self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild_id, json.dumps({})))
+        except sqlite3.IntegrityError: # This could be raised because a guild may already exist within the database but was added again. It isn't a problem to we just continue
+            common_functions.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
     
     def create_config_schema(self, guild_id: int) -> None:
-        self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (guild_id, 0, json.dumps(generate_config_key()),))
+        try:
+            self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (guild_id, 0, json.dumps(generate_config_key()),))
+        except sqlite3.IntegrityError:
+            common_functions.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
     
     def create_permissions_schema(self, guild_id: int) -> None:
-        ...
-        
+        try:
+            self._exec_db_command("INSERT INTO permissions VALUES(?, ?)", (guild_id, json.dumps(developerconfig.default_permission_keys),))
+        except sqlite3.IntegrityError:
+            common_functions.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
+            
     def add_guild_to_database(self, guild: discord.Guild | int) -> None:
         actual_guild_id: int = guild.id if isinstance(guild, discord.Guild) else guild
         
@@ -272,4 +271,64 @@ class DGDatabaseManager(DGDatabaseSession):
         
         # XXX: Update database with all required tables (permissions and guild_configs)
 
+def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against: dict=developerconfig.default_config_keys) -> dict[str, Any]:
+    """Return the bot-config.yaml file as a dictionary.
+
+    Returns:
+        dict[str, Any]: The configuration. (Updated when this function is called)
+    """
+
+    def fix_config(file: str, fix_with: dict[str, Any]) -> dict[str, Any]:
+        """Resets the bot-config.yaml file to the programmed default. This function also returns the default.
+
+        Args:
+            error_message (str): The warning about the failed configuration.
+
+        Returns:
+            dict[str, Any]: _description_ The default config.
+        """
+        common_functions.warn_for_error("Invalid YAML File Type. Default configuration will be used. Repairing...")
+        with open(file, 'w+') as yaml_file_repair:
+            yaml.safe_dump(fix_with, yaml_file_repair)
+            return fix_with
+        
+    if os.path.isfile(yaml_file):
+        with open(yaml_file, 'r') as yaml_file_obj:
+            try:
+                config = yaml.safe_load(yaml_file_obj)
+                                        
+                if config:
+                    if set(check_against).difference(config):
+                        return fix_config(yaml_file, check_against)
+                    
+                    for i1 in enumerate(dict(config).items()):
+                        if (i1[1][0] not in list(check_against) or type(i1[1][1]) != type(check_against[i1[1][0]])):
+                            return fix_config(yaml_file, check_against)
+                    else:
+                        return config
+                else:
+                    return fix_config(yaml_file, check_against)
+            except (KeyError, IndexError):
+                return fix_config(yaml_file, check_against)
+    else:        
+        return fix_config(yaml_file, check_against)
+    
+def get_config(key: str) -> Any:
+    
+    local_config = check_and_get_yaml()
+    if key in local_config:
+        return local_config.get(key)
+    elif hasattr(developerconfig, key.upper()):
+        return getattr(developerconfig, key.upper())
+    raise KeyError('Cannot find key: "{}" in developer configuration or YAML configuration.'.format(key))  
+
+def generate_config_key():
+    return {
+        "timezone": get_config("timezone"),
+        "voice-enabled": True,
+        "voice-speed": get_config("voice_speedup_multiplier"),
+        "voice-keyword": get_config("listening_keyword"),
+        "voice-volume": get_config("voice_volume"),
+        "default-ai-model": get_config("default_gpt_model")
+    }
     

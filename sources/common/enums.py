@@ -1,5 +1,9 @@
 
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..chat import *
 
 class ChatFunctions(Enum):
     TEXT = 1

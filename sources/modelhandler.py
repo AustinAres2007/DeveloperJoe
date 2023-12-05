@@ -10,7 +10,6 @@ from . import (
 )
 from .common import (
     commands_utils,
-    developerconfig
 )
 
 __all__ = [

@@ -681,4 +681,4 @@ class DGVoiceChat(DGTextChat):
     def __str__(self) -> str:
         return self.display_name
 
-DGChatType: TypeAlias = DGTextChat | DGVoiceChat | DGChats
+DGChatType = DGTextChat | DGVoiceChat | DGChats

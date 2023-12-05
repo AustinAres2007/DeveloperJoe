@@ -1,10 +1,13 @@
 from __future__ import annotations
+from pickle import LIST
 
 from discord import ChannelType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice as _Choice
 
-from .voice_checks import _get_voice_paths
-
+from . import (
+    voice_checks,
+    enums
+)
 TIMEZONE = "UTC"
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
@@ -40,11 +43,9 @@ MODEL_CHOICES: list[_Choice] = [
     _Choice(name="GPT 4", value="gpt-4")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
 
-# TODO: Need to change configuration
-
-FFMPEG = _get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
-FFPROBE = _get_voice_paths("ffprobe", False) # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
-LIBOPUS = _get_voice_paths("opus", True)
+FFMPEG = voice_checks._get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
+FFPROBE = voice_checks._get_voice_paths("ffprobe", False) # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.
+LIBOPUS = voice_checks._get_voice_paths("opus", True)
 
 STREAM_PLACEHOLDER = "Loading.." # The message that will be sent when streaming. This is needed as a placeholder text so that the initial streaming message is not empty. This can be anything as long as it is not empty, and not more than 2000 characters. It usually doesn't appear for more than half a second.
 
@@ -82,5 +83,12 @@ default_api_keys = {
     "discord_api_key": "Put Discord Token Here!",
     "openai_api_key": "Put OpenAI API Key (Token) here!",
     "google_api_key": "Put Google API Key here! (Optional)"
+}
+
+# These integer keys MUST corrolate with the enum values in enums.ChatFunctions.
+default_permission_keys = {
+    0: [],
+    1: [],
+    2: []
 }
 

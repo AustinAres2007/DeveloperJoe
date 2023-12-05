@@ -1,20 +1,24 @@
 """Utils that commands use."""
 
 from __future__ import annotations
-import datetime
-import discord, io, typing
+from typing import TYPE_CHECKING, Any
 
-import pytz
+import discord, io, typing, yaml, os
 
 from .. import (
-    chat,
     exceptions,
     models
 )
 from . import (
-    developerconfig
+    developerconfig,
+    common_functions
 )
 
+if TYPE_CHECKING:
+    from .. import (
+        chat
+    )
+    
 __all__ = [
     "to_file",
     "to_file_fp",
@@ -77,4 +81,3 @@ def get_correct_channel(channel: typing.Any | None) -> developerconfig.Interacta
     if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel
     raise exceptions.CannotTalkInChannel(channel)
-    

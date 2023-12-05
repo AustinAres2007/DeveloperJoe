@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import discord as _discord, httpx as _httpx
-from typing import Any as _Any, Union as _Union, TYPE_CHECKING
+from typing import Any as _Any, Union as _Union
 
 from . import (
     errors

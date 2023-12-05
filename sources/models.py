@@ -1,6 +1,5 @@
 from httpx import ReadTimeout
 import tiktoken, typing, openai_async, json, tiktoken
-from sources.chat import GPTConversationContext
 from sources import confighandler
 
 from .chat import GPTConversationContext
