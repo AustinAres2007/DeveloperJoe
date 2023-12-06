@@ -83,7 +83,7 @@ class Communication(commands.Cog):
             await interaction.response.defer(ephemeral=False, thinking=True)
             ai_welcome = await convo.start(silent)
             
-            if not ai_welcome or len(ai_welcome) > 1500:
+            if not ai_welcome or len(ai_welcome.response) > 1500:
                 ai_welcome = "Started chat."
                 
             welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
@@ -95,7 +95,7 @@ class Communication(commands.Cog):
         
     @discord.app_commands.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool=False):
+    async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool | None=None):
 
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
@@ -107,7 +107,7 @@ class Communication(commands.Cog):
                 await interaction.response.send_message("Thinking..")
                 
                 self.client.add_status(status, 2)
-                if stream or conversation.stream == True:
+                if stream == True or (conversation.stream == True and stream != False):
                     
                     await conversation.ask_stream(message, channel)
                 else:
@@ -170,11 +170,7 @@ class Communication(commands.Cog):
         
     @discord.app_commands.command(name="image", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
-    @discord.app_commands.choices(resolution=[
-        discord.app_commands.Choice(name="256x256", value="256x256"),
-        discord.app_commands.Choice(name="512x512", value="512x512"),
-        discord.app_commands.Choice(name="1024x1024", value="1024x1024")
-    ]) 
+    @discord.app_commands.choices(resolution=developerconfig.IMAGE_SIZE_CHOICES) 
     async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str, save_to: str=""):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, save_to)
@@ -182,7 +178,7 @@ class Communication(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         image = await convo.generate_image(prompt, resolution)
-        result = f"Created Image at {datetime.datetime.fromtimestamp(image.timestamp)}\nImage Link: {image.image}"
+        result = f"Created Image at {datetime.datetime.fromtimestamp(image.timestamp)}\nImage Link: {image.image_url}"
         return await interaction.followup.send(result, ephemeral=False)
 
     @discord.app_commands.command(name="info", description=f"Displays information about your current {confighandler.get_config('bot_name')} Chat.")
@@ -237,9 +233,9 @@ class Communication(commands.Cog):
         
         if self.client.get_user_has_permission(member, actual_model):
             asked = await actual_model.__askmodel__(query, None, "user", False)
-            reply = asked.reply
+            reply = asked.response
             
-            if len(reply) >= 2000:
+            if reply and len(reply) >= 2000:
                 return await interaction.response.send_message(file=commands_utils.to_file(reply, "reply.txt"))
             return await interaction.response.send_message(reply)
         

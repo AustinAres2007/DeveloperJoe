@@ -203,9 +203,9 @@ class ConfigKeyError(DGException):
 
 class GPTTimeoutError(DGException):
     reply = errors.GptErrors.GPT_TIMEOUT_ERROR
-    def __init__(self, message: str):
+    def __init__(self):
         """Will be raised when a query was given to DG, but the request timed out."""
-        super().__init__(self.reply, message)
+        super().__init__(self.reply)
 
 class MissingPermissions(DGException):
     reply = errors.GenericErrors.USER_MISSING_PERMISSIONS

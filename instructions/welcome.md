@@ -84,7 +84,7 @@ Commands that relate to starting a chat, or anything relating to it
 3. ## /image `prompt` `resolution` `save_to`
    * This command has 3 arguments. `save_to` is optional.
       - `prompt`: Described version of the image you want made.
-      - `resolution`: The resolution of the image. You have to chose from the three options. (256x256, 512x512, 1024x1024)
+      - `resolution`: The resolution of the image. You have to chose from the five options. (256x256, 512x512, 1024x1024, 1792x1024, or 1024x1792)
       - `save_to`: The chat where the image will be saved. This is optional, and the default chat you have saved will be used instead.
 
 3. ## /stop `name` `save_chat`

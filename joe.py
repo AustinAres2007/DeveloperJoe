@@ -13,6 +13,7 @@ from __future__ import annotations
 from asyncio import CancelledError
 import shutil
 import sys, os
+from typing import Any
 
 v_info = sys.version_info
 
@@ -39,7 +40,7 @@ try:
         developerconfig,
         common_functions,
         voice_checks,
-        enums
+        types
     )
     
     from sources import (
@@ -351,6 +352,9 @@ class DeveloperJoe(commands.Bot):
         except OSError:
             common_functions.warn_for_error(f"Opus library not found. Voice will NOT work. \n(Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {'No' if not self.__ffmpeg__ else f'Yes (At: {self.__ffmpeg__})'}\nHas FFProbe: {'No' if not self.__ffprobe__ else f'Yes (At: {self.__ffprobe__})'})")
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
+    
+    async def close(self) -> Any:
+        await super().close()
         
     async def on_ready(self):
         

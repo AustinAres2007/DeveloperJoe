@@ -5,12 +5,6 @@ from __future__ import annotations
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
 from typing import (
-    List,
-    Literal,
-    Required,
-    Sequence,
-    TypeAlias,
-    TypedDict,
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator,
@@ -30,7 +24,7 @@ from .common import (
     commands_utils,
     developerconfig,
     common_functions,
-    enums
+    types
 )
 
 if TYPE_CHECKING:
@@ -79,7 +73,7 @@ class GPTConversationContext:
         
 class DGChats:
     
-    def __user_has_permission__(self, permission_type: enums.ChatFunctions) -> bool:
+    def __user_has_permission__(self, permission_type: types.ChatFunctions) -> bool:
         ...
         
     def __init__(self, 
@@ -151,49 +145,43 @@ class DGChats:
     @private.setter
     def private(self, is_p: bool):
         self._private = is_p
-    
-    def __manage_tokens__(self, query_type: str, save_message: bool, tokens: int):
-        if save_message and query_type == "query":
-            self.tokens += tokens
             
-    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> models.AIReply:
-            
-        replied_content = models.AIReply("No reply.", 0, 0, "Unknown")
+    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> models.AIQueryResponse:
         self.is_processing = True
+        # Put necessary variables here (Doesn't matter weather streaming or not)
+        # Reply format: ({"content": "Reply content", "role": "assistent"})
+        # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
         
-        if query_type == "query":
+        try:
+            response: models.AIQueryResponse = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
             
-            # Put necessary variables here (Doesn't matter weather streaming or not)
-            # Reply format: ({"content": "Reply content", "role": "assistent"})
-            # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
-            try:
-                replied_content: models.AIReply = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
-                
-            except KeyError:
-                common_functions.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
-                await self.bot.close()
-            except TimeoutError:
-                raise exceptions.GPTTimeoutError(kwargs["content"])
+            if save_message:
+                self.tokens += response.completion_tokens
+            self.is_processing = False
+
+            return response
+        except KeyError:
+            common_functions.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
+            return await self.bot.close()
+        except TimeoutError:
+            raise exceptions.GPTTimeoutError()
+        
+        return response
+
+    async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
+        # Required Arguments: Prompt (String < 1000 chars), Size (String)
+        try:
+            # XXX: Remove and insert into another function
             
-        elif query_type == "image":
-            # Required Arguments: Prompt (String < 1000 chars), Size (String, 256x256, 512x512, 1024x1024)
-            try:
-                image_request: dict = dict(_openai.Image.create(**kwargs))
-                if isinstance(image_request, dict) == True:
-                    image_url = image_request['data'][0]['url']
-
-                    replied_content = models.AIReply("", 0, 0, None, image_url, image_request["created"])
-                    self.context.add_image_entry(kwargs["prompt"], image_url)
-                else:
-                    raise exceptions.GPTReplyError(image_request, type(image_request), dir(image_request))
-            except _openai.InvalidRequestError:
-                raise exceptions.GPTContentFilter(kwargs["prompt"])
-
-        self.__manage_tokens__(query_type, save_message, replied_content.tokens)
-        self.is_processing = False
-        return replied_content
-
-    async def __stream_send_query__(self, query: str, save_message: bool=True, **kwargs) -> _AsyncGenerator:
+            response = await self.model.__imagegenerate__("Cat doing a backflip", "1024x1024", "dall-e-2")
+            if response.is_image == True:
+                self.context.add_image_entry(kwargs["prompt"], response.image_url if response.image_url else "Empty")
+        except _openai.BadRequestError:
+            raise exceptions.GPTContentFilter(kwargs["prompt"])
+        
+        return response
+    
+    async def __stream_send_query__(self, query: str, save_message: bool=True, **kwargs) -> _AsyncGenerator[str, None]:
         self.is_processing = True
         try:
             tokens = 0
@@ -210,8 +198,9 @@ class DGChats:
             raise exceptions.DGException("This model does not support streaming.")
         finally:
             self.is_processing = False
-            
-        self.__manage_tokens__("query", save_message, tokens)
+        
+        if save_message:
+            self.tokens += tokens
     
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
@@ -219,7 +208,7 @@ class DGChats:
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
         raise NotImplementedError
     
-    async def generate_image(self, prompt: str, resolution: str="512x512") -> models.AIReply:
+    async def generate_image(self, prompt: str, resolution: str="512x512") -> models.AIImageResponse:
         raise NotImplementedError
         
     async def start(self) -> None:
@@ -242,7 +231,7 @@ class DGChats:
     
     @property
     def type(self):
-        return enums.DGChatTypesEnum.VOICE
+        return types.DGChatTypesEnum.VOICE
 
     @property
     def is_speaking(self) -> bool:
@@ -328,7 +317,7 @@ class DGTextChat(DGChats):
     
     @property
     def type(self):
-        return enums.DGChatTypesEnum.TEXT
+        return types.DGChatTypesEnum.TEXT
     
     @property
     def is_active(self) -> bool:
@@ -388,14 +377,14 @@ class DGTextChat(DGChats):
             return message
     
     @decorators.check_enabled
-    async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIReply:
-        return await self.__send_query__(query_type="image", prompt=prompt, size=resolution, n=1)
+    async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
+        return await self.__generate_image__(query_type="image", prompt=prompt, size=resolution, n=1)
     
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
         async with channel.typing():
-            reply = str(await self.__send_query__(query_type="query", role="user", content=query))
-            final_user_reply = f"## {self.header}\n\n{reply}"
+            reply = await self.__send_query__(query_type="query", role="user", content=query)
+            final_user_reply = f"## {self.header}\n\n{reply.response}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
                 file_reply: _discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
@@ -405,7 +394,7 @@ class DGTextChat(DGChats):
                 
         return reply
             
-    async def start(self, silent: bool=True) -> str | None:
+    async def start(self, silent: bool=True) -> models.AIQueryResponse | None:
         """Sends a start query to GPT.
 
         Returns:
@@ -413,7 +402,7 @@ class DGTextChat(DGChats):
         """
         await super().start()
         if not silent:
-            return str(await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query")))
+            return await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query"))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
@@ -506,7 +495,7 @@ class DGVoiceChat(DGTextChat):
     
     @property
     def type(self):
-        return enums.DGChatTypesEnum.VOICE
+        return types.DGChatTypesEnum.VOICE
 
     @property
     def is_speaking(self) -> bool:
