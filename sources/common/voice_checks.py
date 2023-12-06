@@ -3,7 +3,9 @@ from pathlib import Path
 from platform import machine 
 import os
 
-from .common_functions import warn_for_error
+from . import (
+    common_functions
+)
 
 arch = machine().lower() 
 
@@ -19,7 +21,7 @@ class Archs:
 
 def _get_path_according_to_specs(library: str) -> str:
     if platform == OSTypes.MacOS and arch == Archs.x64:
-        warn_for_error("You are using an Intel processor on a Mac machine. This is not supported. Voice has been disabled.")
+        common_functions.warn_for_error("You are using an Intel processor on a Mac machine. This is not supported. Voice has been disabled.")
     elif platform == OSTypes.Windows and arch == Archs.arm64:
         common_functions.warn_for_error("You are using an ARM64 processor on Windows. This is not supported. Voice has been disabled.")
     else:

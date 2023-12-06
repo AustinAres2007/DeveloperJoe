@@ -1,5 +1,5 @@
 from httpx import ReadTimeout
-import tiktoken, typing, openai_async, json, tiktoken
+import tiktoken, typing, json, tiktoken, openai #, openai_async
 from sources import confighandler
 
 from .chat import GPTConversationContext
@@ -15,15 +15,14 @@ __all__ = [
 ]
 
 async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, __model: str | None=None):
-    temp_context = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
-        
-    payload = {
-        "model": __model,
-        "messages": temp_context
-    }
+    temp_context: list = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
+    
     try:
-        _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
-        json_reply = _reply.json()
+        # old: _reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+        async with openai.AsyncOpenAI(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT) as async_openai_client:
+            _reply = await async_openai_client.chat.completions.create(model="gpt-3.5-turbo", messages=temp_context)
+            json_reply = json.loads(_reply.model_dump_json())
+            
     except (TimeoutError, ReadTimeout):
         return AIReply("Generic timeout! Please ask your query again.", 0, 1, "timeouterror")
     
@@ -51,16 +50,25 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
         raise DGException(f"Got incomplete reply: {json_reply}", log_error=True, send_exceptions=True)
     
 async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs):
+    """
     async def __get_stream_parsed_data__(_history, **kwargs) -> typing.AsyncGenerator:
         payload = {"model": model, "messages": _history, "stream": True} | kwargs
-        reply = await openai_async.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
+        
+        async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+            _reply = await async_openai_client.chat.completions.create(messages=_history, model=model, stream=True)
+        # old: reply = await openai.chat_complete(api_key=api_key, timeout=GPT_REQUEST_TIMEOUT, payload=payload)
 
         # Setup the list of responses
         responses: list[str] = [""]
         last_char = 0
 
         # For every character byte in byte stream
-        for char in reply.read():
+        async for _char in _reply.response.aiter_text():
+            
+            print(_char)
+            Old Version
+            print(_char)
+            char = 30
             # Check if current character and last char are line feed characters (Represents new chunk)
             if char == 10 and last_char == 10:
                 
@@ -77,33 +85,44 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
                 responses[-1] += chr(char)
 
             last_char = char
-    
+    """
     total_tokens = len(tokenizer.encode(query))
     replied_content = ""
 
     add_history = True
     
-    history = context.get_temporary_context(query, role)
-    generator_reply = __get_stream_parsed_data__(history)
-    
-    async for chunk in generator_reply:
-        stop_reason = chunk["choices"][0]["finish_reason"]
-        if stop_reason == None:
-            c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
-            replied_content += c_token
-            total_tokens += len(tokenizer.encode(c_token))
+    history: list = context.get_temporary_context(query, role)
+    # old gen: generator_reply = await __get_stream_parsed_data__(history)
+    async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+        _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True)
+        
+        async for chunk in _reply.response.aiter_text():
+            json_formattable_data = chunk.lstrip("data: ")
+            print("dingus >>", json_formattable_data)
+            print("NEW")
+            continue
+            
+            # XXX: NEED to fix streaming. Upon first iteration, the reply is incomplete and must be concatenated together, and detecting every chunk will be difficult since it streams them more than one at a time
+            if json_formattable_data != "[DONE]":
+                chunk = json.loads(json_formattable_data)
+                stop_reason = chunk["choices"][0]["finish_reason"]
+                
+                if stop_reason == None:
+                    c_token = chunk["choices"][0]["delta"]["content"].encode("latin-1").decode()
+                    replied_content += c_token
+                    total_tokens += len(tokenizer.encode(c_token))
 
-            yield (c_token, total_tokens)
-        elif stop_reason == "length":
-            add_history = False
-            raise GPTReachedLimit()
+                    yield (c_token, total_tokens)
+                elif stop_reason == "length":
+                    add_history = False
+                    raise GPTReachedLimit()
 
-        elif stop_reason == "content_filter":
-            add_history = False
-            raise GPTContentFilter(kwargs["content"])
+                elif stop_reason == "content_filter":
+                    add_history = False
+                    raise GPTContentFilter(kwargs["content"])
 
-    if add_history == True:
-        context.add_conversation_entry(query, replied_content, role)
+            if add_history == True:
+                context.add_conversation_entry(query, replied_content, role)
         
 class AIReply:
     def __init__(self, _reply: str, _tokens: int, _error_code: int, _error: str | None, _image: str | None=None, timestamp: int=0) -> None:

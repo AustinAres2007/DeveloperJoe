@@ -5,7 +5,12 @@ from __future__ import annotations
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
 from typing import (
+    List,
+    Literal,
+    Required,
+    Sequence,
     TypeAlias,
+    TypedDict,
     Union as _Union, 
     Any as _Any, 
     AsyncGenerator as _AsyncGenerator,
@@ -38,7 +43,7 @@ __all__ = [
     "DGTextChat",
     "DGVoiceChat"
 ]
-
+    
 class GPTConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
@@ -64,9 +69,9 @@ class GPTConversationContext:
         self._display_context.append(interaction_data)
         return self._display_context
     
-    def get_temporary_context(self, query, user_type: str="user") -> list:
+    def get_temporary_context(self, query: str, user_type: str="user"):
 
-        data = {"role": user_type, "content": query}
+        data = {"content": query, "role": user_type}
         _temp_context = self._context.copy()
         _temp_context.append(data)
         

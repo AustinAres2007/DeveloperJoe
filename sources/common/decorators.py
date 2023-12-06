@@ -115,8 +115,8 @@ def has_config(func):
         func (_type_): The function.
     """
     def _inner(self, *args, **kwargs):
-        if not self._manager.has_guild():
-            self._manager.add_guild()
+        if not self.has_guild():
+            self.add_guild()
         return func(self, *args, **kwargs)
 
     return _inner

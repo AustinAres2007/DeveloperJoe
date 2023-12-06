@@ -105,14 +105,16 @@ class DGGuildDatabaseConfigHandler(database.DGDatabaseSession):
         else:
             raise exceptions.DGException(f"Unknown configuration key(s): {list(keys)}")
 
+    def _get_raw_guild(self, gid: int):
+        return self._exec_db_command("SELECT * FROM guild_configs WHERE gid=?", (gid,))
     
     @decorators.has_config
     def get_guild(self, gid: int | None=None) -> GuildData:
-        # BUG: Guild may not exist within `guild_configs`
-        return GuildData(self._exec_db_command("SELECT * FROM guild_configs WHERE gid=?", (gid if isinstance(gid, int) else self.guild.id,)))
+        # BUG: Guild may not exist within `guild_configs` and recursion error here
+        return GuildData(self._get_raw_guild(gid if isinstance(gid, int) else self.guild.id))
     
     def has_guild(self, gid: int | None=None) -> bool:
-        return bool(self.get_guild(gid if isinstance(gid, int) else self.guild.id).guild_id)
+        return bool(self._get_raw_guild(gid if isinstance(gid, int) else self.guild.id))
     
     def add_guild(self):
         self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self.guild.id, self.guild.owner_id, json.dumps(generate_config_key()),))
