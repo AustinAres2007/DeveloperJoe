@@ -1,5 +1,4 @@
 from sqlite3 import DatabaseError
-from click import command
 import discord as _discord
 from discord.ext.commands import Cog as _Cog
 
