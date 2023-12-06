@@ -169,3 +169,8 @@ def chat_not_exist(func):
         raise exceptions.DGException(errors.ConversationErrors.HAS_CONVO)
     
     return _member_wrapper
+
+def has_guild_permission(func):
+    
+    def _user_has_perms_wrapper(self, *, a):
+        ...

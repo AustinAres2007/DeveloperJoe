@@ -6,7 +6,7 @@ import discord
 import yaml
 
 from .common import (
-    common_functions,
+    common,
     developerconfig
 )
 
@@ -64,15 +64,15 @@ class DGDatabaseSession:
         try:
             version = self.get_version()
             if version != developerconfig.DATABASE_VERSION and warn_if_incompatible_versions == True:
-                common_functions.warn_for_error(f"Database version is different than specified. (Needs: {developerconfig.DATABASE_VERSION} Has: {version})")
+                common.warn_for_error(f"Database version is different than specified. (Needs: {developerconfig.DATABASE_VERSION} Has: {version})")
                 
             for tb in self._required_tables:
                 if not self.table_exists(tb) and fix_if_broken:
-                    common_functions.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Repairing..') if warn_if_fixable_corruption == True else None
+                    common.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Repairing..') if warn_if_fixable_corruption == True else None
                     self.init()
                     return self.check()
                 elif not self.table_exists(tb) and fix_if_broken == False and warn_if_fixable_corruption == True:
-                    common_functions.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Not repaired.')
+                    common.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Not repaired.')
                     return False
             return True
         except sqlite3.OperationalError:
@@ -142,7 +142,7 @@ class DGDatabaseSession:
         
         self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
             developerconfig.DATABASE_VERSION, 
-            common_functions.get_posix()
+            common.get_posix()
             )
         )
         
@@ -181,7 +181,7 @@ class DGDatabaseSession:
         
     def get_seconds_since_creation(self) -> int:
         """Gets the seconds since the database was created."""
-        return common_functions.get_posix() - self.get_creation_date() 
+        return common.get_posix() - self.get_creation_date() 
     
     def backup_database(self) -> str:
         """Backs up the database by simply copy and pasting the file.
@@ -248,19 +248,19 @@ class DGDatabaseManager(DGDatabaseSession):
         try:
             self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (guild_id, json.dumps({})))
         except sqlite3.IntegrityError: # This could be raised because a guild may already exist within the database but was added again. It isn't a problem to we just continue
-            common_functions.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
+            common.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
     
     def create_config_schema(self, guild_id: int) -> None:
         try:
             self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (guild_id, 0, json.dumps(generate_config_key()),))
         except sqlite3.IntegrityError:
-            common_functions.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
+            common.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
     
     def create_permissions_schema(self, guild_id: int) -> None:
         try:
             self._exec_db_command("INSERT INTO permissions VALUES(?, ?)", (guild_id, json.dumps(developerconfig.default_permission_keys),))
         except sqlite3.IntegrityError:
-            common_functions.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
+            common.warn_for_error(f'Guild ID: "{guild_id}" is already in database. Not fatal but keep of note of this incase it happens more than once. (You should NOT get this error more than once consecutively)')
             
     def add_guild_to_database(self, guild: discord.Guild | int) -> None:
         actual_guild_id: int = guild.id if isinstance(guild, discord.Guild) else guild
@@ -287,7 +287,7 @@ def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against
         Returns:
             dict[str, Any]: _description_ The default config.
         """
-        common_functions.warn_for_error("Invalid YAML File Type. Default configuration will be used. Repairing...")
+        common.warn_for_error("Invalid YAML File Type. Default configuration will be used. Repairing...")
         with open(file, 'w+') as yaml_file_repair:
             yaml.safe_dump(fix_with, yaml_file_repair)
             return fix_with

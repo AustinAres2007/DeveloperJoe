@@ -53,6 +53,10 @@ class General(_Cog):
         embed = self.client.get_embed("GPT Models")
         [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
         await interaction.response.send_message(embed=embed)
+    
+    @discord.app_commands.command(name="permtest", description="Tests permission decorator.")
+    async def perm_test(self, interaction: discord.Interaction, model: str):
+        ...
         
 async def setup(client):
     await client.add_cog(General(client))

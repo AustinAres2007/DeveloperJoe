@@ -16,7 +16,7 @@ from sources import (
 from sources.common import (
     commands_utils,
     developerconfig,
-    common_functions
+    common
 )
 
 class Listeners(commands.Cog):
@@ -173,7 +173,7 @@ class Listeners(commands.Cog):
             status_type = int(self.client.statuses[status_to_use])
             
             if status_type < -1 or status_type > 5: # type: ignore because it is a type alias 
-                common_functions.warn_for_error(f'A status has been incorrectly configured in {developerconfig.CONFIG_FILE}. Wrong status is "{status_to_use}". The value is {status_type} when it should only be more more than -2 and less than 6!')
+                common.warn_for_error(f'A status has been incorrectly configured in {developerconfig.CONFIG_FILE}. Wrong status is "{status_to_use}". The value is {status_type} when it should only be more more than -2 and less than 6!')
             await self.client.change_presence(activity=discord.Activity(type=status_type, name=status_to_use))
         except AttributeError:
             pass # Still loading!

@@ -9,7 +9,7 @@ from . import (
 from .common import (
     decorators,
     developerconfig,
-    common_functions,
+    common,
     commands_utils,
     types
 )
@@ -172,7 +172,7 @@ def fix_config(file: str, fix_with: dict[str, Any]) -> dict[str, Any]:
     Returns:
         dict[str, Any]: _description_ The default config.
     """
-    common_functions.warn_for_error("Invalid YAML File Type. Default configuration will be used. Repairing...")
+    common.warn_for_error("Invalid YAML File Type. Default configuration will be used. Repairing...")
     with open(file, 'w+') as yaml_file_repair:
         yaml.safe_dump(fix_with, yaml_file_repair)
         return fix_with

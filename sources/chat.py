@@ -23,7 +23,7 @@ from .common import (
     decorators,
     commands_utils,
     developerconfig,
-    common_functions,
+    common,
     types
 )
 
@@ -161,7 +161,7 @@ class DGChats:
 
             return response
         except KeyError:
-            common_functions.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
+            common.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
             return await self.bot.close()
         except TimeoutError:
             raise exceptions.GPTTimeoutError()
@@ -547,9 +547,9 @@ class DGVoiceChat(DGTextChat):
                                 ...
                                 
         except _speech_recognition.RequestError:
-            common_functions.send_fatal_error_warning("The connection has been lost, or the operation failed.")       
+            common.send_fatal_error_warning("The connection has been lost, or the operation failed.")       
         except Exception as error:
-            common_functions.send_fatal_error_warning(str(error))
+            common.send_fatal_error_warning(str(error))
         finally:
             self.proc_packet = False
         

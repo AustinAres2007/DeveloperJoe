@@ -38,7 +38,7 @@ try:
         commands_utils,
         decorators,
         developerconfig,
-        common_functions,
+        common,
         voice_checks,
         types
     )
@@ -69,7 +69,7 @@ try:
         ADMIN_TEXT = admin_file.read()
 
 except FileNotFoundError:
-    common_functions.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
+    common.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
 
 # Main Bot Class    
 class DeveloperJoe(commands.Bot):
@@ -284,9 +284,9 @@ class DeveloperJoe(commands.Bot):
                 channel = self.get_channel(int(confighandler.get_config("bug_report_channel")))
                 if channel:
                     return await channel.send(**kwargs) # type: ignore
-                common_functions.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 1)")
+                common.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 1)")
             else:
-                common_functions.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 0)")
+                common.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 0)")
                 
         async def send(text: str):
             if interaction.response.is_done():
@@ -356,7 +356,7 @@ class DeveloperJoe(commands.Bot):
             self.__ffprobe__ = shutil.which(developerconfig.FFPROBE)
             discord.opus.load_opus(developerconfig.LIBOPUS)
         except OSError:
-            common_functions.warn_for_error(f"Opus library not found. Voice will NOT work. \n(Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {'No' if not self.__ffmpeg__ else f'Yes (At: {self.__ffmpeg__})'}\nHas FFProbe: {'No' if not self.__ffprobe__ else f'Yes (At: {self.__ffprobe__})'})")
+            common.warn_for_error(f"Opus library not found. Voice will NOT work. \n(Library specified: {developerconfig.LIBOPUS}\nHas FFMpeg: {'No' if not self.__ffmpeg__ else f'Yes (At: {self.__ffmpeg__})'}\nHas FFProbe: {'No' if not self.__ffprobe__ else f'Yes (At: {self.__ffprobe__})'})")
         return bool(self.__ffmpeg__ and self.__ffprobe__ and discord.opus.is_loaded())
     
     async def close(self) -> Any:
@@ -375,34 +375,34 @@ class DeveloperJoe(commands.Bot):
                     # TODO: Make function that checks all above (Within DGDatabaseManager)
                     
                     def check_servers():
-                        common_functions.send_info_text("Checking guild rule status..")
+                        common.send_info_text("Checking guild rule status..")
                         for guild in self.guilds:
                             if guild_handler.check_if_guild_in_all(guild) == False:
                                 guild_handler.add_guild_to_database(guild.id)
-                                common_functions.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
+                                common.send_info_text(f"Added new guild to all required tables: {guild} / {guild.id}")
                             
-                        common_functions.send_info_text("Guilds all added\n")
+                        common.send_info_text("Guilds all added\n")
 
                     async def _check_integrity(i: int):
                         try:
                             
-                            common_functions.send_info_text("Performing database check..")
+                            common.send_info_text("Performing database check..")
                             if not i > 1:
                                 if not guild_handler.check(warn_if_incompatible_versions=True):
-                                    common_functions.warn_for_error("Database file has been modified / deleted, rebuilding..")
+                                    common.warn_for_error("Database file has been modified / deleted, rebuilding..")
                                     guild_handler.init()
                                     return await _check_integrity(i+1)
                                 
-                                return common_functions.send_info_text("Database all set.\n")
-                            common_functions.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
+                                return common.send_info_text("Database all set.\n")
+                            common.send_fatal_error_warning("Database could not be rebuilt. Aborting. Check database files.")
                             return await self.close()
                         
                         except sqlite3.OperationalError:
-                            common_functions.warn_for_error("Database error. Purging and resetting..")
+                            common.warn_for_error("Database error. Purging and resetting..")
                             guild_handler.reset()
                         
                         except sqlite3.DatabaseError:
-                            common_functions.warn_for_error("Incorrect database version.")
+                            common.warn_for_error("Incorrect database version.")
                             guild_handler.reset()
                             
                     await _check_integrity(0)
@@ -411,7 +411,7 @@ class DeveloperJoe(commands.Bot):
                     
                     if confighandler.get_config("backup_upon_start") == True:
                         location = guild_handler.backup_database()
-                        common_functions.send_info_text(f'Backed up database to "{location}"')
+                        common.send_info_text(f'Backed up database to "{location}"')
                     
                     has_voice = self.is_voice_compatible
                     database_age = guild_handler.get_seconds_since_creation()
@@ -431,10 +431,10 @@ class DeveloperJoe(commands.Bot):
                     await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
                     self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored.
                     
-                    common_functions.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
+                    common.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     
             except ConnectionError as err:
-                common_functions.send_fatal_error_warning(str(err))
+                common.send_fatal_error_warning(str(err))
                 
     async def setup_hook(self):
                 
@@ -476,19 +476,19 @@ async def _run_bot() -> DeveloperJoe | None:
             exit(0)
             
     except discord.errors.LoginFailure:
-        common_functions.send_fatal_error_warning(f"Improper Discord API Token given in {developerconfig.TOKEN_FILE}, please make sure the API token is still valid.")
+        common.send_fatal_error_warning(f"Improper Discord API Token given in {developerconfig.TOKEN_FILE}, please make sure the API token is still valid.")
         exit(1)
         
     except aiohttp.ClientConnectionError:
-        common_functions.send_fatal_error_warning("You are not connected to WiFi.")
+        common.send_fatal_error_warning("You are not connected to WiFi.")
         exit(1)
     
     except aiohttp.ClientConnectorCertificateError:
-        common_functions.send_fatal_error_warning("You have not got a valid SSL Certificate. If you are running macOS, go to where Python is installed (Applications > Python 3.12) and run `Install Certificates.command` file and run the bot again!")
+        common.send_fatal_error_warning("You have not got a valid SSL Certificate. If you are running macOS, go to where Python is installed (Applications > Python 3.12) and run `Install Certificates.command` file and run the bot again!")
         exit(1)
         
     except discord.app_commands.errors.CommandSyncFailure:
-        common_functions.send_fatal_error_warning(f'There was an error with a command. This may occur because your bots name is too long within the "{developerconfig.CONFIG_FILE}" config file.')
+        common.send_fatal_error_warning(f'There was an error with a command. This may occur because your bots name is too long within the "{developerconfig.CONFIG_FILE}" config file.')
         exit(1)
         
 def main(keys: dict[str, str]):
@@ -499,5 +499,5 @@ def main(keys: dict[str, str]):
         pass
 
 if __name__ == "__main__":
-    common_functions.send_fatal_error_warning(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
+    common.send_fatal_error_warning(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
     

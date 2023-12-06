@@ -51,17 +51,9 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.4.1
+## Release Notes 1.4.2
 
 Changes
 
-- Added database safety catches if incorrect version
-- When installing from bot script, voice libraries are also now installed according to your system.
-- Any queries that are asked are now added to the scrolling status list to be displayed, but it is still random. 
-
-## Todo 1.4.x
-
-Experimental
-
-- Experiment with discord UI API
-- Experiment with saving the state of the database to a variable every certain amount of time, then use data from said variable. Would be more effient on resources.
+- More customisable permissions
+- Overhauled Internal systems
