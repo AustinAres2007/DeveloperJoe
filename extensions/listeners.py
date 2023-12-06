@@ -59,7 +59,7 @@ class Listeners(commands.Cog):
                     async with message.channel.typing():
                         ai_reply = await model.__askmodel__(message.clean_content, None, "user", False)
                     
-                        if len(reply := ai_reply.reply + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                        if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
                             return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
                         return await message.channel.send(reply)
                 

@@ -25,7 +25,7 @@ class Configuration(_Cog):
             _config = confighandler.get_guild_config(guild)
             embed = self.client.get_embed(f"{guild} Configuration Settings")
             
-            for c_entry in _config.config_data.items():
+            for c_entry in _config.raw_config_data.items():
                 embed.add_field(name=f'Config Option: "{c_entry[0]}"', value=c_entry[1], inline=False)
             
             await interaction.response.send_message(embed=embed)
