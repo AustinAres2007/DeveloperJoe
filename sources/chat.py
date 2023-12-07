@@ -454,10 +454,12 @@ class DGTextChat(DGChats):
         return self.display_name
     
 # XXX: Maybe make protected classes inherit from protected.ProtectedClass? This would give them the protection_name variable needed to check permisions
+    
 class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     """Represents a voice and text DG Chat."""
     
-    protected_name: str = "0"
+    name = "Voice Chat"
+    description = "Testing"
     
     def __init__(
             self,
@@ -486,12 +488,19 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
         super(DGTextChat, self).__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
-        super().__init__(self, "voice_chat")
+        super().__init__(self)
         
         self._voice = voice
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
+    
+    
+    def protected_name(self) -> str:
+        return "Voice Chat"
+    
+    def protected_description(self) -> str:
+        return "Dingus"
     
     @property
     def voice(self):
@@ -586,23 +595,21 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
             new_voice = await self.manage_voice()
             
             def _play_voice(index: int, error: _Any=None):
-                try:
-                    if not error:
-                        if not (index >= len(self.voice_tss_queue)):
-                            speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
-                            volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
-                            
-                            ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
-                            volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
-                            volume_source.volume = volume
-                            
-                            return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
-                            
-                        self.voice_tss_queue.clear()
-                    else:
-                        raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
-                except Exception as e:
-                    print(e)
+            
+                if not error:
+                    if not (index >= len(self.voice_tss_queue)):
+                        speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
+                        volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
+                        
+                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                        volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
+                        volume_source.volume = volume
+                        
+                        return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
+                        
+                    self.voice_tss_queue.clear()
+                else:
+                    raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
             
             if new_voice.is_paused():
                 new_voice.stop()
@@ -645,6 +652,7 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     @decorators.dg_in_voice_channel
     @decorators.dg_isnt_speaking
     @decorators.dg_isnt_listening
+    @protected.protected_method
     async def listen(self):
         """Starts the listening events for a users voice conversation."""
         self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 0.7)) # type: ignore Checks done with decorators.

@@ -1,4 +1,3 @@
-import attr
 import discord, json, yaml
 from typing import Any
 
@@ -153,7 +152,7 @@ def get_guild_config_attribute(guild: discord.Guild, attribute: str) -> Any:
     with DGGuildDatabaseConfigHandler(guild) as cs:
         val = cs.get_guild().get_local_guild_config_key(attribute)
         if val != types.Empty:
-            return attr
+            return val
         raise KeyError('No config key named "{}"'.format(attribute))
 
 def get_config(key: str) -> Any:

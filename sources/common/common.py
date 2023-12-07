@@ -1,9 +1,10 @@
 """General functions that assist the bot general function."""
-import datetime, pytz, colorama
+import datetime, pytz, colorama, os
 
-from . import developerconfig, types
-from discord.app_commands import Choice
+from . import (
+    developerconfig
 
+)
 __all__ = [
     "send_fatal_error_warning",
     "warn_for_error",
@@ -48,6 +49,9 @@ def send_info_text(text: str) -> None:
 def get_posix():
     """Returns the posix timestamp according to the timezone specified in the config."""
     return int(datetime.datetime.now(tz=pytz.timezone(developerconfig.TIMEZONE)).timestamp())
+
+def get_filename(path: str) -> str:
+    return os.path.splitext(os.path.basename(path))[0]
     
 
 

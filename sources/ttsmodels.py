@@ -75,6 +75,7 @@ class GTTSModel(TTSModel):
                 raise DGException("The host machine is running an incompatible version of Windows. (10 and above only)")
             
         else:
+            print(speed)
             return speed_up.speedup(playback_speed=speed).export(self.emulated_file_object)
         
         return _temp_file

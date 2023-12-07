@@ -7,8 +7,10 @@ from sources import (
     modelhandler,
     exceptions,
     database,
-    confighandler
+    confighandler,
+    permissionshandler
 )
+
 from sources.common import (
     commands_utils,
     developerconfig
@@ -108,6 +110,13 @@ class Administration(_Cog):
             model_object = commands_utils.get_modeltype_from_name(ai_model)
             confighandler.edit_guild_config(guild, "default-ai-model", ai_model)
             await interaction.response.send_message(f"Changed default AI Model to {model_object.display_name}.")
+    
+    @_discord.app_commands.command(name="addpermission", description="d")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    @_discord.app_commands.check(commands_utils.in_correct_channel)
+    async def add_permission(self, interaction: _discord.Interaction, permission_key: str, role: _discord.Role):
+        permissionshandler.add_guild_permission(role.guild, permission_key, [role.id])
+        await interaction.response.send_message(f"Added {role} constraint to {permission_key}.")
             
 async def setup(client):
     await client.add_cog(Administration(client))

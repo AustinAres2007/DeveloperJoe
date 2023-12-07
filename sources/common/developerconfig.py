@@ -97,9 +97,5 @@ default_api_keys = {
 }
 
 # These integer keys MUST corrolate with the enum values in types.ChatFunctions.
-default_permission_keys = {
-    0: [],
-    1: [],
-    2: []
-}
+default_permission_keys = {}
 
