@@ -52,7 +52,7 @@ IMAGE_SIZE_CHOICES: list[Choice] = [
 MODEL_CHOICES: list[Choice] = [
     Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     Choice(name="GPT 4", value="gpt-4")
-] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
+] # What models of GPT are avalible to use, you can chose any that exist.
 
 FFMPEG = voice_checks._get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
 FFPROBE = voice_checks._get_voice_paths("ffprobe", False) # FFPROBE executable. Can be an absolute or relative file path. Required for voice services.

@@ -7,7 +7,10 @@ from sources import (
     confighandler
 )
 from sources.common import (
-    commands_utils
+    commands_utils,
+    decorators,
+    protected,
+    developerconfig
 )
 
 class General(_Cog):
@@ -54,9 +57,20 @@ class General(_Cog):
         [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
         await interaction.response.send_message(embed=embed)
     
+    """
     @discord.app_commands.command(name="permtest", description="Tests permission decorator.")
+    @discord.app_commands.choices(model=developerconfig.MODEL_CHOICES)
     async def perm_test(self, interaction: discord.Interaction, model: str):
-        ...
+        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        @decorators.check_protected
+        def prot_class(member: discord.Member, prot_arg: protected.ProtectedClass[models.GPTModelType]):
+            print(prot_arg)
+        
+        # Everything working. Do more tests on check_protected then test functionality on making a DGVoiceChat (Use check_protected)
+        am = commands_utils.get_modeltype_from_name(model)
+        prot_class(member=member, prot_arg=protected.ProtectedClass(am))
+    """
         
 async def setup(client):
     await client.add_cog(General(client))

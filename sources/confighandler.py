@@ -83,8 +83,8 @@ class DGGuildDatabaseConfigHandler(database.DGDatabaseSession):
         self.database.commit()
         self.database.close()
     
-    def __init__(self, guild: discord.Guild):
-        super().__init__()
+    def __init__(self, guild: discord.Guild, database: str=developerconfig.DATABASE_FILE, reset_if_failed_check: bool=False):
+        super().__init__(database, reset_if_failed_check)
         self._guild = guild
 
     @property

@@ -53,6 +53,7 @@ try:
         modelhandler, 
         models, 
         ttsmodels, 
+        permissionshandler
     )
     
     from sources.voice import pydub # type: ignore It does exist mate.

@@ -1,6 +1,8 @@
-from httpx import ReadTimeout
 import tiktoken, json, tiktoken, openai
+
+from httpx import ReadTimeout
 from sources import confighandler
+from discord.app_commands import Choice
 
 from typing import (
     Any,
@@ -371,7 +373,6 @@ class GPT4(AIModel):
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
     
-
 class GoogleBard(AIModel):
     
     _model: str = "google-bard"
@@ -388,6 +389,7 @@ class GoogleBard(AIModel):
         raise DGException("This model does not exist.")
     
 GPTModelType = GPT3Turbo | GPT4 | GoogleBard
+type AIModelType = GPT3Turbo | GPT4 | GoogleBard
 registered_models = {
     "gpt-4": GPT4,
     "gpt-3.5-turbo": GPT3Turbo,

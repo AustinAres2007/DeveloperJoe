@@ -1,6 +1,7 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 from __future__ import annotations
+from bz2 import decompress
 
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
@@ -24,7 +25,8 @@ from .common import (
     commands_utils,
     developerconfig,
     common,
-    types
+    types,
+    protected
 )
 
 if TYPE_CHECKING:
@@ -79,7 +81,7 @@ class DGChats:
     def __init__(self, 
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
-                user: _Union[_discord.User, _discord.Member], 
+                user: _discord.Member, 
                 name: str,
                 stream: bool,
                 display_name: str, 
@@ -104,7 +106,7 @@ class DGChats:
         """
         
         self.bot: DeveloperJoe = bot_instance
-        self.user: _Union[_discord.User, _discord.Member] = user
+        self.user: _discord.Member = user
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
@@ -281,7 +283,7 @@ class DGTextChat(DGChats):
     def __init__(self, 
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
-                user: _Union[_discord.User, _discord.Member], 
+                user: _discord.Member, 
                 name: str,
                 stream: bool,
                 display_name: str, 
@@ -451,8 +453,12 @@ class DGTextChat(DGChats):
     def __str__(self) -> str:
         return self.display_name
     
-class DGVoiceChat(DGTextChat):
+# XXX: Maybe make protected classes inherit from protected.ProtectedClass? This would give them the protection_name variable needed to check permisions
+class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     """Represents a voice and text DG Chat."""
+    
+    protected_name: str = "0"
+    
     def __init__(
             self,
             bot_instance: _Any,
@@ -479,7 +485,9 @@ class DGVoiceChat(DGTextChat):
             associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
-        super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
+        super(DGTextChat, self).__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
+        super().__init__(self, "voice_chat")
+        
         self._voice = voice
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
@@ -630,6 +638,8 @@ class DGVoiceChat(DGTextChat):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
     
+    # XXX: Each function can also have a decorator that is tied to another permission_key. So a user may have access to the class instance, but not some methods of the class instance (For example, they may need a higher role)
+    # If using decorators, I could use the self function to get access to ProtectedClass and do the calculations there in another dedicated function called check_permissions or something of the sort
     @decorators.check_enabled
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel

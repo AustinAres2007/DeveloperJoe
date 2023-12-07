@@ -1,11 +1,15 @@
 """Decorator Utilities that DG Uses."""
 from __future__ import annotations
-import discord, typing
+import discord, typing, inspect
 
 from .. import (
     exceptions,
     voice,
-    errors
+    errors,
+    permissionshandler
+)
+from . import (
+    protected
 )
 
 if typing.TYPE_CHECKING:
@@ -170,7 +174,35 @@ def chat_not_exist(func):
     
     return _member_wrapper
 
-def has_guild_permission(func):
+"""
+def check_protected(func):
     
-    def _user_has_perms_wrapper(self, *, a):
-        ...
+    def _wrapper(member: discord.Member, *args, **kwargs):
+        
+        # Arguments passed MUST be keywords.
+        #func_args = dict(inspect.signature(func).parameters)
+        
+        for arg_name, arg_value in kwargs.items():
+            
+            
+            if issubclass(arg_value.__class__, protected.ProtectedClass):
+                if issubclass(arg_value.__class__, protected.ProtectedClass):
+                    
+                    roles = permissionshandler.get_guild_object_permissions(member.guild, arg_value.name)
+                    member_senior_role = member.roles[-1]  
+            
+                    if (roles and member_senior_role >= member.guild.get_role(roles[0])) or not roles:
+                        kwargs[arg_name] = kwargs.get(arg_name, "").original
+                    else:
+                        raise TypeError("User is missing permissions.")
+                else:
+                    raise TypeError("A protected version of type {} must be used.".format())
+            else:
+                if issubclass(arg_value.__class__, protected.ProtectedClass):
+                    kwargs[arg_name] = kwargs.get(arg_name, "").original
+                    
+        return func(member, *args, **kwargs)
+            
+    return _wrapper
+"""
+        
