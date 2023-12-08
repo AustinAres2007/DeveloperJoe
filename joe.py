@@ -40,7 +40,7 @@ try:
         developerconfig,
         common,
         voice_checks,
-        types,
+        aliases,
         protected
     )
     
@@ -57,7 +57,7 @@ try:
         permissionshandler
     )
     
-    from sources.voice import pydub # type: ignore It does exist mate.
+    from sources.voice import pydub
     
 except IndexError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
@@ -97,7 +97,8 @@ class DeveloperJoe(commands.Bot):
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
             
         self._protected_classes_handler = protected.ProtectedClassHandler()
-    
+        protected.ProtectedClass.set_handler_instance(self._protected_classes_handler)
+        
     def add_status(self, text: str, activity_type: discord.ActivityType | int=discord.ActivityType.listening):
         self.statuses[text] = activity_type
         

@@ -57,3 +57,9 @@ Changes
 
 - More customisable permissions
 - Overhauled Internal systems
+
+Notes 1.4.2-permission branch
+
+To be honest, all of the changes I have done on this branch seem overcomplex, unreadable and have little purpose. I know what I want to do, but I have got to weigh up practicality and functionality.
+
+If I were to do what I really want to achieve in an effient, readable and relatively simple manner, I would have to fully redesign this bot and the internals.

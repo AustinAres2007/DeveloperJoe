@@ -123,8 +123,8 @@ class Administration(_Cog):
     @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def get_permissions(self, interaction: _discord.Interaction):
         perms = "WIP\n"
-        for perm in self.client._protected_classes_handler.protected_classes:
-            perms += f"\n{str(perm)}"
+        for perm, perm_class in self.client._protected_classes_handler.protected_classes.items():
+            perms += f"\n{f"**{perm_class.protected_name}** (`{perm}`) -> *{perm_class.protected_description}*"}"
         
         await interaction.response.send_message(perms)
             

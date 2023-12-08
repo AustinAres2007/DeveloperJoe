@@ -5,7 +5,7 @@ from discord.app_commands import Choice
 
 from . import (
     voice_checks,
-    types
+    aliases
 )
 TIMEZONE = "UTC"
 
@@ -37,7 +37,7 @@ ADMIN_FILE = "dependencies/admin-tutorial.md" # Where the admin introduction / 
 CONFIG_FILE = "bot-config.yaml" # Where the client-configuration file is located (Reletive)
 LOG_FILE = "misc/bot_log.log"
 
-IMAGE_SIZES: list[types.Resolution] = [
+IMAGE_SIZES: list[aliases.Resolution] = [
     "256x256",
     "512x512",
     "1024x1024",
@@ -96,6 +96,5 @@ default_api_keys = {
     "google_api_key": "Put Google API Key here! (Optional)"
 }
 
-# These integer keys MUST corrolate with the enum values in types.ChatFunctions.
 default_permission_keys = {}
 

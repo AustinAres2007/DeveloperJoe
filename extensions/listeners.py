@@ -130,7 +130,7 @@ class Listeners(commands.Cog):
         b_channel = getattr(before, "channel", None)
         a_channel = getattr(after, "channel", None)
         
-        if member.id != self.client.user.id: # type: ignore will always be True
+        if member.id != getattr(self.client.user, 'id', None):
             if convos := self.client.get_all_user_conversations(member):
                 
                 async def _manage_bot_disconnect(convo: chat.DGVoiceChat):
@@ -172,7 +172,7 @@ class Listeners(commands.Cog):
             status_to_use = random.choice(list(self.client.statuses))
             status_type = int(self.client.statuses[status_to_use])
             
-            if status_type < -1 or status_type > 5: # type: ignore because it is a type alias 
+            if status_type < -1 or status_type > 5:
                 common.warn_for_error(f'A status has been incorrectly configured in {developerconfig.CONFIG_FILE}. Wrong status is "{status_to_use}". The value is {status_type} when it should only be more more than -2 and less than 6!')
             await self.client.change_presence(activity=discord.Activity(type=status_type, name=status_to_use))
         except AttributeError:

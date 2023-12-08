@@ -13,8 +13,7 @@ from .chat import GPTConversationContext
 
 from .common import (
     developerconfig,
-    types,
-    protected
+    aliases
 )
 
 from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
@@ -182,7 +181,7 @@ def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
 def _handle_error(response: AIErrorResponse) -> None:
     raise DGException(response.error_message, response.error_code)
        
-async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, model: types.AIModels="gpt-3.5-turbo-16k") -> AIQueryResponse:
+async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, model: aliases.AIModels="gpt-3.5-turbo-16k") -> AIQueryResponse:
     temp_context: list = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
     
     if not isinstance(context, GPTConversationContext | None):
@@ -263,7 +262,7 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
     if add_history == True:
         context.add_conversation_entry(query, replied_content, role)
 
-async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
+async def _gpt_image_base(prompt: str, resolution: aliases.Resolution, image_engine: aliases.ImageEngine, api_key: str) -> AIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
         _image_reply = await async_openai_client.images.generate(prompt=prompt, size=resolution, model=image_engine)
         response = _response_factory(_image_reply.model_dump_json())
@@ -277,14 +276,14 @@ async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engin
     
 class AIModel:
 
-    _model: types.AIModels = 'gpt-3.5-turbo'
+    _model: aliases.AIModels = 'gpt-3.5-turbo'
     _display_name: str = ""
     _description: str = ""
     _api_key: str = "openai_api_key"
     
     @classmethod
     @property
-    def model(cls) -> types.AIModels:
+    def model(cls) -> aliases.AIModels:
         """Returns the actual model name that is used to send communication requests."""
         return cls._model
     
@@ -323,13 +322,13 @@ class AIModel:
         raise NotImplementedError
     
     @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2") -> AIImageResponse:
+    async def __imagegenerate__(cls, prompt: str, resolution: aliases.Resolution="256x256", image_engine: aliases.ImageEngine="dall-e-2") -> AIImageResponse:
         raise NotImplementedError
     
 class GPT3Turbo(AIModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 
-    _model: types.AIModels = "gpt-3.5-turbo-16k"
+    _model: aliases.AIModels = "gpt-3.5-turbo-16k"
     _display_name: str = "GPT 3.5 Turbo"
     _description: str = "Good for generating text and general usage. Cost-effective."
     _api_key: str = "openai_api_key"
@@ -347,10 +346,10 @@ class GPT3Turbo(AIModel):
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
             
     @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
+    async def __imagegenerate__(cls, prompt: str, resolution: aliases.Resolution="256x256", image_engine: aliases.ImageEngine="dall-e-2",) -> AIImageResponse:
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
     
-class GPT4(protected.ProtectedClass, AIModel):
+class GPT4(AIModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
 
     _model: str = "gpt-4"
@@ -371,7 +370,7 @@ class GPT4(protected.ProtectedClass, AIModel):
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
             
     @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
+    async def __imagegenerate__(cls, prompt: str, resolution: aliases.Resolution="256x256", image_engine: aliases.ImageEngine="dall-e-2",) -> AIImageResponse:
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
     
 class GoogleBard(AIModel):

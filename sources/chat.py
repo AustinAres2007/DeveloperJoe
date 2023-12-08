@@ -1,7 +1,6 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 from __future__ import annotations
-from bz2 import decompress
 
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
@@ -12,7 +11,6 @@ from typing import (
     TYPE_CHECKING
 )
 
-from sources import models
 from . import (
     exceptions, 
     confighandler, 
@@ -25,7 +23,7 @@ from .common import (
     commands_utils,
     developerconfig,
     common,
-    types,
+    aliases,
     protected
 )
 
@@ -74,18 +72,15 @@ class GPTConversationContext:
         return _temp_context
         
 class DGChats:
-    
-    def __user_has_permission__(self, permission_type: types.ChatFunctions) -> bool:
-        ...
         
     def __init__(self, 
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
-                user: _discord.Member, 
+                member: _discord.Member, 
                 name: str,
                 stream: bool,
                 display_name: str, 
-                 model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -106,9 +101,9 @@ class DGChats:
         """
         
         self.bot: DeveloperJoe = bot_instance
-        self.user: _discord.Member = user
+        self.member: _discord.Member = member
         self.time: _datetime.datetime = _datetime.datetime.now()
-        self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
+        self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + member.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
         self.last_channel: developerconfig.InteractableChannel | None = None
         self.oapi = _openai_token
@@ -126,7 +121,7 @@ class DGChats:
         # Voice attributes
         
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self.proc_packet, self._is_speaking = False, False
         
         self.voice_tss_queue: list[str] = []
@@ -173,10 +168,8 @@ class DGChats:
     async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
         # Required Arguments: Prompt (String < 1000 chars), Size (String)
         try:
-            # XXX: Remove and insert into another function
-            
-            response = await self.model.__imagegenerate__("Cat doing a backflip", "1024x1024", "dall-e-2")
-            if response.is_image == True:
+            response = await self.model.__imagegenerate__(kwargs["prompt"], kwargs["size"], "dall-e-2")
+            if response.is_image == True and save_message == True:
                 self.context.add_image_entry(kwargs["prompt"], response.image_url if response.image_url else "Empty")
         except _openai.BadRequestError:
             raise exceptions.GPTContentFilter(kwargs["prompt"])
@@ -214,8 +207,8 @@ class DGChats:
         raise NotImplementedError
         
     async def start(self) -> None:
-        self.bot.add_conversation(self.user, self.display_name, self)
-        self.bot.set_default_conversation(self.user, self.display_name)
+        self.bot.add_conversation(self.member, self.display_name, self)
+        self.bot.set_default_conversation(self.member, self.display_name)
 
     def clear(self) -> None:
         raise NotImplementedError
@@ -233,7 +226,7 @@ class DGChats:
     
     @property
     def type(self):
-        return types.DGChatTypesEnum.VOICE
+        return aliases.DGChatTypesEnum.NONE
 
     @property
     def is_speaking(self) -> bool:
@@ -278,12 +271,15 @@ class DGChats:
     def __str__(self) -> str:
         return self.display_name
     
-class DGTextChat(DGChats):
+class DGTextChat(protected.ProtectedClass, DGChats):
+    
+    protected_name = "Text Chat"
+    protected_description = "Weather users can use a normal text chat."
     """Represents a text-only DG Chat."""
     def __init__(self, 
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
-                user: _discord.Member, 
+                member: _discord.Member, 
                 name: str,
                 stream: bool,
                 display_name: str, 
@@ -308,7 +304,7 @@ class DGTextChat(DGChats):
         super().__init__(
             bot_instance=bot_instance,
             _openai_token=_openai_token,
-            user=user,
+            member=member,
             name=name,
             stream=stream,
             display_name=display_name,
@@ -316,10 +312,11 @@ class DGTextChat(DGChats):
             associated_thread=associated_thread,
             is_private=is_private
         )
+        super().initialize(self)
     
     @property
     def type(self):
-        return types.DGChatTypesEnum.TEXT
+        return aliases.DGChatTypesEnum.TEXT
     
     @property
     def is_active(self) -> bool:
@@ -380,7 +377,7 @@ class DGTextChat(DGChats):
     
     @decorators.check_enabled
     async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
-        return await self.__generate_image__(query_type="image", prompt=prompt, size=resolution, n=1)
+        return await self.__generate_image__(prompt=prompt, size=resolution)
     
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
@@ -448,18 +445,18 @@ class DGTextChat(DGChats):
                 raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} type={self.type}, user={self.user} is_active={self.is_active}>"
+        return f"<{self.__class__.__name__} type={self.type}, user={self.member} is_active={self.is_active}>"
     
     def __str__(self) -> str:
         return self.display_name
     
 # XXX: Maybe make protected classes inherit from protected.ProtectedClass? This would give them the protection_name variable needed to check permisions
     
-class DGVoiceChat(protected.ProtectedClass, DGTextChat):
+class DGVoiceChat(DGTextChat):
     """Represents a voice and text DG Chat."""
     
-    name = "Voice Chat"
-    description = "Testing"
+    protected_name = "Voice Chat"
+    protected_description = "Weather users can start Voice Chats."
 
     def __init__(
             self,
@@ -488,19 +485,12 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
         super(DGTextChat, self).__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
-        super().__init__(self)
+        #super().initialize(self)
         
         self._voice = voice
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
-    
-    
-    def protected_name(self) -> str:
-        return "Voice Chat"
-    
-    def protected_description(self) -> str:
-        return "Dingus"
     
     @property
     def voice(self):
@@ -512,7 +502,7 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     
     @property
     def type(self):
-        return types.DGChatTypesEnum.VOICE
+        return aliases.DGChatTypesEnum.VOICE
 
     @property
     def is_speaking(self) -> bool:
@@ -544,7 +534,7 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
                 try:
                     with _speech_recognition.AudioFile(voice) as wav_file:
                         
-                        recogniser.adjust_for_ambient_noise(wav_file, 0.7) # type: ignore float values can be used but that package does not have annotations                  
+                        recogniser.adjust_for_ambient_noise(wav_file)
                         data = recogniser.record(wav_file)
                         text = recogniser.recognize_google(data, pfilter=0)
                         
@@ -601,7 +591,7 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
                         speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
                         volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
                         
-                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.member, self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
                         volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
                         volume_source.volume = volume
                         
@@ -627,7 +617,8 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     @decorators.dg_is_speaking
     async def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
-        self.client_voice.stop_playing() # type: ignore checks in decorators
+        if self.client_voice:
+            self.client_voice.stop_playing()
     
     @decorators.check_enabled
     @decorators.has_voice_with_error
@@ -655,7 +646,8 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     @protected.protected_method
     async def listen(self):
         """Starts the listening events for a users voice conversation."""
-        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 0.7)) # type: ignore Checks done with decorators.
+        if self.client_voice:
+            self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 0.7)) 
     
     @decorators.check_enabled
     @decorators.has_voice_with_error
@@ -663,8 +655,10 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     @decorators.dg_is_listening
     async def stop_listening(self):
         """Stops the listening events for a users voice conversation"""
-        self.client_voice._reader.sink.cleanup() # type: ignore Checks done with decorators.
-        self.client_voice.stop_listening() # type: ignore Checks done with decorators.
+        if self.client_voice:
+            if self.client_voice._reader:
+                self.client_voice._reader.sink.cleanup() 
+            self.client_voice.stop_listening() 
         
         
     async def ask(self, query: str, channel: developerconfig.InteractableChannel) -> str:
@@ -688,7 +682,7 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
         return text
     
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} type={self.type}, user={self.user}, voice={self.voice}, is_active={self.is_active}>"
+        return f"<{self.__class__.__name__} type={self.type}, user={self.member}, voice={self.voice}, is_active={self.is_active}>"
     
     def __str__(self) -> str:
         return self.display_name

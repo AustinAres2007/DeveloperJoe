@@ -1,7 +1,8 @@
 import io as _io, gtts as _gtts, json as _json
+import discord
 
 from sources.common.protected import ProtectedClass
-from .voice import pydub as _pydub # type: ignore Again, Python is being dumb. The dependency does exist.
+from .voice import pydub as _pydub
 from .exceptions import DGException
 from .common import protected
 
@@ -15,12 +16,15 @@ __all__ = [
 class TTSModel:
     """Base class for generating text-to-speach for discord.py"""
     
-    def __init__(self, text: str) -> None:
+    def __init__(self, member: discord.Member, text: str) -> None:
         """Base class for generating text-to-speach for discord.py
 
         Args:
             text (str): The text to be translated to voice.
+            member (Member): The user who invoked the bot to speak.
         """
+        
+        self.member = member
         self._text = text
         self._emulated_file_object: _io.BytesIO = _io.BytesIO()
         
@@ -55,8 +59,13 @@ class TTSModel:
 
 class GTTSModel(protected.ProtectedClass, TTSModel):
     """Google Text-to-Speach model."""
-    def __init__(self, text: str) -> None:
-        super().__init__(self)
+
+    protected_name = "Google Text-to-Speech"
+    protected_description = f"Weather users can use {protected_name}"
+    
+    def __init__(self, member: discord.Member, text: str) -> None:
+        super().__init__(member, text)
+        super().initialize(self)
         
     def process_text(self, speed: float) -> _io.BytesIO:
         """Processes text into the Google TTS voice.
@@ -67,7 +76,6 @@ class GTTSModel(protected.ProtectedClass, TTSModel):
         Returns:
             _io.BytesIO: The spoken response.
         """
-        
         _temp_file = _io.BytesIO()
         _gtts.gTTS(self.text).write_to_fp(_temp_file)
         _temp_file.seek(0)

@@ -125,13 +125,6 @@ class DGDatabaseSession:
         ### ~~~
         """
             permissions `permission_json` format
-            
-            It uses integers to represent different functions. For a list, refer to `sources.common.enum.ChatFunctions (An Enum)`
-            {
-                0: [], # 0 = Text function. An empty list meaning everyone can use it
-                1: [], # 1 = Bot Speaking Function. An empty list meaning everyone can use it.
-                2: [1132623433230975076] # 2 = Bot-Listening-to-user-voice-queries function. Anyone who wants to use it must have the VIP role (1132623433230975076) or higher in the role hierarchy.
-            } 
         """
         
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} history (uid TEXT NOT NULL, author_id INTEGER NOT NULL, chat_name VARCHAR(40) NOT NULL, chat_json TEXT NOT NULL, is_private INTEGER CHECK (is_private IN (0,1)))")

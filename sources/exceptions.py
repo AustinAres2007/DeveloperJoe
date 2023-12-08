@@ -3,9 +3,7 @@ import os
 import discord as _discord, httpx as _httpx
 from typing import Any as _Any, Union as _Union
 
-from . import (
-    errors
-)
+from . import errors
 from .common.developerconfig import ALLOW_TRACEBACK
 
 # Models

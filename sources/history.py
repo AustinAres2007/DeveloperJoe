@@ -2,9 +2,10 @@
 
 import json
 from . import (
-    database, 
-    exceptions,
-)    
+    database,
+    exceptions
+)
+
     
 __all__ = [
     "DGHistoryChat",

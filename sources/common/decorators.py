@@ -1,15 +1,13 @@
 """Decorator Utilities that DG Uses."""
 from __future__ import annotations
-import discord, typing, inspect
+import discord, typing
 
 from .. import (
     exceptions,
-    voice,
-    errors,
-    permissionshandler
+    errors
 )
-from . import (
-    protected
+from ..voice import (
+    voice_client
 )
 
 if typing.TYPE_CHECKING:
@@ -42,7 +40,7 @@ def dg_in_voice_channel(func):
     """Decorator for checking if the bot is in a voice channel with you."""
     
     async def _inner(self, *args, **kwargs):
-        if isinstance(self.client_voice, voice.VoiceRecvClient) and self.client_voice.is_connected():
+        if isinstance(self.client_voice, voice_client.VoiceRecvClient) and self.client_voice.is_connected():
             return await func(self, *args, **kwargs)
         raise exceptions.DGNotInVoiceChat(self.voice)
     

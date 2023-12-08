@@ -10,7 +10,7 @@ from .common import (
     developerconfig,
     common,
     commands_utils,
-    types
+    aliases
 )
 # XXX: Must make DGGuildModelSession (For init())
 
@@ -60,9 +60,9 @@ class GuildData:
     def author_id(self) -> int:
         return self._get_data_from_raw(1) # 1 = Author ID
     
-    def get_local_guild_config_key(self, key: str) -> types.Empty | Any:
+    def get_local_guild_config_key(self, key: str) -> aliases.Empty | Any:
         if isinstance(key, str) == True:
-            return self.raw_config_data.get(key, types.Empty)
+            return self.raw_config_data.get(key, aliases.Empty)
         raise TypeError("key must be a String. Not {}".format(type(key)))
     
     @property
@@ -151,7 +151,7 @@ def get_guild_config_attribute(guild: discord.Guild, attribute: str) -> Any:
     """
     with DGGuildDatabaseConfigHandler(guild) as cs:
         val = cs.get_guild().get_local_guild_config_key(attribute)
-        if val != types.Empty:
+        if val != aliases.Empty:
             return val
         raise KeyError('No config key named "{}"'.format(attribute))
 
