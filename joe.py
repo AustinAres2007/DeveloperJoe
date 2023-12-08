@@ -40,7 +40,8 @@ try:
         developerconfig,
         common,
         voice_checks,
-        types
+        types,
+        protected
     )
     
     from sources import (
@@ -73,26 +74,29 @@ except FileNotFoundError:
     common.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
 
 # Main Bot Class    
+
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
 
     INTENTS = discord.Intents.all()
     
-    
-        
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
         self.__keys__ = {}
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(confighandler.get_config("bot_name"))
         self.ADMIN_TEXT = ADMIN_TEXT.format(confighandler.get_config("bot_name"))
+        
         self.__tzs__ = pytz.all_timezones
         self.__tz__ = pytz.timezone(confighandler.get_config("timezone"))
+        
         self.config = None
         self.statuses: dict[str, int | discord.ActivityType] = confighandler.get_config('status_scrolling_options')
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
             
-        super().__init__(*args, **kwargs)
+        self._protected_classes_handler = protected.ProtectedClassHandler()
     
     def add_status(self, text: str, activity_type: discord.ActivityType | int=discord.ActivityType.listening):
         self.statuses[text] = activity_type

@@ -460,7 +460,7 @@ class DGVoiceChat(protected.ProtectedClass, DGTextChat):
     
     name = "Voice Chat"
     description = "Testing"
-    
+
     def __init__(
             self,
             bot_instance: _Any,

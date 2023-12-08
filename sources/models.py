@@ -13,7 +13,8 @@ from .chat import GPTConversationContext
 
 from .common import (
     developerconfig,
-    types
+    types,
+    protected
 )
 
 from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
@@ -349,7 +350,7 @@ class GPT3Turbo(AIModel):
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
     
-class GPT4(AIModel):
+class GPT4(protected.ProtectedClass, AIModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
 
     _model: str = "gpt-4"

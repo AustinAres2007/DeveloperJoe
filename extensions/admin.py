@@ -111,12 +111,23 @@ class Administration(_Cog):
             confighandler.edit_guild_config(guild, "default-ai-model", ai_model)
             await interaction.response.send_message(f"Changed default AI Model to {model_object.display_name}.")
     
-    @_discord.app_commands.command(name="addpermission", description="d")
+    @_discord.app_commands.command(name="addpermission", description="Add a given permission.")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def add_permission(self, interaction: _discord.Interaction, permission_key: str, role: _discord.Role):
         permissionshandler.add_guild_permission(role.guild, permission_key, [role.id])
         await interaction.response.send_message(f"Added {role} constraint to {permission_key}.")
+    
+    @_discord.app_commands.command(name="permissions", description="Lists all permissions that you can use with /getpermissions.")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    @_discord.app_commands.check(commands_utils.in_correct_channel)
+    async def get_permissions(self, interaction: _discord.Interaction):
+        perms = "WIP\n"
+        for perm in self.client._protected_classes_handler.protected_classes:
+            perms += f"\n{str(perm)}"
+        
+        await interaction.response.send_message(perms)
             
+        
 async def setup(client):
     await client.add_cog(Administration(client))
