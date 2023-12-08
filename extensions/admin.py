@@ -104,6 +104,7 @@ class Administration(_Cog):
     @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
     async def change_default_model_for_server(self, interaction: _discord.Interaction, ai_model: str | None=None):
         if guild := commands_utils.assure_class_is_value(interaction.guild, _discord.Guild):
+            
             if ai_model == None:
                 current_model_object = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(guild, 'default-ai-model'))
                 return await interaction.response.send_message(f"Current default AI Model is {current_model_object.display_name}. {current_model_object.description}")
