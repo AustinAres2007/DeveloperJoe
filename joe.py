@@ -429,7 +429,7 @@ class DeveloperJoe(commands.Bot):
 
                     self.start_time = datetime.datetime.now(tz=self.__tz__)
                     await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
-                    self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored.
+                    self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored∏
                     
                     common.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     
