@@ -8,7 +8,6 @@ Thank you to:
     - The Developers of Opus.
     - The Developers of FFmpeg.
 """
-
 from __future__ import annotations
 from asyncio import CancelledError
 import shutil
@@ -37,9 +36,17 @@ try:
     from sources import (
         protectedclass
     )
-    
-    __protected_class_handler = protectedclass.ProtectedClassHandler()
-    protectedclass.protected_class_handler = __protected_class_handler
+except ImportError:
+    print(f"Missing critical files. Please redownload DeveloperJoe and try again.")
+    exit(1)
+
+protected_class_handler = protectedclass.ProtectedClassHandler()
+protectedclass.protected_class_handler = protected_class_handler
+
+try:
+    from sources import (
+        protectedclass
+    )
     
     from sources.common import (
         commands_utils,
@@ -99,8 +106,8 @@ class DeveloperJoe(commands.Bot):
         self.statuses: dict[str, int | discord.ActivityType] = confighandler.get_config('status_scrolling_options')
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
         
-        self.protected_class_handler = protectedclass.ProtectedClassHandler()
-        protectedclass.protected_class_handler = self.protected_class_handler
+        self.protected_class_handler = protected_class_handler
+        protectedclass.protected_class_handler = protected_class_handler
         
         super().__init__(*args, **kwargs)
     

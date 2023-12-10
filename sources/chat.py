@@ -1,6 +1,7 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 from __future__ import annotations
+from curses import start_color
 
 import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
@@ -273,7 +274,8 @@ class DGChats:
     
     def __str__(self) -> str:
         return self.display_name
-    
+
+@protectedclass.protect_class
 class DGTextChat(DGChats):
     """Represents a text-only DG Chat."""
     def __init__(self, 
@@ -449,8 +451,11 @@ class DGTextChat(DGChats):
     def __str__(self) -> str:
         return self.display_name
 
+@protectedclass.protect_class
 class DGVoiceChat(DGTextChat):
+    
     """Represents a voice and text DG Chat."""
+    
     def __init__(
             self,
             member: _discord.Member, 
@@ -483,6 +488,13 @@ class DGVoiceChat(DGTextChat):
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
     
+    @classmethod
+    def get_protected_name(cls) -> str:
+        return "Voice Chat"
+    
+    @classmethod
+    def get_protected_description(cls) -> str:
+        return "This represents a voice and text chat."
     @property
     def voice(self):
         return self._voice

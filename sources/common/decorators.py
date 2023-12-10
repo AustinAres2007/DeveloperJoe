@@ -173,25 +173,3 @@ def chat_not_exist(func):
         raise exceptions.DGException(errors.ConversationErrors.HAS_CONVO)
     
     return _member_wrapper
-
-def register_protected_class(cls: typing.Type[types.HasMember]) -> typing.Any:
-    """Decorator for registering a protected class in the DeveloperJoe instance. This is used for registering classes that are not meant to be used by the user."""
-    class ProtectedClassWrapper(cls):
-        protected_class_handler: protectedclass.ProtectedClassHandler | None = None
-        
-        def __init__(self, member: discord.Member, *args, **kwargs):
-            
-            if not isinstance(member, discord.Member):
-                raise TypeError(f"member should be discord.Member, not {member.__class__.__name__}")
-            
-            if not isinstance(self.protected_class_handler, protectedclass.ProtectedClassHandler):
-                raise Exception("Protected class handler is not set.")
-            
-            self.member = member
-            
-            if not self.member.top_role >= 1:
-                raise Exception("Missing permissions")
-            
-            super().__init__(member, *args, **kwargs) # TODO: Fix __init__ positional argument error with type annotation
-    
-    return ProtectedClassWrapper

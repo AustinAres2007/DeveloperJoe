@@ -19,6 +19,26 @@ class Administration(_Cog):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
 
+    permissions_group = _discord.app_commands.Group(name="permissions", description="Commands for managing what bot functionality different roles can use. (Use /permissions list)")
+    
+    @permissions_group.command(name="add", description="Adds a role to a permission group.")
+    async def add_command_to_role(self, interaction: _discord.Interaction, role: _discord.Role, command: str):
+        ...
+    
+    @permissions_group.command(name="remove", description="Removes a role from a permission group.")
+    async def remove_command_from_role(self, interaction: _discord.Interaction, role: _discord.Role, command: str):
+        ...
+    
+    @permissions_group.command(name="list", description="Lists all bot functions that can be behind a role.")
+    async def list_command_roles(self, interaction: _discord.Interaction):
+        perms = "Permissions\n"
+        print(self.client.protected_class_handler.classes)
+        for perm, perm_class in self.client.protected_class_handler.classes.items():
+            print(perm)
+            perms += f"\n{f"**{perm_class.get_protected_name()}** (`{perm}`) -> *{perm_class.get_protected_description()}*"}"
+        
+        await interaction.response.send_message(perms)
+        
     @_discord.app_commands.command(name="stopbot", description="Shuts down bot client")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def halt(self, interaction: _discord.Interaction):
