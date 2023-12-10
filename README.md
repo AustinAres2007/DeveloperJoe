@@ -89,4 +89,5 @@ Changelog
 
 - Add Gemini support
 - Add more customisable role permission settings (Role can only be X role, or role can only be X and Y)
+- Dockerfile
 
