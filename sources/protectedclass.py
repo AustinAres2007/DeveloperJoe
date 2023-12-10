@@ -1,9 +1,9 @@
-from ast import TypeVar
 import inspect
 import typing, discord
 
 from . import (
-    exceptions
+    exceptions,
+    permissionshandler
 )
 from .common import (
     types
@@ -20,7 +20,7 @@ class ProtectedClassWrapper:
         Returns:
             str: _description_
         """
-        return ""
+        raise NotImplementedError
     
     @classmethod
     def get_protected_description(cls) -> str:
@@ -29,12 +29,23 @@ class ProtectedClassWrapper:
         Returns:
             str: _description_
         """
-        return ""
+        raise NotImplementedError
+    
+    @classmethod
+    def get_error_message(cls) -> str:
+        """This is the string that will be send to the user if the user does not have the required permissions to use the command / an aspect of the command.
+        
+        Returns:
+            str: _description_
+        """
+        raise NotImplementedError
+    
 class ProtectedClassHandler:
     def __init__(self) -> None:
         self.__protected_dict__: dict[str, typing.Type[ProtectedClassWrapper]] = {}
     
-    def get_class_id(self, instance: typing.Type[ProtectedClassWrapper]) -> str:
+    @staticmethod
+    def get_class_id(instance: typing.Type[ProtectedClassWrapper]) -> str:
         class_parent_module = inspect.getmodule(instance)
         if class_parent_module:
             if hasattr(instance, "__name__"):
@@ -78,22 +89,24 @@ def protect_class(passed_cls):
                 raise TypeError(f"member should be discord.Member, not {member.__class__.__name__}")
             
             if not isinstance(protected_class_handler, ProtectedClassHandler):
-                raise Exception("Protected class handler is not set.")
+                raise TypeError("Protected class handler is not set.")
             
             self.protected_class_handler = protected_class_handler
             self.member = member
             
-            role_id = 0 # Not set as I need to finish the backend for this.
-            role = member.guild.get_role(role_id)
-            
-            if role:
-                if not self.member.top_role >= role:
-                    raise Exception("Missing permissions")
-            else:
-                raise exceptions.DGException("""
-                    The specified role that the command requires to work no longer exists. Please contact the server owner to fix this issue.
-                    (For resolution, admin only: do the command /permission remove {})
-                """.format(role_id))
+            roles = permissionshandler.get_guild_object_permissions(member.guild, ProtectedClassHandler.get_class_id(passed_cls))
+            if roles:
+                role_id = roles[0]
+                role = member.guild.get_role(role_id)
+                
+                if role:
+                    if not self.member.top_role >= role:
+                        raise exceptions.DGException(self.get_error_message(role))
+                else:
+                    raise exceptions.DGException("""
+                        The specified role that the command requires to work no longer exists. Please contact the server owner to fix this issue.
+                        (For resolution, admin only: do the command /permissions remove {})
+                    """.format(role_id))
                 
             super().__init__(member, *args, **kwargs)
 
@@ -120,8 +133,14 @@ def protect_class(passed_cls):
                 return passed_cls.get_protected_description() if hasattr(passed_cls, "get_protected_description") else "No description provided."
             except TypeError:
                 raise exceptions.DGException("Error with `{0}` permission: `{0}.get_protected_description()` must be a classmethod. Or, the function must be deleted.".format(passed_cls.__name__))
-    
-    print(passed_cls)
+
+        @classmethod
+        def get_error_message(cls, role: discord.Role) -> str:
+            try:
+                return passed_cls.get_error_message(role) if hasattr(passed_cls, "get_error_message") else f"You do not have the required role to use this command or an aspect of this command. You need the role **{role.name}** or higher."
+            except TypeError:
+                raise exceptions.DGException("Error with `{0}` permission: `{0}.get_error_message()` must be a classmethod. Or, the function must be deleted.".format(passed_cls.__name__))
+            
     if protected_class_handler:
         protected_class_handler.add_class(ProtectedClassDecoratorWrapper)
     else:

@@ -8,6 +8,7 @@ Thank you to:
     - The Developers of Opus.
     - The Developers of FFmpeg.
 """
+
 from __future__ import annotations
 from asyncio import CancelledError
 import shutil
@@ -107,7 +108,6 @@ class DeveloperJoe(commands.Bot):
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
         
         self.protected_class_handler = protected_class_handler
-        protectedclass.protected_class_handler = protected_class_handler
         
         super().__init__(*args, **kwargs)
     

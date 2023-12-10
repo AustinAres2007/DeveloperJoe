@@ -275,7 +275,6 @@ class DGChats:
     def __str__(self) -> str:
         return self.display_name
 
-@protectedclass.protect_class
 class DGTextChat(DGChats):
     """Represents a text-only DG Chat."""
     def __init__(self, 
@@ -495,6 +494,11 @@ class DGVoiceChat(DGTextChat):
     @classmethod
     def get_protected_description(cls) -> str:
         return "This represents a voice and text chat."
+    
+    @classmethod
+    def get_error_message(cls, role: _discord.Role) -> str:
+        return f"You need to be in the role **{role.name}** or higher to use voice capabilities."
+    
     @property
     def voice(self):
         return self._voice
@@ -588,23 +592,21 @@ class DGVoiceChat(DGTextChat):
             new_voice = await self.manage_voice()
             
             def _play_voice(index: int, error: _Any=None):
-                try:
-                    if not error:
-                        if not (index >= len(self.voice_tss_queue)):
-                            speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
-                            volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
-                            
-                            ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
-                            volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
-                            volume_source.volume = volume
-                            
-                            return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
-                            
-                        self.voice_tss_queue.clear()
-                    else:
-                        raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
-                except Exception as e:
-                    print(e)
+                if not error:
+                    if not (index >= len(self.voice_tss_queue)):
+                        speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
+                        volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
+                        
+                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.member, self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                        volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
+                        volume_source.volume = volume
+                        
+                        return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
+                        
+                    self.voice_tss_queue.clear()
+                else:
+                    raise exceptions.DGException(f"VoiceError: {str(error)}", log_error=True, send_exceptions=True)
+
             
             if new_voice.is_paused():
                 new_voice.stop()

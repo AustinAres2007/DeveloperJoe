@@ -7,7 +7,8 @@ from sources import (
     modelhandler,
     exceptions,
     database,
-    confighandler
+    confighandler,
+    permissionshandler
 )
 from sources.common import (
     commands_utils,
@@ -22,23 +23,69 @@ class Administration(_Cog):
     permissions_group = _discord.app_commands.Group(name="permissions", description="Commands for managing what bot functionality different roles can use. (Use /permissions list)")
     
     @permissions_group.command(name="add", description="Adds a role to a permission group.")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    @_discord.app_commands.check(commands_utils.in_correct_channel)
     async def add_command_to_role(self, interaction: _discord.Interaction, role: _discord.Role, command: str):
-        ...
+        
+        member: _discord.Member = commands_utils.assure_class_is_value(interaction.user, _discord.Member)
+        
+        if command not in self.client.protected_class_handler.classes:
+            raise exceptions.DGException(f"Command function entry: `{command}` does not exist. You can do /permissions list to see all available functions.")
+
+        role_id = role.id if isinstance(role, _discord.Role) else role
+        permissionshandler.add_guild_permission(member.guild, command, [role_id])
+        
+        protected_class = self.client.protected_class_handler.classes.get(command)
+        
+        if protected_class:
+            return await interaction.response.send_message(f"Added `{protected_class.get_protected_name()}` behind role **{role.name}** and senior roles.")
+        return await interaction.response.send_message(f"Fatal internal error: {command} does not exist in protected class handler.")
     
     @permissions_group.command(name="remove", description="Removes a role from a permission group.")
-    async def remove_command_from_role(self, interaction: _discord.Interaction, role: _discord.Role, command: str):
-        ...
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    @_discord.app_commands.check(commands_utils.in_correct_channel)
+    async def remove_command_from_role(self, interaction: _discord.Interaction, command: str):
+
+        guild = commands_utils.assure_class_is_value(interaction.guild, _discord.Guild)
+        if command not in self.client.protected_class_handler.classes:
+            raise exceptions.DGException(f"Command function entry: `{command}` does not exist. You can do /permissions list to see all available functions.")
+        
+        permissionshandler.remove_guild_permission(guild, command)
+        
+        protected_class = self.client.protected_class_handler.classes.get(command)
+        
+        if protected_class:
+            return await interaction.response.send_message(f"Removed `{protected_class.get_protected_name()}` from all roles. Any roles can now use the function.")
+        return await interaction.response.send_message(f"Fatal internal error: {command} does not exist in protected class handler.")
     
     @permissions_group.command(name="list", description="Lists all bot functions that can be behind a role.")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
     async def list_command_roles(self, interaction: _discord.Interaction):
         perms = "Permissions\n"
-        print(self.client.protected_class_handler.classes)
+        
         for perm, perm_class in self.client.protected_class_handler.classes.items():
-            print(perm)
             perms += f"\n{f"**{perm_class.get_protected_name()}** (`{perm}`) -> *{perm_class.get_protected_description()}*"}"
         
         await interaction.response.send_message(perms)
+    
+    @permissions_group.command(name="view", description="Views all functions that currently have a role assigned to them.")
+    @_discord.app_commands.checks.has_permissions(administrator=True)
+    async def view_command_roles(self, interaction: _discord.Interaction):
+        guild = commands_utils.assure_class_is_value(interaction.guild, _discord.Guild)
+        perms = "Permissions\n"
         
+        for perm, perm_class in self.client.protected_class_handler.classes.items():
+            roles = permissionshandler.get_guild_object_permissions(guild, perm)
+            if roles:
+                perms += f"\n{f'**{perm_class.get_protected_name()}** (`{perm}`) -> *{perm_class.get_protected_description()}*'}\n"
+                for role_id in roles:
+                    role = guild.get_role(role_id)
+                    if role:
+                        perms += f"{role.mention}\n"
+                    else:
+                        perms += f"Deleted role. ID = {role_id}\n"
+                    
+        await interaction.response.send_message(perms)
     @_discord.app_commands.command(name="stopbot", description="Shuts down bot client")
     @_discord.app_commands.checks.has_permissions(administrator=True)
     async def halt(self, interaction: _discord.Interaction):

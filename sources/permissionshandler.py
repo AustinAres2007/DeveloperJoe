@@ -29,12 +29,22 @@ class DGGuildDatabasePermissionHandler(database.DGDatabaseSession):
         except KeyError:
             raise KeyError(f"No rules for {_object}.")
     
-    def add_to_permission_list(self, key_name: str, roles: list[int]) -> None:
+    def add_to_permission_list(self, _object: str, roles: list[int]) -> None:
         new_entry = self.get_all_permissions().copy()
         try:
-            new_entry[key_name].extend(roles)
+            new_entry[_object].extend(roles)
         except KeyError:
-            new_entry[key_name] = roles
+            new_entry[_object] = roles
+        
+        permission_data = json.dumps(new_entry)
+        self._exec_db_command("UPDATE permissions SET permission_json=? WHERE gid=?", (permission_data, self.guild.id,))
+    
+    def remove_from_permission_list(self, _object: str) -> None:
+        new_entry = self.get_all_permissions().copy()
+        try:
+            del new_entry[_object]
+        except KeyError:
+            raise KeyError(f"No rules for {_object}.")
         
         permission_data = json.dumps(new_entry)
         self._exec_db_command("UPDATE permissions SET permission_json=? WHERE gid=?", (permission_data, self.guild.id,))
@@ -50,5 +60,10 @@ def get_guild_object_permissions(guild: Guild, permission_object: str) -> list[i
 def add_guild_permission(guild: Guild, permission_object: str, roles: list[int]) -> None:
     with DGGuildDatabasePermissionHandler(guild) as permission_handler:
         permission_handler.add_to_permission_list(permission_object, roles)
+
+def remove_guild_permission(guild: Guild, permission_object: str) -> None:
+    with DGGuildDatabasePermissionHandler(guild) as permission_handler:
+        permission_handler.remove_from_permission_list(permission_object)
+        
         
             
