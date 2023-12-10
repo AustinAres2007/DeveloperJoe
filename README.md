@@ -55,5 +55,38 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 Changes
 
+Quick summary
+
 - More customisable permissions
+- Command groups
 - Overhauled Internal systems
+
+Changelog
+
+- New commands
+    - /permissions (With subcommands)
+        - /permissions add -> Adds an allowed role to a bot function.
+        - /permissions remove -> Removes a role from a bot function.
+        - /permissions list -> Lists all bot functions that a role can be applied to.
+        - /permissions view -> Lists all roles applied to bot functions.
+    
+- Renamed Commands
+    - /stopbot -> /owner exit
+    - /backup -> /owner backup
+    - /load -> /owner load
+    - /lock -> /admin lock
+    - /unlock -> /admin unlock
+    - /locks -> /admin locks
+    - /models -> /admin change-model
+
+- Bug Fixes
+    - Fixed bug when trying to get server configuration value (attr import, incorrect variable name)
+
+- Other
+    - Internal AI requests API overhaul
+
+## Todo 1.4.3
+
+- Add Gemini support
+- Add more customisable role permission settings (Role can only be X role, or role can only be X and Y)
+

@@ -3,7 +3,7 @@
 from __future__ import annotations
 from curses import start_color
 
-import datetime as _datetime, discord as _discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
+import datetime as _datetime, discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
 from typing import (
     Union as _Union, 
@@ -76,34 +76,34 @@ class GPTConversationContext:
 class DGChats:
         
     def __init__(self,
-                member:  _discord.Member, 
+                member:  discord.Member, 
                 bot_instance: DeveloperJoe,
                 openai_token: str, 
                 name: str,
                 stream: bool,
                 display_name: str, 
                 model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
-                associated_thread: _Union[_discord.Thread, None]=None,
+                associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
-                voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
+                voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
         ):
         """Represents a base DGChat. Do not use, inherit from this.
 
         Args:
             bot_instance (_DeveloperJoe): _description_
             _openai_token (str): _description_
-            user (_Union[_discord.User, _discord.Member]): _description_
+            user (_Union[discord.User, discord.Member]): _description_
             name (str): _description_
             stream (bool): _description_
             display_name (str): _description_
             model (models.GPTModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
-            associated_thread (_Union[_discord.Thread, None], optional): _description_. Defaults to None.
+            associated_thread (_Union[discord.Thread, None], optional): _description_. Defaults to None.
             is_private (bool, optional): _description_. Defaults to True.
-            voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): _description_. Defaults to None.
+            voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): _description_. Defaults to None.
         """
         
         self.bot: DeveloperJoe = bot_instance
-        self.member: _discord.Member = member
+        self.member: discord.Member = member
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + member.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
@@ -123,7 +123,7 @@ class DGChats:
         # Voice attributes
         
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self.proc_packet, self._is_speaking = False, False
         
         self.voice_tss_queue: list[str] = []
@@ -217,7 +217,7 @@ class DGChats:
     def clear(self) -> None:
         raise NotImplementedError
     
-    async def stop(self, interaction: _discord.Interaction, save_history: bool) -> str:
+    async def stop(self, interaction: discord.Interaction, save_history: bool) -> str:
         raise NotImplementedError
 
     @property
@@ -225,7 +225,7 @@ class DGChats:
         return self._voice
     
     @voice.setter
-    def voice(self, _voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]):
+    def voice(self, _voice: _Union[discord.VoiceChannel, discord.StageChannel, None]):
         self._voice = _voice
     
     @property
@@ -248,10 +248,10 @@ class DGChats:
     def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
         self._client_voice_instance = _bot_vc 
     
-    async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
+    async def manage_voice_packet_callback(self, member: discord.Member, voice: _io.BytesIO):
         raise NotImplementedError
         
-    async def manage_voice(self) -> _discord.VoiceClient:
+    async def manage_voice(self) -> discord.VoiceClient:
        raise NotImplementedError
    
     async def speak(self, text: str, channel: developerconfig.InteractableChannel): 
@@ -278,14 +278,14 @@ class DGChats:
 class DGTextChat(DGChats):
     """Represents a text-only DG Chat."""
     def __init__(self, 
-                member: _discord.Member,
+                member: discord.Member,
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
                 name: str,
                 stream: bool,
                 display_name: str, 
                 model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
-                associated_thread: _Union[_discord.Thread, None]=None,
+                associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True 
         ):
         """Represents a text DG Chat.
@@ -293,12 +293,12 @@ class DGTextChat(DGChats):
         Args:
             bot_instance (DeveloperJoe): The DeveloperJoe client instance. This is not type checked so please be wary.
             _openai_token (str): Your OpenAI API Token
-            user (_Union[_discord.User, _discord.Member]): The member this text chat will belong too.
+            user (_Union[discord.User, discord.Member]): The member this text chat will belong too.
             name (str): Name of the chat.
             stream (bool): Weather the chat will be streamed. (Like ChatGPT)
             display_name (str): What the display name of the chat will be.
             model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
-            associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
+            associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             is_private (bool): Weather the chat will be private (Only showable to the user) Defaults to True.
         """
         
@@ -338,7 +338,7 @@ class DGTextChat(DGChats):
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> str:
         og_message = await channel.send(developerconfig.STREAM_PLACEHOLDER)
                             
-        msg: list[_discord.Message] = [og_message]
+        msg: list[discord.Message] = [og_message]
         reply = self.__stream_send_query__(query, True)
         full_message = f"## {self.header}\n\n"
         i, start_message_at = 0, 0
@@ -369,7 +369,7 @@ class DGTextChat(DGChats):
                     else:
                         await msg[-1].edit(content=sendable_portion)
                         
-        except _discord.NotFound:
+        except discord.NotFound:
             self.is_processing = False
             raise exceptions.DGException("Stopped query since someone deleted the streaming message.")
         else:            
@@ -386,7 +386,7 @@ class DGTextChat(DGChats):
             final_user_reply = f"## {self.header}\n\n{reply.response}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
-                file_reply: _discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
+                file_reply: discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
                 await channel.send(file=file_reply)
             else:
                 await channel.send(final_user_reply)
@@ -408,11 +408,11 @@ class DGTextChat(DGChats):
         self.context._context.clear()
         self.context._display_context.clear()
     
-    async def stop(self, interaction: _discord.Interaction, save_history: bool) -> str:
+    async def stop(self, interaction: discord.Interaction, save_history: bool) -> str:
         """Stops the chat instance.
 
         Args:
-            interaction (_discord.Interaction): The discord interaction instance.
+            interaction (discord.Interaction): The discord interaction instance.
             history (DGHistorySession): A chat history session to upload chat data.
             save_history (str): Weather the chat should be saved. (Will be boolean soon)
 
@@ -424,8 +424,8 @@ class DGTextChat(DGChats):
             str: A farewell message.
         """
         with history.DGHistorySession() as dg_history:
-            member: _discord.Member = commands_utils.assure_class_is_value(interaction.user, _discord.Member)
-            if isinstance(self.chat_thread, _discord.Thread) and self.chat_thread.id == interaction.channel_id:
+            member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+            if isinstance(self.chat_thread, discord.Thread) and self.chat_thread.id == interaction.channel_id:
                 raise exceptions.CannotDeleteThread(self.chat_thread)
             try:
                 farewell = f"Ended chat: {self.display_name} with {confighandler.get_config('bot_name')}!"
@@ -438,10 +438,10 @@ class DGTextChat(DGChats):
                 else:
                     farewell += "\n\n\n*Not saved chat history*"
 
-                if isinstance(self.chat_thread, _discord.Thread):
+                if isinstance(self.chat_thread, discord.Thread):
                     await self.chat_thread.delete()
                 return farewell
-            except _discord.Forbidden as e:
+            except discord.Forbidden as e:
                 raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
     def __repr__(self) -> str:
@@ -457,33 +457,33 @@ class DGVoiceChat(DGTextChat):
     
     def __init__(
             self,
-            member: _discord.Member, 
+            member: discord.Member, 
             bot_instance: DeveloperJoe,
             openai_token: str, 
             name: str,
             stream: bool,
             display_name: str, 
             model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
-            associated_thread: _Union[_discord.Thread, None]=None, 
+            associated_thread: _Union[discord.Thread, None]=None, 
             is_private: bool=True,
-            voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
+            voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
         ):
         """Represents a voice and text DG Chat.
 
         Args:
             bot_instance (_commands.Bot): Your bots main instance.
             _openai_token (str): Your OpenAI API Token
-            user (_Union[_discord.User, _discord.Member]): The member this text chat will belong too.
+            user (_Union[discord.User, discord.Member]): The member this text chat will belong too.
             name (str): Name of the chat.
             stream (bool): Weather the chat will be streamed. (Like ChatGPT)
             display_name (str): What the display name of the chat will be.
             model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
-            associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
-            voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
+            associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
+            voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
         super().__init__(member, bot_instance, openai_token, name, stream, display_name, model, associated_thread, is_private)
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
     
@@ -496,7 +496,7 @@ class DGVoiceChat(DGTextChat):
         return "This represents a voice and text chat."
     
     @classmethod
-    def get_error_message(cls, role: _discord.Role) -> str:
+    def get_error_message(cls, role: discord.Role) -> str:
         return f"You need to be in the role **{role.name}** or higher to use voice capabilities."
     
     @property
@@ -504,7 +504,7 @@ class DGVoiceChat(DGTextChat):
         return self._voice
     
     @voice.setter
-    def voice(self, _voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]):
+    def voice(self, _voice: _Union[discord.VoiceChannel, discord.StageChannel, None]):
         self._voice = _voice
     
     @property
@@ -531,7 +531,7 @@ class DGVoiceChat(DGTextChat):
     def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
         self._client_voice_instance = _bot_vc 
     
-    async def manage_voice_packet_callback(self, member: _discord.Member, voice: _io.BytesIO):
+    async def manage_voice_packet_callback(self, member: discord.Member, voice: _io.BytesIO):
         try:
             if self.proc_packet == False:
                 self.proc_packet = True
@@ -567,9 +567,9 @@ class DGVoiceChat(DGTextChat):
         finally:
             self.proc_packet = False
         
-    async def manage_voice(self) -> _discord.VoiceClient:
+    async def manage_voice(self) -> discord.VoiceClient:
         
-        voice: voice_client.VoiceRecvClient = _discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
+        voice: voice_client.VoiceRecvClient = discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
         
         # I know elif exists. I am doing this for effiency.
         if voice and voice.is_connected() and (self.voice == voice.channel):
@@ -597,8 +597,8 @@ class DGVoiceChat(DGTextChat):
                         speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
                         volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
                         
-                        ffmpeg_pcm = _discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.member, self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
-                        volume_source = _discord.PCMVolumeTransformer(ffmpeg_pcm)
+                        ffmpeg_pcm = discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.member, self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                        volume_source = discord.PCMVolumeTransformer(ffmpeg_pcm)
                         volume_source.volume = volume
                         
                         return new_voice.play(volume_source, after=lambda error: _play_voice(index + 1, error))
@@ -612,7 +612,7 @@ class DGVoiceChat(DGTextChat):
                 new_voice.stop()
             _play_voice(0)
             
-        except _discord.ClientException:
+        except discord.ClientException:
             pass
         except IndexError:
             self.voice_tss_queue.clear()

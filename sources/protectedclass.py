@@ -71,9 +71,6 @@ class ProtectedClassHandler:
     
     def has_class(self, id: str) -> bool:
         return id in self.classes.keys()
-    
-    def get_class(self, id: str) -> typing.Type[types.HasMember]:
-        ...
 
     @property
     def classes(self) -> dict[str, typing.Type[ProtectedClassWrapper]]:
@@ -94,7 +91,9 @@ def protect_class(passed_cls):
             self.protected_class_handler = protected_class_handler
             self.member = member
             
-            roles = permissionshandler.get_guild_object_permissions(member.guild, ProtectedClassHandler.get_class_id(passed_cls))
+            cls_id = ProtectedClassHandler.get_class_id(passed_cls)
+            roles = permissionshandler.get_guild_object_permissions(member.guild, cls_id)
+            
             if roles:
                 role_id = roles[0]
                 role = member.guild.get_role(role_id)
@@ -105,8 +104,8 @@ def protect_class(passed_cls):
                 else:
                     raise exceptions.DGException("""
                         The specified role that the command requires to work no longer exists. Please contact the server owner to fix this issue.
-                        (For resolution, admin only: do the command /permissions remove {})
-                    """.format(role_id))
+                        (For resolution, admin only: do the command `/permissions remove {}`)
+                    """.format(cls_id))
                 
             super().__init__(member, *args, **kwargs)
 
@@ -142,6 +141,12 @@ def protect_class(passed_cls):
                 raise exceptions.DGException("Error with `{0}` permission: `{0}.get_error_message()` must be a classmethod. Or, the function must be deleted.".format(passed_cls.__name__))
             
     if protected_class_handler:
+        # Get first argument of __init__ and check if it is a discord.Member and named member. If not, raise TypeError.
+        
+        first_positional_argument = list(inspect.signature(passed_cls.__init__).parameters.values())[1]
+        if first_positional_argument.name != "member":
+            raise TypeError(f'{passed_cls.__name__} first positional argument (Excluding self) must be called member and be of type discord.Member')
+        
         protected_class_handler.add_class(ProtectedClassDecoratorWrapper)
     else:
         raise RuntimeError("Protected class handler is not set.")
