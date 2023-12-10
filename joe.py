@@ -34,6 +34,13 @@ except ImportError as e:
     exit(1)
 
 try:
+    from sources import (
+        protectedclass
+    )
+    
+    __protected_class_handler = protectedclass.ProtectedClassHandler()
+    protectedclass.protected_class_handler = __protected_class_handler
+    
     from sources.common import (
         commands_utils,
         decorators,
@@ -53,11 +60,12 @@ try:
         modelhandler, 
         models, 
         ttsmodels, 
+        protectedclass
     )
     
-    from sources.voice import pydub # type: ignore It does exist mate.
+    from sources.voice import pydub
     
-except IndexError as err:
+except ImportError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
     exit(1)
     
@@ -70,27 +78,30 @@ try:
 
 except FileNotFoundError:
     common.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
-
+        
 # Main Bot Class    
 class DeveloperJoe(commands.Bot):
 
     """Main DeveloperJoe Bot Instance"""
 
     INTENTS = discord.Intents.all()
-    
-    
         
     def __init__(self, *args, **kwargs):
         self.__keys__ = {}
 
         self.WELCOME_TEXT = WELCOME_TEXT.format(confighandler.get_config("bot_name"))
         self.ADMIN_TEXT = ADMIN_TEXT.format(confighandler.get_config("bot_name"))
+        
         self.__tzs__ = pytz.all_timezones
         self.__tz__ = pytz.timezone(confighandler.get_config("timezone"))
         self.config = None
+        
         self.statuses: dict[str, int | discord.ActivityType] = confighandler.get_config('status_scrolling_options')
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
-            
+        
+        self.protected_class_handler = protectedclass.ProtectedClassHandler()
+        protectedclass.protected_class_handler = self.protected_class_handler
+        
         super().__init__(*args, **kwargs)
     
     def add_status(self, text: str, activity_type: discord.ActivityType | int=discord.ActivityType.listening):

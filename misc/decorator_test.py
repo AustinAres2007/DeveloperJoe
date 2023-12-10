@@ -29,7 +29,7 @@ def class_decorator(cls: Type[HasMember]) -> Any:
             else:
                 print("You have the right role to use this command")
                 
-            super().__init__(member, *args, **kwargs) # TODO: Fix __init__ positioal argument error with type annotation
+            super().__init__(member, *args, **kwargs) # TODO: Fix __init__ positional argument error with type annotation
 
     return CLSDecorator
 

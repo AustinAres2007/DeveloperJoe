@@ -1,6 +1,8 @@
 
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Protocol, Literal
+
+from discord import Member
 
 if TYPE_CHECKING:
     from ..chat import *
@@ -27,6 +29,9 @@ class ImageEngines(Enum):
     
     def __str__(self) -> str:
         return self.value
+
+class HasMember(Protocol):
+    member: Member
     
 type Empty = None
 

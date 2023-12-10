@@ -72,4 +72,4 @@ class DGHistorySession(database.DGDatabaseSession):
     
     def upload_chat_history(self, chat) -> list:
         json_dump = json.dumps(chat.context._display_context)
-        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.user.id, chat.name, json_dump, int(chat.private)))
+        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.member.id, chat.name, json_dump, int(chat.private)))

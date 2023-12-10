@@ -17,7 +17,8 @@ from . import (
     confighandler, 
     history, 
     ttsmodels,
-    models
+    models,
+    protectedclass
 )
 from .common import (
     decorators,
@@ -72,18 +73,15 @@ class GPTConversationContext:
         return _temp_context
         
 class DGChats:
-    
-    def __user_has_permission__(self, permission_type: types.ChatFunctions) -> bool:
-        ...
         
-    def __init__(self, 
+    def __init__(self,
+                member:  _discord.Member, 
                 bot_instance: DeveloperJoe,
-                _openai_token: str, 
-                user: _Union[_discord.User, _discord.Member], 
+                openai_token: str, 
                 name: str,
                 stream: bool,
                 display_name: str, 
-                 model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[_discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[_discord.VoiceChannel, _discord.StageChannel, None]=None
@@ -104,12 +102,12 @@ class DGChats:
         """
         
         self.bot: DeveloperJoe = bot_instance
-        self.user: _Union[_discord.User, _discord.Member] = user
+        self.member: _discord.Member = member
         self.time: _datetime.datetime = _datetime.datetime.now()
-        self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + user.id) * _random.randint(150, 1500))
+        self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + member.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
         self.last_channel: developerconfig.InteractableChannel | None = None
-        self.oapi = _openai_token
+        self.oapi = openai_token
 
         self.name = name
         self.display_name = display_name
@@ -124,7 +122,7 @@ class DGChats:
         # Voice attributes
         
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self.proc_packet, self._is_speaking = False, False
         
         self.voice_tss_queue: list[str] = []
@@ -212,8 +210,8 @@ class DGChats:
         raise NotImplementedError
         
     async def start(self) -> None:
-        self.bot.add_conversation(self.user, self.display_name, self)
-        self.bot.set_default_conversation(self.user, self.display_name)
+        self.bot.add_conversation(self.member, self.display_name, self)
+        self.bot.set_default_conversation(self.member, self.display_name)
 
     def clear(self) -> None:
         raise NotImplementedError
@@ -279,9 +277,9 @@ class DGChats:
 class DGTextChat(DGChats):
     """Represents a text-only DG Chat."""
     def __init__(self, 
+                member: _discord.Member,
                 bot_instance: DeveloperJoe,
                 _openai_token: str, 
-                user: _Union[_discord.User, _discord.Member], 
                 name: str,
                 stream: bool,
                 display_name: str, 
@@ -305,8 +303,8 @@ class DGTextChat(DGChats):
         
         super().__init__(
             bot_instance=bot_instance,
-            _openai_token=_openai_token,
-            user=user,
+            openai_token=_openai_token,
+            member=member,
             name=name,
             stream=stream,
             display_name=display_name,
@@ -446,18 +444,18 @@ class DGTextChat(DGChats):
                 raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} type={self.type}, user={self.user} is_active={self.is_active}>"
+        return f"<{self.__class__.__name__} type={self.type}, user={self.member} is_active={self.is_active}>"
     
     def __str__(self) -> str:
         return self.display_name
-    
+
 class DGVoiceChat(DGTextChat):
     """Represents a voice and text DG Chat."""
     def __init__(
             self,
-            bot_instance: _Any,
-            _openai_token: str, 
-            user: _discord.Member, 
+            member: _discord.Member, 
+            bot_instance: DeveloperJoe,
+            openai_token: str, 
             name: str,
             stream: bool,
             display_name: str, 
@@ -479,9 +477,9 @@ class DGVoiceChat(DGTextChat):
             associated_thread (_Union[_discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             voice (_Union[_discord.VoiceChannel, _discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
-        super().__init__(bot_instance, _openai_token, user, name, stream, display_name, model, associated_thread, is_private)
+        super().__init__(member, bot_instance, openai_token, name, stream, display_name, model, associated_thread, is_private)
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=user.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = _discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
     
@@ -670,7 +668,7 @@ class DGVoiceChat(DGTextChat):
         return text
     
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} type={self.type}, user={self.user}, voice={self.voice}, is_active={self.is_active}>"
+        return f"<{self.__class__.__name__} type={self.type}, user={self.member}, voice={self.voice}, is_active={self.is_active}>"
     
     def __str__(self) -> str:
         return self.display_name

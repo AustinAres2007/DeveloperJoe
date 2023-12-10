@@ -1,16 +1,20 @@
 """Decorator Utilities that DG Uses."""
 from __future__ import annotations
+from enum import member
 import discord, typing
 
 from .. import (
     exceptions,
     voice,
-    errors
+    errors,
+    protectedclass
+)
+from . import (
+    types
 )
 
 if typing.TYPE_CHECKING:
     from joe import DeveloperJoe
-    
 def check_enabled(func):
     """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised. If making a custom method, this decorator MUST come first.
 
@@ -170,7 +174,24 @@ def chat_not_exist(func):
     
     return _member_wrapper
 
-def has_guild_permission(func):
+def register_protected_class(cls: typing.Type[types.HasMember]) -> typing.Any:
+    """Decorator for registering a protected class in the DeveloperJoe instance. This is used for registering classes that are not meant to be used by the user."""
+    class ProtectedClassWrapper(cls):
+        protected_class_handler: protectedclass.ProtectedClassHandler | None = None
+        
+        def __init__(self, member: discord.Member, *args, **kwargs):
+            
+            if not isinstance(member, discord.Member):
+                raise TypeError(f"member should be discord.Member, not {member.__class__.__name__}")
+            
+            if not isinstance(self.protected_class_handler, protectedclass.ProtectedClassHandler):
+                raise Exception("Protected class handler is not set.")
+            
+            self.member = member
+            
+            if not self.member.top_role >= 1:
+                raise Exception("Missing permissions")
+            
+            super().__init__(member, *args, **kwargs) # TODO: Fix __init__ positional argument error with type annotation
     
-    def _user_has_perms_wrapper(self, *, a):
-        ...
+    return ProtectedClassWrapper

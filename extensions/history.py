@@ -49,12 +49,12 @@ class History(commands.Cog):
 
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
-        formatted_history_string = self.format(convo.context._display_context, convo.user.display_name, convo.model.display_name) if convo.context._display_context else errors.HistoryErrors.HISTORY_EMPTY
+        formatted_history_string = self.format(convo.context._display_context, convo.member.display_name, convo.model.display_name) if convo.context._display_context else errors.HistoryErrors.HISTORY_EMPTY
         
         file_like = io.BytesIO(formatted_history_string.encode())
         file_like.name = f"{convo.display_name}-{datetime.datetime.now()}-transcript.txt"
 
-        await interaction.user.send(f"{convo.user.name}'s {confighandler.get_config('bot_name')} Transcript ({convo.display_name})", file=discord.File(file_like))
+        await interaction.user.send(f"{convo.member.name}'s {confighandler.get_config('bot_name')} Transcript ({convo.display_name})", file=discord.File(file_like))
         await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
     
         
