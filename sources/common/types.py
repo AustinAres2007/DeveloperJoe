@@ -1,6 +1,6 @@
 
 from enum import Enum
-from typing import TYPE_CHECKING, Protocol, Literal
+from typing import TYPE_CHECKING, Dict, List, Protocol, Literal, TypedDict
 
 from discord import Member
 
@@ -24,6 +24,10 @@ class ImageEngines(Enum):
 
 class HasMember(Protocol):
     member: Member
+
+class AIInteraction(TypedDict):
+    role: str
+    content: str
     
 type Empty = None
 

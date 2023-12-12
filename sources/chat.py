@@ -44,19 +44,22 @@ class GPTConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
         """Class that should contain a users conversation history / context with a GPT Model."""
-        self._display_context, self._context = [], []
+        self._display_context = []
+        self._context: list[types.AIInteraction] = []
         
     @property
     def context(self) -> list:
         return self._context   
     
-    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list[types.AIInteraction]:
         
-        data_query = {"role": user_type, "content": query}
-        data_reply = {"role": "assistant", "content": answer}
+        data_query: types.AIInteraction = {"role": user_type, "content": query}
+        data_reply: types.AIInteraction = {"role": "assistant", "content": answer}
         
-        self._context.extend([data_query, data_reply])
-        self._display_context.append([data_query, data_reply]) # Add as whole
+        new: list[types.AIInteraction] = [data_query, data_reply]
+        
+        self._context.extend(new)
+        self._display_context.append(new) # Add as whole
         
         return self._context
     
@@ -67,7 +70,7 @@ class GPTConversationContext:
     
     def get_temporary_context(self, query: str, user_type: str="user"):
 
-        data = {"content": query, "role": user_type}
+        data: types.AIInteraction = {"content": query, "role": user_type}
         _temp_context = self._context.copy()
         _temp_context.append(data)
         

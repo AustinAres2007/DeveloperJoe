@@ -1,6 +1,9 @@
+from urllib import response
+from pytest import param
+import tiktoken, json, tiktoken, openai, vertexai
+
+from vertexai.language_models import ChatModel, ChatMessage
 from httpx import ReadTimeout
-import tiktoken, json, tiktoken, openai
-from sources import confighandler
 
 from typing import (
     Any,
@@ -8,18 +11,26 @@ from typing import (
 )
 
 from .chat import GPTConversationContext
-
 from .common import (
     developerconfig,
     types
 )
-
 from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
+from sources import confighandler
 
+v_api_key = confighandler.get_api_key("vertex_project_id")
+vertex_enabled = False
+
+if " " not in v_api_key:
+    print(v_api_key)
+    vertexai.init(project=confighandler.get_api_key("vertex_project_id"))
+    vertex_enabled = True
+    
 __all__ = [
     "AIModel",
     "GPT3Turbo",
     "GPT4",
+    "PaLM2",
     "GPTModelType",
     "registered_models"
 ]        
@@ -278,6 +289,7 @@ class AIModel:
     _display_name: str = ""
     _description: str = ""
     _api_key: str = "openai_api_key"
+    _enabled: bool = True
     
     @classmethod
     @property
@@ -304,6 +316,12 @@ class AIModel:
         return cls._display_name
     
     @classmethod
+    @property
+    def enabled(cls) -> bool:
+        """If the model is enabled."""
+        return cls._enabled
+    
+    @classmethod
     def __repr__(cls):
         return f"<{cls.__name__} display_name={cls.display_name}, model={cls.model}>"
     
@@ -313,15 +331,15 @@ class AIModel:
     
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIQueryResponse:
-        raise NotImplementedError
+        raise DGException("This model does not support text generation.")
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        raise NotImplementedError
+        raise DGException("This model does not support streaming text generation.")
     
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2") -> AIImageResponse:
-        raise NotImplementedError
+        raise DGException("This model does not support image generation.")
     
 class GPT3Turbo(AIModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
@@ -370,26 +388,57 @@ class GPT4(AIModel):
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
-    
 
-class GoogleBard(AIModel):
+class PaLM2(AIModel):
     
-    _model: str = "google-bard"
-    _display_name: str = "Google Bard"
-    _description: str = "TBD"
-    _api_key: str = "google_api_key"
+    _model: str = "chat-bison@002"
+    _display_name: str = "PaLM 2"
+    _description: str = f"Very fast, but is costly. Good at general tasks and coding, can appear a bit dumb when treating it like a human. I would recommend using GPT 3 Turbo instead as it can also do the stuff {_display_name} can do. Use GPT 4 if enabled."
+    _api_key: str = "vertex_project_id"
+    _enabled = vertex_enabled
+    
+    parameters = {
+        "temperature": 0.2,
+        "max_output_tokens": 256,
+        "top_p": 0.8,
+        "top_k": 40
+    }
+    
+    @staticmethod
+    def _load_translate_context_from_gpt(context: GPTConversationContext | list[types.AIInteraction]) -> list[ChatMessage]:
+        if isinstance(context, GPTConversationContext):
+            return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context._context]
+        else:
+            return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context]
+    
+    @staticmethod
+    def _dump_translate_context_to_gpt(context: list[ChatMessage]) -> list[dict[str, str]]:
+        return [{"role": "user" if message.author != "bot" else "bot", "content": message.content} for message in context]
     
     @classmethod
     def __eq__(cls, __value: AIModel) -> bool:
         return cls.model == __value.model
-
+    
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIQueryResponse:
-        raise DGException("This model does not exist.")
     
-GPTModelType = GPT3Turbo | GPT4 | GoogleBard
+        chat_model = ChatModel.from_pretrained(cls._model)
+        gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
+        temporary_context = cls._load_translate_context_from_gpt(gpt_temporary_context)
+        temporary_context.pop()
+        
+        chat = chat_model.start_chat(message_history=temporary_context, **cls.parameters)
+        response = await chat.send_message_async(query, **cls.parameters)
+        
+        if save_message and context:
+            context.add_conversation_entry(query, response.text, "user")
+
+        emulated_gpt_response = {"id": "PaLM2", "choices": [{"finish_reason": None, "message": {"content": response.text}}]} # Sadly we have to emulate the json response from GPT
+        return AIQueryResponse(emulated_gpt_response)
+    
+GPTModelType = GPT3Turbo | GPT4 | PaLM2
 registered_models = {
     "gpt-4": GPT4,
-    "gpt-3.5-turbo": GPT3Turbo,
-    "google-bard": GoogleBard
+    "gpt-3.5-turbo-16k": GPT3Turbo,
+    "chat-bison@002": PaLM2
 }

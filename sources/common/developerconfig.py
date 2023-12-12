@@ -50,8 +50,9 @@ IMAGE_SIZE_CHOICES: list[Choice] = [
 ]
 
 MODEL_CHOICES: list[Choice] = [
-    Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
-    Choice(name="GPT 4", value="gpt-4")
+    Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo-16k"),
+    Choice(name="GPT 4", value="gpt-4"),
+    Choice(name="PaLM 2 (Google)", value="chat-bison@002")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
 
 FFMPEG = voice_checks._get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
@@ -93,7 +94,7 @@ default_config_keys = {
 default_api_keys = {
     "discord_api_key": "Put Discord Token Here!",
     "openai_api_key": "Put OpenAI API Key (Token) here!",
-    "google_api_key": "Put Google API Key here! (Optional)"
+    "vertex_project_id": "Put Google Cloud Project ID here! (Optional)"
 }
 
 default_permission_keys = {}

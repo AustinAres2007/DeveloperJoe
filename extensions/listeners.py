@@ -70,7 +70,7 @@ class Listeners(commands.Cog):
                 
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if isinstance(channel := message.channel, discord.Thread):
-                        if self.client.get_user_has_permission(member, convo.model):
+                        if self.client.get_user_has_permission(member, convo.model) and convo.model.enabled == True:
 
                             thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
                             content: str = message.content

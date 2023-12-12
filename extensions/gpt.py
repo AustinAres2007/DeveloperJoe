@@ -69,25 +69,28 @@ class Communication(commands.Cog):
                     
             chat_args = (member, self.client, confighandler.get_api_key(actual_model._api_key), actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
             
-            if speak_reply == False:
-                convo = chat.DGTextChat(*chat_args)
-            elif speak_reply and self.client.is_voice_compatible == False:
-                raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
-            elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(interaction.guild, "voice-enabled") == False:
-                raise exceptions.VoiceIsLockedError()
-            elif speak_reply and self.client.is_voice_compatible:
-                convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
-            else:
-                convo = chat.DGTextChat(*chat_args)
-            
-            await interaction.response.defer(ephemeral=False, thinking=True)
-            ai_welcome = await convo.start(silent)
-            
-            if not ai_welcome or len(ai_welcome.response) > 1500:
-                ai_welcome = "Started chat."
+            if actual_model.enabled == True:
+                if speak_reply == False:
+                    convo = chat.DGTextChat(*chat_args)
+                elif speak_reply and self.client.is_voice_compatible == False:
+                    raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
+                elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(interaction.guild, "voice-enabled") == False:
+                    raise exceptions.VoiceIsLockedError()
+                elif speak_reply and self.client.is_voice_compatible:
+                    convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
+                else:
+                    convo = chat.DGTextChat(*chat_args)
                 
-            welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
-            await interaction.followup.send(welcome, ephemeral=False)
+                await interaction.response.defer(ephemeral=False, thinking=True)
+                ai_welcome = await convo.start(silent)
+                
+                if not ai_welcome or len(ai_welcome.response) > 1500:
+                    ai_welcome = "Started chat."
+                    
+                welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
+                await interaction.followup.send(welcome, ephemeral=False)
+            else:
+                raise exceptions.ModelIsLockedError(actual_model.model)
     
         if self.client.get_user_has_permission(member, actual_model):
             return await command()
@@ -102,7 +105,7 @@ class Communication(commands.Cog):
             conversation = self.client.manage_defaults(member, name)
             status = f'/help and "{message}"'
             
-            if self.client.get_user_has_permission(member, conversation.model): # If user has model permission
+            if self.client.get_user_has_permission(member, conversation.model) and conversation.model.enabled == True: # If user has model permission
 
                 await interaction.response.send_message("Thinking..")
                 
