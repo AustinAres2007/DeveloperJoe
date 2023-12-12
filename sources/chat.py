@@ -148,7 +148,7 @@ class DGChats:
     def private(self, is_p: bool):
         self._private = is_p
             
-    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> models.AIQueryResponse:
+    async def __send_query__(self, save_message: bool=True, **kwargs) -> models.AIQueryResponse:
         self.is_processing = True
         # Put necessary variables here (Doesn't matter weather streaming or not)
         # Reply format: ({"content": "Reply content", "role": "assistent"})
@@ -163,12 +163,10 @@ class DGChats:
 
             return response
         except KeyError:
-            common.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
+            common.send_fatal_error_warning(f"A Provided API key was invalid.")
             return await self.bot.close()
         except TimeoutError:
             raise exceptions.GPTTimeoutError()
-        
-        return response
 
     async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
         # Required Arguments: Prompt (String < 1000 chars), Size (String)
@@ -385,7 +383,7 @@ class DGTextChat(DGChats):
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
         async with channel.typing():
-            reply = await self.__send_query__(query_type="query", role="user", content=query)
+            reply = await self.__send_query__(role="user", content=query)
             final_user_reply = f"## {self.header}\n\n{reply.response}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
@@ -404,7 +402,7 @@ class DGTextChat(DGChats):
         """
         await super().start()
         if not silent:
-            return await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query"))
+            return await self.__send_query__(save_message=False, role="system", content=confighandler.get_config("starting_query"))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
@@ -485,6 +483,7 @@ class DGVoiceChat(DGTextChat):
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
         super().__init__(member, bot_instance, openai_token, name, stream, display_name, model, associated_thread, is_private)
+        
         self._voice = voice
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False

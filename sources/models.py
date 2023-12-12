@@ -1,9 +1,10 @@
-from urllib import response
-from pytest import param
 import tiktoken, json, tiktoken, openai, vertexai
 
 from vertexai.language_models import ChatModel, ChatMessage
 from httpx import ReadTimeout
+
+from google.api_core.exceptions import PermissionDenied
+from google.auth.exceptions import DefaultCredentialsError
 
 from typing import (
     Any,
@@ -22,7 +23,6 @@ v_api_key = confighandler.get_api_key("vertex_project_id")
 vertex_enabled = False
 
 if " " not in v_api_key:
-    print(v_api_key)
     vertexai.init(project=confighandler.get_api_key("vertex_project_id"))
     vertex_enabled = True
     
@@ -403,6 +403,9 @@ class PaLM2(AIModel):
         "top_p": 0.8,
         "top_k": 40
     }
+    errors = {
+        "CONSUMER_INVALID": "Given Project ID for Vertex AI is invalid. Check Google Cloud Console for correct ID."
+    }
     
     @staticmethod
     def _load_translate_context_from_gpt(context: GPTConversationContext | list[types.AIInteraction]) -> list[ChatMessage]:
@@ -421,21 +424,29 @@ class PaLM2(AIModel):
     
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIQueryResponse:
-    
-        chat_model = ChatModel.from_pretrained(cls._model)
-        gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
-        temporary_context = cls._load_translate_context_from_gpt(gpt_temporary_context)
-        temporary_context.pop()
-        
-        chat = chat_model.start_chat(message_history=temporary_context, **cls.parameters)
-        response = await chat.send_message_async(query, **cls.parameters)
-        
-        if save_message and context:
-            context.add_conversation_entry(query, response.text, "user")
+        try:
+            chat_model = ChatModel.from_pretrained(cls._model)
+            gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
+            temporary_context = cls._load_translate_context_from_gpt(gpt_temporary_context)
+            temporary_context.pop()
+            
+            chat = chat_model.start_chat(message_history=temporary_context, **cls.parameters)
+            response = await chat.send_message_async(query, **cls.parameters)
+            
+            if save_message and context:
+                context.add_conversation_entry(query, response.text, "user")
 
-        emulated_gpt_response = {"id": "PaLM2", "choices": [{"finish_reason": None, "message": {"content": response.text}}]} # Sadly we have to emulate the json response from GPT
-        return AIQueryResponse(emulated_gpt_response)
-    
+            emulated_gpt_response = {"id": "PaLM2", "choices": [{"finish_reason": None, "message": {"content": response.text}}]} # Sadly we have to emulate the json response from GPT
+            return AIQueryResponse(emulated_gpt_response)
+        
+        except PermissionDenied as google_response_error: # PermissionDenied is a class of google.api_core.exceptions
+            if google_response_error.reason:
+                raise DGException(cls.errors.get(google_response_error.reason, google_response_error.message))
+            raise DGException(f"Google Cloud Error: {google_response_error}")
+        
+        except DefaultCredentialsError as google_response_error: # DefaultCredentialsError is a class of google.auth.exceptions
+            raise DGException("Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
+        
 GPTModelType = GPT3Turbo | GPT4 | PaLM2
 registered_models = {
     "gpt-4": GPT4,
