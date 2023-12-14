@@ -93,15 +93,10 @@ Changelog
 
 ## Technical Todo 1.4.3 (PaLM 2 / Gemini)
 
-- Check if Project ID is valid
-- Check if user logged in with `gcloud login` of whatever the shitty fucking command was
-- Add error handling for PaLM 2. No error handling is set at all. (https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai maybe? idk)
+- ~~Check if Project ID is valid~~ (Not on runtime but error handling is done for it)
+- ~~Check if user logged in with `gcloud login` of whatever the shitty fucking command was~~ Same as above
+- ~~Add error handling for PaLM 2. No error handling is set at all. (https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai maybe? idk)~~
+- Need to add Gemini and add streaming capabilities to PaLM and or Gemini
+- Test Protected Classes
 - The same stupid fucking error with self.stdin.flush(); flush of closed file error again (Happens when using /shutup)
 - Bot listening bugs. Could be because I removed the silence thingy that was in ttsmodels.py
-
-## Notes
-
-To be honest, for all the setup, PaLM 2 is not worth it.
-My god I hate googles documentation so damn much, and their dashboard.
-
-kill me
