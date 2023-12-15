@@ -1,4 +1,4 @@
-![alt text](https://cdn.discordapp.com/attachments/1117948406011269140/1131694810454040646/Untitled_Artwork.jpg)
+![alt text](https://cdn.discordapp.com/attachments/1116489126204690523/1185031135261118546/Untitled_Artwork.jpg)
 
 # **Information**
 

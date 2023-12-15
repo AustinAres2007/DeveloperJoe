@@ -7,6 +7,8 @@ from . import (
     voice_checks,
     types
 )
+
+WARN_FOR_INCOMPLETE_MODEL_SETUP = True # If a model (Located in sources/models.py) is not setup correctly (Missing an API Key) A warning will be sent if this is `True`
 TIMEZONE = "UTC"
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""

@@ -157,12 +157,12 @@ class DeveloperJoe(commands.Bot):
         """
         return self.chats[member.id]
     
-    def get_user_has_permission(self, member: discord.Member, model: models.GPTModelType) -> bool:
+    def get_user_has_permission(self, member: discord.Member, model: models.AIModelType) -> bool:
         """Return if the user has permission to user a model
 
         Args:
             member (Union[discord.Member, None]): The member to be checked
-            model (GPTModelType): The model to try the user agaisnt.
+            model (AIModelType): The model to try the user agaisnt.
 
         Returns:
             bool: True if the user has correct permissions, False if not.
@@ -284,7 +284,7 @@ class DeveloperJoe(commands.Bot):
     def get_member_conversation_bot_voice_instance(self, voice_channel: discord.VoiceChannel):
         return discord.utils.get(self.voice_clients, guild=voice_channel.guild)
     
-    async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    async def handle_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError) -> None:
         """For internal use. Error handler for DG.
 
         Args:
@@ -336,7 +336,7 @@ class DeveloperJoe(commands.Bot):
         await send_with_file(error_text, error_traceback)
         
         nef = commands_utils.to_file(exception, f"{interaction.guild}-error.txt")
-        return await send_to_debug_channel(content=error_text, file=nef)
+        await send_to_debug_channel(content=error_text, file=nef)
     
     def get_embed(self, title: str) -> discord.Embed:
         
@@ -434,6 +434,9 @@ class DeveloperJoe(commands.Bot):
                     has_voice = self.is_voice_compatible
                     database_age = guild_handler.get_seconds_since_creation()
                     
+                    if models.disabled_models:
+                        common.warn_for_error(f"Disabled models detected: {', '.join([m.display_name for m in models.disabled_models])}. {'No models enabled.' if len(models.disabled_models) == len(models.registered_models) else ''}")
+                        
                     print(f"""
                     Version = {developerconfig.VERSION}
                     Database Version = {guild_handler.get_version()}
@@ -447,7 +450,7 @@ class DeveloperJoe(commands.Bot):
 
                     self.start_time = datetime.datetime.now(tz=self.__tz__)
                     await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
-                    self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored∏
+                    self.tree.on_error = self.handle_error 
                     
                     common.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     

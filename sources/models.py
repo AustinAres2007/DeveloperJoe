@@ -12,7 +12,8 @@ from google.auth.exceptions import DefaultCredentialsError
 
 from typing import (
     Any,
-    AsyncGenerator
+    AsyncGenerator,
+    Type
 )
 
 from .chat import GPTConversationContext
@@ -23,19 +24,12 @@ from .common import (
 from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
 from sources import confighandler
 
-v_api_key = confighandler.get_api_key("vertex_project_id")
-vertex_enabled = False
-
-if " " not in v_api_key:
-    vertexai.init(project=confighandler.get_api_key("vertex_project_id"))
-    vertex_enabled = True
-
 __all__ = [
     "AIModel",
     "GPT3Turbo",
     "GPT4",
     "PaLM2",
-    "GPTModelType",
+    "AIModelType",
     "registered_models"
 ]
 # TODO (Not important): add __repr__ and __str__ to Response classes
@@ -180,7 +174,7 @@ class AIQueryResponseChunk(AIResponse):
 
 
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
-
+_error_text = "AI model is not enabled due to a technical issue on the server's end. If this persists, please contact the bot owner."
 
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
     actual_data: dict = data if isinstance(data, dict) else json.loads(data)
@@ -225,10 +219,14 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
 
     except (TimeoutError, ReadTimeout):
         raise GPTTimeoutError()
-
+    
+    except openai.AuthenticationError:
+        raise DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
+    
     raise TypeError(
         "Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
 
+    
 
 async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs) -> AsyncGenerator[tuple[str, int], None]:
     total_tokens = len(tokenizer.encode(query))
@@ -249,21 +247,25 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
             return False
 
     async def _get_streamed_response() -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse, None]:
-        async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
-            _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True)
+        try:
+            async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+                _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True)
 
-            async for raw_chunk in _reply.response.aiter_text():
-                readable_chunks = filter(
-                    _is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
-                for chunk_text in readable_chunks:
-                    chunk = _response_factory(chunk_text)
+                async for raw_chunk in _reply.response.aiter_text():
+                    readable_chunks = filter(
+                        _is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
+                    for chunk_text in readable_chunks:
+                        chunk = _response_factory(chunk_text)
 
-                    if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
-                        yield chunk
-                    else:
-                        raise TypeError(
-                            "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
-
+                        if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
+                            yield chunk
+                        else:
+                            raise TypeError(
+                                "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
+                            
+        except openai.AuthenticationError:
+            raise DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
+        
     readable_chunks = _get_streamed_response()
 
     async for chunk in readable_chunks:
@@ -312,7 +314,8 @@ class AIModel:
     enabled: bool = True
     
     _api_key: str = "openai_api_key"
-
+    enabled = confighandler.has_api_key(_api_key)
+    
     @classmethod
     def get_tokeniser(cls) -> tiktoken.Encoding:
         """The encoding used to calculate the amount of tokens used."""
@@ -332,8 +335,7 @@ class AIModel:
 
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        raise DGException(
-            "This model does not support streaming text generation.")
+        raise DGException("This model does not support streaming text generation.")
 
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2") -> AIImageResponse:
@@ -348,21 +350,31 @@ class GPT3Turbo(AIModel):
     description: str = "Good for generating text and general usage. Cost-effective."
     
     _api_key: str = "openai_api_key"
-
+    enabled = confighandler.has_api_key(_api_key)
+    
     @classmethod
     def __eq__(cls, __value: AIModel) -> bool:
         return cls.model == __value.model
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIQueryResponse:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
         return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
 
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.get_tokeniser(), cls.model, **kwargs)
 
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2",) -> AIImageResponse:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
 
 
@@ -372,23 +384,33 @@ class GPT4(AIModel):
     model: types.AIModels = "gpt-4"
     display_name: str = "GPT 4"
     description: str = "Better than GPT 3 Turbo at everything. Would stay with GPT 3 for most purposes-- Can get expensive."
-    
+       
     _api_key = "openai_api_key"
-
+    enabled = confighandler.has_api_key(_api_key)
+    
     @classmethod
     def __eq__(cls, __value: AIModel) -> bool:
         return cls.model == __value.model
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIQueryResponse:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
         return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
 
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.get_tokeniser(), cls.model, **kwargs)
 
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2",) -> AIImageResponse:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
 
 
@@ -397,10 +419,12 @@ class PaLM2(AIModel):
     model: types.AIModels = "chat-bison@002"
     display_name: str = "PaLM 2"
     description: str = f"Very fast, but is costly. Good at general tasks and coding, can appear a bit dumb when treating it like a human. I would recommend using GPT 3 Turbo instead as it can also do the stuff {display_name} can do. Use GPT 4 if enabled."
-    enabled = vertex_enabled
     
     _api_key: str = "vertex_project_id"
+    enabled = confighandler.has_api_key(_api_key)
     
+    if enabled:
+        vertexai.init(project=confighandler.get_api_key("vertex_project_id"))
 
     parameters = {
         "temperature": 0.2,
@@ -429,6 +453,8 @@ class PaLM2(AIModel):
 
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIQueryResponse:
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
         try:
             chat_model = ChatModel.from_pretrained(cls.model)
             gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(
@@ -460,10 +486,13 @@ class PaLM2(AIModel):
             raise DGException(
                 "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
 
-
-GPTModelType = GPT3Turbo | GPT4 | PaLM2
-registered_models = {
+AIModelType = GPT3Turbo | GPT4 | PaLM2
+registered_models: dict[str, Type[AIModel]] = {
     "gpt-4": GPT4,
     "gpt-3.5-turbo-16k": GPT3Turbo,
+    "gpt-3.5-turbo": GPT3Turbo,
     "chat-bison@002": PaLM2
 }
+enabled_models = [m for m in registered_models.values() if m.enabled]
+disabled_models = [m for m in registered_models.values() if not m.enabled]
+

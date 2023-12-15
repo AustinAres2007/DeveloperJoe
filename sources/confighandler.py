@@ -160,7 +160,11 @@ def get_config(key: str) -> Any:
 
 def get_api_key(api_key: str) -> str:
     api_config = database.check_and_get_yaml(developerconfig.TOKEN_FILE, developerconfig.default_api_keys)
-    return api_config.get(api_key, None)
+    return api_config[api_key]
+
+def has_api_key(api_key: str) -> bool:
+    key = get_api_key(api_key)
+    return bool(" " not in key and key)
 
 def fix_config(file: str, fix_with: dict[str, Any]) -> dict[str, Any]:
     """Resets the bot-config.yaml file to the programmed default. This function also returns the default.
