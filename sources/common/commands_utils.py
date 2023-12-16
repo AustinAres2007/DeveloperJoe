@@ -28,7 +28,8 @@ __all__ = [
     "get_modeltype_from_name",
     "modeltype_is_in_models",
     "in_correct_channel",
-    "get_correct_channel"
+    "get_correct_channel",
+    "send_regardless"
 ]
 
 def to_file_fp(fp: str) -> discord.File:
@@ -64,7 +65,7 @@ def is_correct_channel(channel: typing.Any) -> developerconfig.InteractableChann
         return channel
     raise exceptions.IncorrectInteractionSetting(channel, developerconfig.InteractableChannel)
 
-def get_modeltype_from_name(name: str) -> models.GPTModelType:
+def get_modeltype_from_name(name: str) -> models.AIModelType:
     """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
     if name in list(models.registered_models):
         return models.registered_models[name]
@@ -81,3 +82,15 @@ def get_correct_channel(channel: typing.Any | None) -> developerconfig.Interacta
     if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel
     raise exceptions.CannotTalkInChannel(channel)
+
+async def send_regardless(interaction: discord.Interaction, content: str) -> None:
+    file: Any = None
+    
+    if len(content) >= 2000:
+        file = to_file(content, f"{interaction.command.name if interaction.command else "message"}.txt")
+        
+    try:
+        await interaction.response.send_message(content if file == None else None, file=file)
+    except discord.errors.InteractionResponded:
+        content = "" if file == None else content
+        await interaction.followup.send(content, file=file)

@@ -13,7 +13,7 @@ from __future__ import annotations
 from asyncio import CancelledError
 import shutil
 import sys, os
-from typing import Any
+from typing import Any, Type
 
 v_info = sys.version_info
 

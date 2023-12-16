@@ -96,7 +96,7 @@ Changelog
 - ~~Check if Project ID is valid~~ (Not on runtime but error handling is done for it)
 - ~~Check if user logged in with `gcloud login` of whatever the shitty fucking command was~~ Same as above
 - ~~Add error handling for PaLM 2. No error handling is set at all. (https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai maybe? idk)~~
-- Need to redesign /help for command groups
+- ~~Need to redesign /help for command groups~~
 - Need to add Gemini and add streaming capabilities to PaLM and or Gemini
 - Test Protected Classes
 - The same stupid fucking error with self.stdin.flush(); flush of closed file error again (Happens when using /shutup)

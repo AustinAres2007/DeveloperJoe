@@ -486,8 +486,43 @@ class PaLM2(AIModel):
             raise DGException(
                 "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
 
-AIModelType = GPT3Turbo | GPT4 | PaLM2
-registered_models: dict[str, Type[AIModel]] = {
+    @classmethod
+    async def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> None:#AsyncGenerator[tuple[str, int], None]:
+        raise DGException("This model does not support streaming text generation yet.")
+    
+        if not cls.enabled:
+            raise DGException(f"{cls.display_name} {_error_text}")
+        
+        try:
+            chat_model = ChatModel.from_pretrained(cls.model)
+            gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(
+                query, role) if context else [{"role": role, "content": query}]
+            temporary_context = cls._load_translate_context_from_gpt(
+                gpt_temporary_context)
+            temporary_context.pop()
+
+            chat = chat_model.start_chat(
+                message_history=temporary_context, **cls.parameters)
+            response = chat.send_message_streaming_async(query, **cls.parameters)
+            
+            async for r in response:
+                print(r, dir(r))
+                yield r
+
+        # PermissionDenied is a class of google.api_core.exceptions
+        except PermissionDenied as google_response_error:
+            if google_response_error.reason:
+                raise DGException(cls.errors.get(
+                    google_response_error.reason, google_response_error.message))
+            raise DGException(f"Google Cloud Error: {google_response_error}")
+
+        # DefaultCredentialsError is a class of google.auth.exceptions
+        except DefaultCredentialsError as google_response_error:
+            raise DGException(
+                "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
+            
+AIModelType = Type[AIModel]
+registered_models: dict[str, AIModelType] = {
     "gpt-4": GPT4,
     "gpt-3.5-turbo-16k": GPT3Turbo,
     "gpt-3.5-turbo": GPT3Turbo,

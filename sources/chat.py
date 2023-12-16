@@ -85,7 +85,7 @@ class DGChats:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -99,7 +99,7 @@ class DGChats:
             name (str): _description_
             stream (bool): _description_
             display_name (str): _description_
-            model (models.GPTModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
+            model (models.AIModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
             associated_thread (_Union[discord.Thread, None], optional): _description_. Defaults to None.
             is_private (bool, optional): _description_. Defaults to True.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): _description_. Defaults to None.
@@ -117,7 +117,7 @@ class DGChats:
         self.display_name = display_name
         self.stream = stream
 
-        self.model = model if isinstance(model, models.GPTModelType) else commands_utils.get_modeltype_from_name(model)
+        self.model: models.AIModelType = commands_utils.get_modeltype_from_name(model) if isinstance(model, str) else model
         self.tokens = 0
 
         self._private, self._is_active, self.is_processing = is_private, True, False
@@ -285,7 +285,7 @@ class DGTextChat(DGChats):
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -298,7 +298,7 @@ class DGTextChat(DGChats):
             name (str): Name of the chat.
             stream (bool): Weather the chat will be streamed. (Like ChatGPT)
             display_name (str): What the display name of the chat will be.
-            model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
+            model (AIModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
             associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             is_private (bool): Weather the chat will be private (Only showable to the user) Defaults to True.
         """
@@ -464,7 +464,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+            model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
             associated_thread: _Union[discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -478,7 +478,7 @@ class DGVoiceChat(DGTextChat):
             name (str): Name of the chat.
             stream (bool): Weather the chat will be streamed. (Like ChatGPT)
             display_name (str): What the display name of the chat will be.
-            model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
+            model (AIModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
             associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """

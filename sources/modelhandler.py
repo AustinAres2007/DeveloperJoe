@@ -1,7 +1,10 @@
 import json, discord
 from typing import ( 
-    Any as _Any
+    Any as _Any,
+    Type
 )
+
+from numpy import isin
 
 from . import (
     database, 
@@ -142,4 +145,20 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
     def get_models(self) -> tuple[models.AIModelType, ...]:
         models = self.get_guild_models()
         return tuple(models.keys())
+
+def member_has_model_permissions(member: discord.Member, model: models.AIModelType) -> bool:
+    """Returns whether or not a member has permissions to use a model.
+
+    Args:
+        member (discord.Member): The member to check.
+        model (models.AIModelType): The model to check.
+
+    Returns:
+        bool: Whether or not the member has permissions to use the model.
+    """
+    if not isinstance(member, discord.Member):
+        raise TypeError(f"member should be discord.Member, not {member.__class__.__name__}")
+    
+    with DGGuildDatabaseModelHandler(member.guild) as model_handler:
+        return model_handler.user_has_model_permissions(member.top_role, model)
          
