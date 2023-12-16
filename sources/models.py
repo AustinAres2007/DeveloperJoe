@@ -488,6 +488,8 @@ class PaLM2(AIModel):
 
     @classmethod
     async def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+        raise DGException("This model does not support streaming text generation yet.")
+    
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
@@ -504,7 +506,7 @@ class PaLM2(AIModel):
             response = chat.send_message_streaming_async(query, **cls.parameters)
             
             async for r in response:
-                print(r., dir(r))
+                print(r, dir(r))
                 yield r
 
         # PermissionDenied is a class of google.api_core.exceptions
@@ -535,6 +537,8 @@ def __askmodel__(query: str, context: GPTConversationContext | None, role: str =
 
 The method must return an `AIQueryResponse` object. You can use the `_gpt_ask_base` function to do this. (If you want it to be based upon OpenAI's GPT engine.
 Read the adequate documentation if so) 
+
+TODO: Add documentation here on how to use GPTConversationContext and how to translate it to an AI's context
 
 If you want to create a custom engine based off of custom training data or such (This is not documentation on that. I am expecting the model is finished. This is mostly
 a tutorial on how to implement it into the bot) You can instantiate the `AIQueryResponse` class and return it. To do this you mustcomply with the following dictionary format:
