@@ -99,5 +99,6 @@ Changelog
 - ~~Need to redesign /help for command groups~~
 - Need to add Gemini and add streaming capabilities to PaLM and or Gemini
 - Test Protected Classes
+- Add protected class functionality to functions (Will become much more useful hopefully)
 - The same stupid fucking error with self.stdin.flush(); flush of closed file error again (Happens when using /shutup)
 - Bot listening bugs. Could be because I removed the silence thingy that was in ttsmodels.py

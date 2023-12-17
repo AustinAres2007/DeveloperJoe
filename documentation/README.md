@@ -1,0 +1,1 @@
+These files are for my own reference. I have made this in the third-person to make it easier to read (Don't ask why, I just do) so some thing may have documentation, some may not. It depends if I find them complex tasks / concepts.

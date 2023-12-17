@@ -32,7 +32,7 @@ class Administration(_Cog):
         member: _discord.Member = commands_utils.assure_class_is_value(interaction.user, _discord.Member)
         
         if command not in self.client.protected_class_handler.classes:
-            raise exceptions.DGException(f"Command function entry: `{command}` does not exist. You can do /permissions list to see all available functions.")
+            raise exceptions.DGException(f'Command function entry: `{command}` does not exist. A command function entry has the pattern of `x.y.z`. You can do "/permissions list" to see all available functions.')
 
         role_id = role.id if isinstance(role, _discord.Role) else role
         permissionshandler.add_guild_permission(member.guild, command, [role_id])
@@ -50,7 +50,7 @@ class Administration(_Cog):
 
         guild = commands_utils.assure_class_is_value(interaction.guild, _discord.Guild)
         if command not in self.client.protected_class_handler.classes:
-            raise exceptions.DGException(f"Command function entry: `{command}` does not exist. You can do /permissions list to see all available functions.")
+            raise exceptions.DGException(f'Command function entry: `{command}` does not exist. A command function entry has the pattern of `x.y.z`. You can do "/permissions list" to see all available functions.')
         
         permissionshandler.remove_guild_permission(guild, command)
         
@@ -88,7 +88,7 @@ class Administration(_Cog):
                         perms += f"Deleted role. ID = {role_id}\n"
         
         if perms == "Permissions\n":
-            perms = "No permissions have been added yet. If you are an administrator, you can add function permissions with `/permissions add` and view different functions with `/permissions list`."         
+            perms = 'No permissions have been added yet. If you are an administrator, you can add function permissions with "/permissions add" and view different functions with "/permissions list".'         
             
         await interaction.response.send_message(perms)
         

@@ -131,17 +131,10 @@ class DGChats:
         except TimeoutError:
             raise exceptions.GPTTimeoutError()
 
-    async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
+    async def __generate_image__(self, prompt: str, size: types.Resolution, save_message: bool=True) -> models.AIImageResponse:
         # Required Arguments: Prompt (String < 1000 chars), Size (String)
-        try:
-            # XXX: Remove and insert into another function
-            
-            response = await self.model.__imagegenerate__("Cat doing a backflip", "1024x1024", "dall-e-2")
-            if response.is_image == True:
-                self.context.add_image_entry(kwargs["prompt"], response.image_url if response.image_url else "Empty")
-        except _openai.BadRequestError:
-            raise exceptions.GPTContentFilter(kwargs["prompt"])
         
+        response = await self.model.__imagegenerate__(prompt, self.context, size, types.ImageEngines.DALL_E_2.value, save_message)
         return response
     
     async def __stream_send_query__(self, query: str, save_message: bool=True, **kwargs) -> _AsyncGenerator[str, None]:
@@ -340,8 +333,8 @@ class DGTextChat(DGChats):
             return message
     
     @decorators.check_enabled
-    async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
-        return await self.__generate_image__(query_type="image", prompt=prompt, size=resolution, n=1)
+    async def generate_image(self, prompt: str, resolution: types.Resolution = "512x512") -> models.AIImageResponse:
+        return await self.__generate_image__(prompt, size=resolution)
     
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):

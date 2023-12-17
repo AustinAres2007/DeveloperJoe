@@ -44,18 +44,49 @@ class ConversationContext:
         
     @property
     def context(self) -> list:
+        """The technical context of that chat. Images are not stored here due to the way they are handled if sent to the AI. Image context is stored in `readable_context`.
+
+        Returns:
+            list: The context.
+        """
         return self._context   
     
     @property
     def readable_context(self) -> list:
+        """This has the same contents as `context`, but is formatted in a way that is readable by humans. Images are stored here.
+
+        Returns:
+            list: A list of dictionaries that contain the context.
+        """
         return self._display_context
     
     def get_context_translated(self, translate_function: Callable[["ConversationContext"], Any]) -> Any:
+        """This is a convenience function that passes the context to a function. This function must have one argument that is of type `ConversationContext`. You are free to write any code in the function and give it Any return type.
+
+        Args:
+            translate_function (Callable[[ConversationContext], Any]): The callable method
+
+        Raises:
+            TypeError: If `translate_function` is not of type Callable
+
+        Returns:
+            Any: Anything. The return type is up to you.
+        """
         if not isinstance(translate_function, Callable):
             raise TypeError("translate_function should be of type Callable and have one argument that denotes a ConversationContext type, got type {}".format(type(translate_function)))
         return translate_function(self)
         
     def add_conversation_entry(self, query: str, answer: str, user_type: str="user") -> list[types.AIInteraction]:
+        """Adds a question and an answer to said question to the context.
+
+        Args:
+            query (str): What the user said.
+            answer (str): What the AI replied with.
+            user_type (str, optional): Who asked the question. Defaults to "user".
+
+        Returns:
+            list[types.AIInteraction]: Returns the new context object.
+        """
         
         data_query: types.AIInteraction = {"role": user_type, "content": query}
         data_reply: types.AIInteraction = {"role": "assistant", "content": answer}
@@ -68,11 +99,30 @@ class ConversationContext:
         return self._context
     
     def add_image_entry(self, prompt: str, image_url: str) -> list:
-        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
+        """Adds an image query and URL to the context.
+
+        Args:
+            prompt (str): The image prompt.
+            image_url (str): The URL of the image.
+
+        Returns:
+            list: Returns the new display context. This is the same as `readable_context`.
+        """
+        interaction_data = [{'image': f'User asked AI to compose the following image: "{prompt}"'}, {'image_return': image_url}]
         self._display_context.append(interaction_data)
         return self._display_context
     
-    def get_temporary_context(self, query: str, user_type: str="user"):
+    def get_temporary_context(self, query: str, user_type: str="user") -> list[types.AIInteraction]:
+        """        
+        This function is used for GPT Models. It returns a temporary context that is used to generate a response. This is not saved to the context.
+
+        Args:
+            query (str): What the user said.
+            user_type (str, optional): Who has asked the query. Defaults to "user".
+
+        Returns:
+            list[types.AIInteraction]: The temporary context.
+        """
 
         data: types.AIInteraction = {"content": query, "role": user_type}
         _temp_context = self._context.copy()
@@ -83,6 +133,14 @@ class ConversationContext:
 class AIResponse:
 
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
+        """Represents a response from the AI. This is a base class and should not be used directly. Use one of the provided subclasses instead.
+
+        Args:
+            data (str | dict[Any, Any], optional): _description_. Defaults to {}.
+
+        Raises:
+            TypeError: If `data` is not of type str or dict.
+        """
         if not isinstance(data, str | dict):
             raise TypeError("data should be of type dict or str, not {}".format(type(data)))
 
@@ -95,20 +153,39 @@ class AIResponse:
 
     @property
     def raw(self) -> dict:
+        """Raw JSON response from the AI.
+
+        Returns:
+            dict: The raw JSON response.
+        """
         return self._data
 
     @raw.setter
     def raw(self, new_data: dict) -> None:
+        """Changes the raw JSON response from the AI.
+
+        Args:
+            new_data (dict): The new raw JSON response.
+        """
         self._data = self._to_dict(new_data)
 
     @property
     def is_empty(self) -> bool:
+        """Checks if the response is empty."""
         return True
 
 
 class AIQueryResponse(AIResponse):
 
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
+        """Represents a successful response from the AI.
+
+        Args:
+            data (str | dict[Any, Any], optional): _description_. Defaults to {}.
+
+        Raises:
+            ValueError: If `data` is not a valid JSON response.
+        """
         super().__init__(data)
 
         if not self.raw.get("id", None):
@@ -119,35 +196,78 @@ class AIQueryResponse(AIResponse):
 
     @property
     def response_id(self) -> str | None:
+        """The model ID of the response. (e.g. gpt-3.5-turbo-16k, or chat-bison@002 if using PaLM 2)
+
+        Returns:
+            str | None: The ID.
+        """
         return self._data.get("id", None)
 
     @property
     def timestamp(self) -> int:
+        """The timestamp of the response. This is the time the response was generated.
+
+        Returns:
+            int: The Posix timestamp.
+        """
         return self._data.get("created", 0)
 
     @property
     def completion_tokens(self) -> int:
+        """The amount of tokens the completion took.
+
+        Returns:
+            int: The amount of tokens.
+        """
         return dict(self._data.get("usage", {})).get("completion_tokens", 0)
 
     @property
     def prompt_tokens(self) -> int:
+        """The amount of tokens the prompt took.
+
+        Returns:
+            int: The amount of tokens.
+        """
         return dict(self._data.get("usage", {})).get("prompt_tokens", 0)
 
     @property
     def total_tokens(self) -> int:
+        """The amount of tokens for the total response.
+
+        Returns:
+            int: The amount of tokens.
+        """
         return self.completion_tokens + self.prompt_tokens
 
     @property
     def response(self) -> str:
+        """The text response from the AI.
+
+        Returns:
+            str: The response.
+        """
         return self.raw["choices"][0]["message"]["content"]
 
     @property
     def finish_reason(self) -> str:
+        """Why the response finished. (Not necessarily an error)
+
+        Returns:
+            str: The reason.
+        """
         return self.raw["choices"][0]["finish_reason"]
 
 
 class AIErrorResponse(AIResponse):
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
+        """Represents an error response from the AI.
+
+        Args:
+            data (str | dict[Any, Any], optional): _description_. Defaults to {}.
+
+        Raises:
+            ValueError: If `data` is not a valid JSON response.
+        """
         super().__init__(data)
 
         if not self.raw.get("error", None):
@@ -155,25 +275,48 @@ class AIErrorResponse(AIResponse):
 
     @property
     def error_message(self) -> str:
+        """The error message.
+
+        Returns:
+            str: A human-readable error message.
+        """
         return self.raw["error"]["message"]
 
     @property
     def error_type(self) -> str:
+        """The type of error given by the AI.
+
+        Returns:
+            str: The error type.
+        """
         return self.raw["error"]["type"]
 
     @property
     def error_param(self) -> str:
-
+        """Parameters of the error."""
         return self.raw["error"]["param"]
 
     @property
     def error_code(self) -> str:
+        """The error code.
+
+        Returns:
+            str: The error code.
+        """
         return self.raw["error"]["code"]
 
 
 class AIImageResponse(AIResponse):
 
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
+        """Represents an image response from the AI.
+
+        Args:
+            data (str | dict[Any, Any], optional): _description_. Defaults to {}.
+
+        Raises:
+            ValueError: If `data` is not a valid JSON response.
+        """
         super().__init__(data)
 
         if not self.raw.get("data", None):
@@ -181,21 +324,40 @@ class AIImageResponse(AIResponse):
 
     @property
     def timestamp(self) -> int:
+        """The timestamp of the response. This is the time the response was generated.
+
+        Returns:
+            int: The Posix timestamp.
+        
+        Raises:
+            KeyError: If `data` is not a valid JSON response.
+        """
         return self._data.get("created", 0)
 
     @property
-    def is_image(self) -> bool:
-        return bool(self.raw.get("data", False))
+    def image_url(self) -> str:
+        """The URL of the image made.
 
-    @property
-    def image_url(self) -> str | None:
-        if self.is_image:
-            return self.raw["data"][0]["url"]
+        Returns:
+            str | None: The URL.
+        
+        Raises:
+            KeyError: If `data` is not a valid JSON response.
+        """
+        return self.raw["data"][0]["url"]
 
 
 class AIQueryResponseChunk(AIResponse):
 
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
+        """This is a response from the AI that is a chunk of a response. This is used for streaming text generation and is not meant to be used directly.
+
+        Args:
+            data (str | dict[Any, Any], optional): _description_. Defaults to {}.
+
+        Raises:
+            ValueError: If `data` is not a valid JSON response.
+        """
         super().__init__(data)
 
         if self.raw.get("object", None) != "chat.completion.chunk":
@@ -203,18 +365,50 @@ class AIQueryResponseChunk(AIResponse):
 
     @property
     def response_id(self) -> str | None:
+        """The model ID of the response. (e.g. gpt-3.5-turbo-16k, or chat-bison@002 if using PaLM 2)
+
+        Returns:
+            str | None: The ID.
+        
+        Raises:
+            KeyError: If `data` is not a valid JSON response.
+        """
         return self._data.get("id", None)
 
     @property
     def timestamp(self) -> int:
+        """The timestamp of the response. This is the time the response was generated.
+
+        Returns:
+            int: The Posix timestamp.
+        
+        Raises:
+            KeyError: If `data` is not a valid JSON response.
+        """
         return self._data.get("created", 0)
 
     @property
     def response(self) -> str:
+        """The text response from the AI.
+
+        Returns:
+            str: The response.
+        
+        Raises:
+            KeyError: If `data` is not a valid JSON response.
+        """
         return self.raw["choices"][0]["delta"]["content"]
 
     @property
     def finish_reason(self) -> str:
+        """The finish reason of the response. (Not necessarily an error, may indicate that the response has finished)
+
+        Returns:
+            str: The reason.
+        
+        Raises:
+            KeyError: If `data` is not a valid JSON response.
+        """
         return self.raw["choices"][0]["finish_reason"]
 
 
@@ -237,10 +431,37 @@ def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
 
 
 def _handle_error(response: AIErrorResponse) -> None:
+    """An internal function that handles errors from the AI.
+
+    Args:
+        response (AIErrorResponse): _description_
+
+    Raises:
+        DGException: _description_
+    """
     raise DGException(response.error_message, response.error_code)
 
 
-async def _gpt_ask_base(query: str, context: ConversationContext | None, api_key: str, save_message: bool = True, model: types.AIModels = "gpt-3.5-turbo-16k", async_openai_kwargs: dict[str, Any]={}, chat_completions_create_kwargs: dict[str, Any]={}) -> AIQueryResponse:
+async def _gpt_ask_base(
+    query: str, 
+    context: ConversationContext | None, 
+    api_key: str, 
+    save_message: bool = True, 
+    model: types.AIModels = "gpt-3.5-turbo-16k", 
+    async_openai_kwargs: dict[str, Any]={}, 
+    chat_completions_create_kwargs: dict[str, Any]={}) -> AIQueryResponse:
+    
+    """This is a base function for asking a GPT model a question. This is not meant to be used directly.
+
+    Raises:
+        TypeError: If the given context is not of type ConversationContext or None. Or if the response is not of type AIErrorResponse or AIQueryResponse.
+        GPTTimeoutError: If the request to the GPT API times out.
+        DGException: If the API key is invalid.
+
+    Returns:
+        _type_: The response from the AI.
+    """
+    print(api_key)
     temp_context: list = context.get_temporary_context(query, "user") if context else [{"role": "user", "content": query}]
 
     if not isinstance(context, ConversationContext | None):
@@ -271,7 +492,29 @@ async def _gpt_ask_base(query: str, context: ConversationContext | None, api_key
 
     
 
-async def _gpt_ask_stream_base(query: str, context: ConversationContext, api_key: str, tokenizer: tiktoken.Encoding, model: str, **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+async def _gpt_ask_stream_base(
+    query: str, 
+    context: ConversationContext, 
+    api_key: str, 
+    tokenizer: tiktoken.Encoding, 
+    model: str, 
+    **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    
+    """Streams a response from the AI. This is not meant to be used directly.
+
+    Raises:
+        TypeError: If a chunk of a response is not of type AIErrorResponse or AIQueryResponse.
+        DGException: If the API key is invalid.
+        GPTReachedLimit: If the response has reached the token limit.
+        GPTContentFilter: If the response has been filtered by the content filter for explicit terms. 
+
+    Returns:
+        _type_: None
+
+    Yields:
+        _type_: A tuple containing the response and the amount of tokens used.
+    """
+    
     total_tokens = len(tokenizer.encode(query))
     replied_content = ""
 
@@ -334,21 +577,49 @@ async def _gpt_ask_stream_base(query: str, context: ConversationContext, api_key
         context.add_conversation_entry(query, replied_content, "user")
 
 
-async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
-    async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
-        _image_reply = await async_openai_client.images.generate(prompt=prompt, size=resolution, model=image_engine)
-        response = _response_factory(_image_reply.model_dump_json())
+async def _gpt_image_base(context: ConversationContext | None, prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str, save_message: bool) -> AIImageResponse:
+    """Generates an image from the AI. This is not meant to be used directly.
+    # TODO: Add support for image context.
+    
+    Args:
+        prompt (str): The prompt for the image.
+        resolution (types.Resolution): The resolution of the image.
+        image_engine (types.ImageEngine): The image engine to use.
+        api_key (str): The image engines API key (Same as OpenAI key in this case).
 
+    Raises:
+        TypeError: If the response is not of type AIErrorResponse or AIImageResponse.
+
+    Returns:
+        AIImageResponse: The response from the AI.
+    """
+
+    try:
+        async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+            _image_reply = await async_openai_client.images.generate(prompt=prompt, size=resolution, model=image_engine)
+            response = _response_factory(_image_reply.model_dump_json())
+
+            if isinstance(response, AIErrorResponse):
+                raise DGException(response.error_message, response.error_code)
+                
+            elif isinstance(response, AIImageResponse):
+                if context and save_message:
+                    context.add_image_entry(prompt, response.image_url)
+                return response
+
+            else:
+                raise TypeError("Expected AIImageResponse or AIErrorResponse, got {}".format(type(response)))
+            
+    except openai.BadRequestError as error:
+        response = _response_factory(error.response.json())
         if isinstance(response, AIErrorResponse):
-            _handle_error(response)
-        elif isinstance(response, AIImageResponse):
-            return response
-
-    raise TypeError(
-        "Expected AIImageResponse or AIErrorResponse, got {}".format(type(response)))
-
+            raise DGException(response.error_message, response.error_code)
+        raise error
+        
 class AIModel:
 
+    """Base class for AI Models. This is not meant to be used directly."""
+    
     model: types.AIModels = 'gpt-3.5-turbo'
     display_name: str = ""
     description: str = ""
@@ -371,15 +642,61 @@ class AIModel:
         return cls.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
+    async def __askmodel__(cls, 
+        query: str, 
+        context: ConversationContext | None, 
+        save_message: bool = True) -> AIQueryResponse:
+        
+        """Ask the AI a question.
+
+        Args:
+            query (str): The question to ask.
+            context (ConversationContext | None): The context of the conversation so far. It can be None if there is no context.
+            save_message (bool, optional): If the AI's reply will be saved to `context`. Defaults to True.
+
+        Raises:
+            DGException: If the model is not enabled.
+
+        Returns:
+            AIQueryResponse: The response from the AI.
+        """
         raise DGException("This model does not support text generation.")
 
     @classmethod
-    def __askmodelstream__(cls, query: str, context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
+    def __askmodelstream__(cls, 
+        query: str, 
+        context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
+        
+        """Ask the AI a question and stream the response.
+
+        Args:
+            query (str): The question to ask.
+            context (ConversationContext): The context of the conversation so far.
+
+        Raises:
+            DGException: If the model is not enabled.
+
+        Returns:
+            AsyncGenerator[tuple[str, int], None]: The streamed response from the AI.
+        """
         raise DGException("This model does not support streaming text generation.")
 
     @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2") -> AIImageResponse:
+    async def __imagegenerate__(cls, 
+        prompt: str, 
+        context: ConversationContext | None = None,
+        resolution: types.Resolution = "256x256", 
+        image_engine: types.ImageEngine = "dall-e-2",
+        save_message: bool = True) -> AIImageResponse:
+
+        """Generate an image from the AI. The AI must support image generation.
+
+        Raises:
+            DGException: If the model is not enabled.
+
+        Returns:
+            AIImageResponse: The response from the AI containing an image.
+        """
         raise DGException("This model does not support image generation.")
 
 
@@ -392,31 +709,44 @@ class GPT3Turbo(AIModel):
     
     _api_key: str = "openai_api_key"
     enabled = confighandler.has_api_key(_api_key)
-    
-    @classmethod
-    def __eq__(cls, __value: AIModel) -> bool:
-        return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
+    async def __askmodel__(cls, 
+        query: str, 
+        context: ConversationContext | None, 
+        save_message: bool = True) -> AIQueryResponse:
+        
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
         return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), save_message, cls.model)
 
     @classmethod
-    def __askmodelstream__(cls, query: str, context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
+    def __askmodelstream__(cls, 
+        query: str, 
+        context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
+
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
         return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), cls.get_tokeniser(), cls.model)
 
     @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2",) -> AIImageResponse:
+    async def __imagegenerate__(cls, 
+        prompt: str, 
+        context: ConversationContext | None = None,
+        resolution: types.Resolution = "256x256", 
+        image_engine: types.ImageEngine = "dall-e-2",
+        save_message: bool = True) -> AIImageResponse:
+        
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
+        if not isinstance(context, ConversationContext) and save_message == True:
+            raise DGException("context cannot be type {} if save_message is True.".format(type(context)))
+        
+        
+        return await _gpt_image_base(context, prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key), save_message)
 
 
 class GPT4(AIModel):
@@ -428,31 +758,43 @@ class GPT4(AIModel):
        
     _api_key = "openai_api_key"
     enabled = confighandler.has_api_key(_api_key)
-    
-    @classmethod
-    def __eq__(cls, __value: AIModel) -> bool:
-        return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
+    async def __askmodel__(cls, 
+        query: str, 
+        context: ConversationContext | None, 
+        save_message: bool = True) -> AIQueryResponse:
+        
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
         return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), save_message, cls.model)
 
     @classmethod
-    def __askmodelstream__(cls, query: str, context: ConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    def __askmodelstream__(cls, 
+        query: str, 
+        context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
+        
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), cls.get_tokeniser(), cls.model, **kwargs)
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), cls.get_tokeniser(), cls.model)
 
     @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2",) -> AIImageResponse:
+    async def __imagegenerate__(cls, 
+        prompt: str, 
+        context: ConversationContext | None = None,
+        resolution: types.Resolution = "256x256", 
+        image_engine: types.ImageEngine = "dall-e-2",
+        save_message: bool = True) -> AIImageResponse:
+        
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
+        if not isinstance(context, ConversationContext) and save_message == True:
+            raise DGException("context cannot be type {} if save_message is True.".format(type(context)))
+        
+        return await _gpt_image_base(context, prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key), save_message)
 
 
 class PaLM2(AIModel):
@@ -482,23 +824,31 @@ class PaLM2(AIModel):
             "role": "author",
             "content": "content"
     }
+    
     @staticmethod
-    def _load_translate_context_from_gpt(context: ConversationContext) -> list[ChatMessage]:
+    def _load_translate_context_from_gpt(
+        context: ConversationContext) -> list[ChatMessage]:
+        """Translates a context from the GPT format to the format used by PaLM 2.
+
+        Args:
+            context (ConversationContext): The context to translate.
+
+        Raises:
+            TypeError: If the context is not of type ConversationContext.
+
+        Returns:
+            list[ChatMessage]: A list of messages so far. Used by PaLM 2.
+        """
         if isinstance(context, ConversationContext):
             return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context._context]
         raise TypeError("context should be of type ConversationContext, not {}".format(type(context)))
-    
-
-    @staticmethod
-    def _dump_translate_context_to_gpt(context: list[ChatMessage]) -> list[dict[str, str]]:
-        return [{"role": "user" if message.author != "bot" else "bot", "content": message.content} for message in context]
 
     @classmethod
-    def __eq__(cls, __value: AIModel) -> bool:
-        return cls.model == __value.model
-
-    @classmethod
-    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
+    async def __askmodel__(cls, 
+        query: str, 
+        context: ConversationContext | None, 
+        save_message: bool = True) -> AIQueryResponse:
+        
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         try:
@@ -529,8 +879,11 @@ class PaLM2(AIModel):
                 "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
 
     @classmethod
-    async def __askmodelstream__(cls, query: str, context: ConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        #raise DGException("This model does not support streaming text generation yet.")
+    async def __askmodelstream__(cls, 
+        query: str, 
+        context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
+        
+        raise DGException("This model does not support streaming text generation yet.")
     
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
