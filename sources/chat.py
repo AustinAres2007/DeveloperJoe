@@ -35,12 +35,12 @@ if TYPE_CHECKING:
 from .voice import voice_client, reader
 
 __all__ = [
-    "GPTConversationContext",
+    "ConversationContext",
     "DGTextChat",
     "DGVoiceChat"
 ]
     
-class GPTConversationContext:
+class ConversationContext:
     """Class that should contain a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
         """Class that should contain a users conversation history / context with a GPT Model."""
@@ -122,7 +122,7 @@ class DGChats:
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
-        self.context = GPTConversationContext()
+        self.context = ConversationContext()
         # Voice attributes
         
         self._voice = voice
@@ -155,7 +155,7 @@ class DGChats:
         # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
         
         try:
-            response: models.AIQueryResponse = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
+            response: models.AIQueryResponse = await self.model.__askmodel__(kwargs["content"], self.context, save_message)
             
             if save_message:
                 self.tokens += response.completion_tokens
@@ -185,7 +185,7 @@ class DGChats:
         self.is_processing = True
         try:
             tokens = 0
-            ai_reply = self.model.__askmodelstream__(query, self.context, "user", **kwargs)
+            ai_reply = self.model.__askmodelstream__(query, self.context, **kwargs)
             async for chunk, token in ai_reply:
                 tokens += token
                 yield chunk

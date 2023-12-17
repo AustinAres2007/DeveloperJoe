@@ -16,7 +16,7 @@ from typing import (
     Type
 )
 
-from .chat import GPTConversationContext
+from .chat import ConversationContext
 from .common import (
     developerconfig,
     types
@@ -195,13 +195,12 @@ def _handle_error(response: AIErrorResponse) -> None:
     raise DGException(response.error_message, response.error_code)
 
 
-async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_key: str, role: str = "user", save_message: bool = True, model: types.AIModels = "gpt-3.5-turbo-16k", async_openai_kwargs: dict[str, Any]={}, chat_completions_create_kwargs: dict[str, Any]={}) -> AIQueryResponse:
-    temp_context: list = context.get_temporary_context(query, role) if context else [
-        {"role": role, "content": query}]
+async def _gpt_ask_base(query: str, context: ConversationContext | None, api_key: str, save_message: bool = True, model: types.AIModels = "gpt-3.5-turbo-16k", async_openai_kwargs: dict[str, Any]={}, chat_completions_create_kwargs: dict[str, Any]={}) -> AIQueryResponse:
+    temp_context: list = context.get_temporary_context(query, "user") if context else [{"role": "user", "content": query}]
 
-    if not isinstance(context, GPTConversationContext | None):
+    if not isinstance(context, ConversationContext | None):
         raise TypeError(
-            "context should be of type GPTConversationContext or None, not {}".format(type(context)))
+            "context should be of type ConversationContext or None, not {}".format(type(context)))
 
     try:
         async with openai.AsyncOpenAI(api_key=api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT, **async_openai_kwargs) as async_openai_client:
@@ -212,8 +211,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
                 _handle_error(response)
             elif isinstance(response, AIQueryResponse):
                 if save_message and context:
-                    context.add_conversation_entry(
-                        query, str(response.response), "user")
+                    context.add_conversation_entry(query, str(response.response), "user")
 
                 return response
 
@@ -228,13 +226,12 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
 
     
 
-async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+async def _gpt_ask_stream_base(query: str, context: ConversationContext, api_key: str, tokenizer: tiktoken.Encoding, model: str, **kwargs) -> AsyncGenerator[tuple[str, int], None]:
     total_tokens = len(tokenizer.encode(query))
     replied_content = ""
 
     add_history = True
-
-    history: list = context.get_temporary_context(query, role)
+    history: list = context.get_temporary_context(query, "user")
 
     def _is_valid_chunk(chunk_data: str) -> bool:
         try:
@@ -289,7 +286,7 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
                 raise GPTContentFilter(kwargs["content"])
 
     if add_history == True:
-        context.add_conversation_entry(query, replied_content, role)
+        context.add_conversation_entry(query, replied_content, "user")
 
 
 async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
@@ -330,11 +327,11 @@ class AIModel:
         return cls.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIQueryResponse:
+    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
         raise DGException("This model does not support text generation.")
 
     @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    def __askmodelstream__(cls, query: str, context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
         raise DGException("This model does not support streaming text generation.")
 
     @classmethod
@@ -357,18 +354,18 @@ class GPT3Turbo(AIModel):
         return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIQueryResponse:
+    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), save_message, cls.model)
 
     @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    def __askmodelstream__(cls, query: str, context: ConversationContext) -> AsyncGenerator[tuple[str, int], None]:
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.get_tokeniser(), cls.model, **kwargs)
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), cls.get_tokeniser(), cls.model)
 
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2",) -> AIImageResponse:
@@ -393,18 +390,18 @@ class GPT4(AIModel):
         return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIQueryResponse:
+    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
+        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), save_message, cls.model)
 
     @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    def __askmodelstream__(cls, query: str, context: ConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.get_tokeniser(), cls.model, **kwargs)
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), cls.get_tokeniser(), cls.model, **kwargs)
 
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution = "256x256", image_engine: types.ImageEngine = "dall-e-2",) -> AIImageResponse:
@@ -437,8 +434,8 @@ class PaLM2(AIModel):
     }
 
     @staticmethod
-    def _load_translate_context_from_gpt(context: GPTConversationContext | list[types.AIInteraction]) -> list[ChatMessage]:
-        if isinstance(context, GPTConversationContext):
+    def _load_translate_context_from_gpt(context: ConversationContext | list[types.AIInteraction]) -> list[ChatMessage]:
+        if isinstance(context, ConversationContext):
             return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context._context]
         else:
             return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context]
@@ -452,16 +449,13 @@ class PaLM2(AIModel):
         return cls.model == __value.model
 
     @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIQueryResponse:
+    async def __askmodel__(cls, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         try:
             chat_model = ChatModel.from_pretrained(cls.model)
-            gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(
-                query, role) if context else [{"role": role, "content": query}]
             temporary_context = cls._load_translate_context_from_gpt(
-                gpt_temporary_context)
-            temporary_context.pop()
+                context.context) if context else []
 
             chat = chat_model.start_chat(
                 message_history=temporary_context, **cls.parameters)
@@ -487,7 +481,7 @@ class PaLM2(AIModel):
                 "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
 
     @classmethod
-    async def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    async def __askmodelstream__(cls, query: str, context: ConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
         raise DGException("This model does not support streaming text generation yet.")
     
         if not cls.enabled:
@@ -520,52 +514,6 @@ class PaLM2(AIModel):
         except DefaultCredentialsError as google_response_error:
             raise DGException(
                 "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
-            
-"""
-
-How to make custom models:
-
-Every model must have a class that derives from `AIModel`.
-The class must also have at least have the following **classmethod**:
-
-```
-@classmethod
-def __askmodel__(query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, **kwargs) -> AIQueryResponse:
-    # AI API calling code here
-    ...
-```
-
-The method must return an `AIQueryResponse` object. You can use the `_gpt_ask_base` function to do this. (If you want it to be based upon OpenAI's GPT engine.
-Read the adequate documentation if so) 
-
-TODO: Add documentation here on how to use GPTConversationContext and how to translate it to an AI's context
-
-If you want to create a custom engine based off of custom training data or such (This is not documentation on that. I am expecting the model is finished. This is mostly
-a tutorial on how to implement it into the bot) You can instantiate the `AIQueryResponse` class and return it. To do this you mustcomply with the following dictionary format:
-
-a = {
-    "id": "model_name", # This can be anything, but it is recommended to be the name of the model.
-    "finish_reason": "length", # This can by anything, but it is recommended to follow the protocol OpenAI set in this page: https://platform.openai.com/docs/guides/text-generation/chat-completions-api A list of reasons are posted there"
-    "reply": "AI response here", # This can be just plain-text english.
-    "timestamp": 1234567890 # This is the POSIX timestamp of the response. You can use the one sent with the AI's JSON response. If your AI does not have that, use time.time() or something of the sort. It is not optional.
-    "completion_tokens": 10, # The number of tokens generated across all completions emissions. This is optional as not all AI models return tokens, but recommended if at all obtainable. Even with a tokeniser. (If not set, the wrapper object will return 0)
-    "prompt_tokens": 10, # The number of tokens in the provided prompts for the completions request. This is optional as not all AI models return tokens, but recommended if at all obtainable. Even with a tokeniser. (If not set, the wrapper object will return 0)
-}
-
-To create an AIQueryResponse with the dictionary I defined in `a`, do:
-
-```
-r = AIQueryResponse(a)
-```
-
-If missing, non-optional data is passed, a ValueError will be raised.
-
-If extrenous data is passed, you can access it via the r.raw property or using r.<attr> (This will not show up in any type checkers or autocomplete).
-
-If you want to add image generation or streaming replies. Please use your own common sense and read the code. I am too lazy to write the documentation at this time. 
-I am watching a really good movie.
-
-"""
  
 AIModelType = Type[AIModel]
 registered_models: dict[str, AIModelType] = {
