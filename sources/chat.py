@@ -35,47 +35,10 @@ if TYPE_CHECKING:
 from .voice import voice_client, reader
 
 __all__ = [
-    "ConversationContext",
     "DGTextChat",
     "DGVoiceChat"
 ]
-    
-class ConversationContext:
-    """Class that should contain a users conversation history / context with a GPT Model."""
-    def __init__(self) -> None:
-        """Class that should contain a users conversation history / context with a GPT Model."""
-        self._display_context = []
-        self._context: list[types.AIInteraction] = []
-        
-    @property
-    def context(self) -> list:
-        return self._context   
-    
-    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list[types.AIInteraction]:
-        
-        data_query: types.AIInteraction = {"role": user_type, "content": query}
-        data_reply: types.AIInteraction = {"role": "assistant", "content": answer}
-        
-        new: list[types.AIInteraction] = [data_query, data_reply]
-        
-        self._context.extend(new)
-        self._display_context.append(new) # Add as whole
-        
-        return self._context
-    
-    def add_image_entry(self, prompt: str, image_url: str) -> list:
-        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
-        self._display_context.append(interaction_data)
-        return self._display_context
-    
-    def get_temporary_context(self, query: str, user_type: str="user"):
-
-        data: types.AIInteraction = {"content": query, "role": user_type}
-        _temp_context = self._context.copy()
-        _temp_context.append(data)
-        
-        return _temp_context
-        
+            
 class DGChats:
         
     def __init__(self,
@@ -122,7 +85,7 @@ class DGChats:
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
-        self.context = ConversationContext()
+        self.context = models.ConversationContext()
         # Voice attributes
         
         self._voice = voice

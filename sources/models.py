@@ -13,10 +13,10 @@ from google.auth.exceptions import DefaultCredentialsError
 from typing import (
     Any,
     AsyncGenerator,
+    Callable,
     Type
 )
 
-from .chat import ConversationContext
 from .common import (
     developerconfig,
     types
@@ -25,6 +25,7 @@ from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeo
 from sources import confighandler
 
 __all__ = [
+    "ConversationContext",
     "AIModel",
     "GPT3Turbo",
     "GPT4",
@@ -33,8 +34,52 @@ __all__ = [
     "registered_models"
 ]
 # TODO (Not important): add __repr__ and __str__ to Response classes
+                
+class ConversationContext:
+    """Class that should contain a users conversation history / context with a GPT Model."""
+    def __init__(self) -> None:
+        """Class that should contain a users conversation history / context with a GPT Model."""
+        self._display_context = []
+        self._context: list[types.AIInteraction] = []
+        
+    @property
+    def context(self) -> list:
+        return self._context   
+    
+    @property
+    def readable_context(self) -> list:
+        return self._display_context
+    
+    def get_context_translated(self, translate_function: Callable[["ConversationContext"], Any]) -> Any:
+        if not isinstance(translate_function, Callable):
+            raise TypeError("translate_function should be of type Callable and have one argument that denotes a ConversationContext type, got type {}".format(type(translate_function)))
+        return translate_function(self)
+        
+    def add_conversation_entry(self, query: str, answer: str, user_type: str="user") -> list[types.AIInteraction]:
+        
+        data_query: types.AIInteraction = {"role": user_type, "content": query}
+        data_reply: types.AIInteraction = {"role": "assistant", "content": answer}
+        
+        new: list[types.AIInteraction] = [data_query, data_reply]
+        
+        self._context.extend(new)
+        self._display_context.append(new) # Add as whole
+        
+        return self._context
+    
+    def add_image_entry(self, prompt: str, image_url: str) -> list:
+        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
+        self._display_context.append(interaction_data)
+        return self._display_context
+    
+    def get_temporary_context(self, query: str, user_type: str="user"):
 
-
+        data: types.AIInteraction = {"content": query, "role": user_type}
+        _temp_context = self._context.copy()
+        _temp_context.append(data)
+        
+        return _temp_context
+    
 class AIResponse:
 
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
@@ -302,7 +347,6 @@ async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engin
     raise TypeError(
         "Expected AIImageResponse or AIErrorResponse, got {}".format(type(response)))
 
-
 class AIModel:
 
     model: types.AIModels = 'gpt-3.5-turbo'
@@ -429,16 +473,21 @@ class PaLM2(AIModel):
         "top_p": 0.8,
         "top_k": 40
     }
+    
     errors = {
         "CONSUMER_INVALID": "Given Project ID for Vertex AI is invalid. Check Google Cloud Console for correct ID."
     }
-
+    
+    translate_table = {
+            "role": "author",
+            "content": "content"
+    }
     @staticmethod
-    def _load_translate_context_from_gpt(context: ConversationContext | list[types.AIInteraction]) -> list[ChatMessage]:
+    def _load_translate_context_from_gpt(context: ConversationContext) -> list[ChatMessage]:
         if isinstance(context, ConversationContext):
             return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context._context]
-        else:
-            return [ChatMessage(reply_entry["content"], "user" if reply_entry["role"] == "user" else "bot") for reply_entry in context]
+        raise TypeError("context should be of type ConversationContext, not {}".format(type(context)))
+    
 
     @staticmethod
     def _dump_translate_context_to_gpt(context: list[ChatMessage]) -> list[dict[str, str]]:
@@ -454,11 +503,10 @@ class PaLM2(AIModel):
             raise DGException(f"{cls.display_name} {_error_text}")
         try:
             chat_model = ChatModel.from_pretrained(cls.model)
-            temporary_context = cls._load_translate_context_from_gpt(
-                context.context) if context else []
-
+            ctx: list[ChatMessage] = context.get_context_translated(cls._load_translate_context_from_gpt) if context else []
+            
             chat = chat_model.start_chat(
-                message_history=temporary_context, **cls.parameters)
+                message_history=ctx, **cls.parameters)
             response = await chat.send_message_async(query, **cls.parameters)
 
             if save_message and context:
@@ -482,18 +530,14 @@ class PaLM2(AIModel):
 
     @classmethod
     async def __askmodelstream__(cls, query: str, context: ConversationContext, role: str = "user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        raise DGException("This model does not support streaming text generation yet.")
+        #raise DGException("This model does not support streaming text generation yet.")
     
         if not cls.enabled:
             raise DGException(f"{cls.display_name} {_error_text}")
         
         try:
             chat_model = ChatModel.from_pretrained(cls.model)
-            gpt_temporary_context: list[types.AIInteraction] = context.get_temporary_context(
-                query, role) if context else [{"role": role, "content": query}]
-            temporary_context = cls._load_translate_context_from_gpt(
-                gpt_temporary_context)
-            temporary_context.pop()
+            temporary_context = context.get_context_translated(cls._load_translate_context_from_gpt) if context else []
 
             chat = chat_model.start_chat(
                 message_history=temporary_context, **cls.parameters)
