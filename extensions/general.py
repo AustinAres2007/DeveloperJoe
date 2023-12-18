@@ -1,12 +1,9 @@
-import enum
-from typing import TYPE_CHECKING
 import discord
 
 from discord.ext.commands import Cog as _Cog
 
 from sources import (
     models,
-    confighandler,
     modelhandler
 )
 from sources.common import (

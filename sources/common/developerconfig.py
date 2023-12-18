@@ -22,7 +22,7 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.4.3-V" 
+VERSION = "1.4.3-D" 
 # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 # If it is "ARC" that means it is a release-candidate. The "A" refering to the logic above and "RC" meaning release-candidate.
 # It's really cool to have your own custom version scheme isn't it? But to others it is probably very confusing and unnessersary.
@@ -45,14 +45,15 @@ IMAGE_SIZES: list[types.Resolution] = [
     "1024x1024"
 ]
 
-IMAGE_SIZE_CHOICES: list[Choice] = [
+IMAGE_SIZE_CHOICES: list[Choice[str]] = [
     Choice(name=res, value=res) for res in IMAGE_SIZES
 ]
 
 MODEL_CHOICES: list[Choice] = [
-    Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo-16k"),
+    Choice(name="GPT 3.5 - Turbo", value="gpt-3"),
     Choice(name="GPT 4", value="gpt-4"),
-    Choice(name="PaLM 2 (Google)", value="chat-bison@002")
+    Choice(name="PaLM 2 (Google)", value="palm2"),
+    #Choice(name="Gemini", value="gemini")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
 
 FFMPEG = voice_checks._get_voice_paths("ffmpeg", False) # FFMPEG executable. Can be an absolute or relative file path. Required for voice services.
@@ -80,7 +81,7 @@ default_config_keys = {
     "status_scrolling_change_interval": 10,
     "enable_status_scrolling": False,
     "status_scrolling_options": {"/help and different peoples!": 2, "/help and documentries.": 3, "/help and math tournaments!": 5, "/help and monoply :(": 0},
-    "default_gpt_model": "gpt-3.5-turbo",
+    "default_ai_model": "gpt-3.5-turbo",
     "listening_keyword": "assistant",
     "listening_timeout": 2.5,
     "voice_speedup_multiplier": 1.3,

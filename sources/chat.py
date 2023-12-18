@@ -48,7 +48,7 @@ class DGChats:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -62,7 +62,7 @@ class DGChats:
             name (str): _description_
             stream (bool): _description_
             display_name (str): _description_
-            model (models.AIModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
+            model (models.AIModelType, optional): _description_. Defaults to default_ai_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
             associated_thread (_Union[discord.Thread, None], optional): _description_. Defaults to None.
             is_private (bool, optional): _description_. Defaults to True.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): _description_. Defaults to None.
@@ -241,7 +241,7 @@ class DGTextChat(DGChats):
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -420,7 +420,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
+            model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
             associated_thread: _Union[discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -489,6 +489,7 @@ class DGVoiceChat(DGTextChat):
     def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
         self._client_voice_instance = _bot_vc 
     
+    @protectedclass.protect_function(protected_name="Listening", protected_description="This represents the listening function of the bot.", error_message="You do not have the permission to use bot listening capabilities.")
     async def manage_voice_packet_callback(self, member: discord.Member, voice: _io.BytesIO):
         try:
             if self.proc_packet == False:

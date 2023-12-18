@@ -37,7 +37,7 @@ class Communication(commands.Cog):
                                    silent="Dictates weather a welcome message will be provided upon /start being sent. By default it is true and a welcome message will not be sent. Chats will start a lot quicker."
     )
     @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, silent: bool=True):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_ai_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, silent: bool=True):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
@@ -180,7 +180,7 @@ class Communication(commands.Cog):
 
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        image = await convo.generate_image(prompt, resolution)
+        image = await convo.generate_image(prompt, resolution) # type: ignore It is valid. The choices can only be 256x256, 512x512, 1024x1024
         result = f"Created Image at {datetime.datetime.fromtimestamp(image.timestamp)}\nImage Link: {image.image_url}"
         return await interaction.followup.send(result, ephemeral=False)
 
@@ -229,13 +229,13 @@ class Communication(commands.Cog):
             
     @discord.app_commands.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
     @discord.app_commands.describe(query="The question you wish to pose.")
-    @discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
-    async def inquire_once(self, interaction: discord.Interaction, query: str, gpt_model: str=confighandler.get_config('default_gpt_model')):
+    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str=confighandler.get_config('default_ai_model')):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        actual_model = commands_utils.get_modeltype_from_name(gpt_model)
+        actual_model = commands_utils.get_modeltype_from_name(ai_model)
         
         if self.client.get_user_has_permission(member, actual_model):
-            asked = await actual_model.__askmodel__(query, None, "user", False)
+            asked = await actual_model.__askmodel__(query, None, False)
             reply = asked.response
             
             if reply and len(reply) >= 2000:

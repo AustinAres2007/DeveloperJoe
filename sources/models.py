@@ -1,3 +1,4 @@
+import discord
 import tiktoken
 import json
 import tiktoken
@@ -5,6 +6,8 @@ import openai
 import vertexai
 
 from vertexai.language_models import ChatModel, ChatMessage
+from vertexai.preview.generative_models import GenerativeModel, Part
+
 from httpx import ReadTimeout
 
 from google.api_core.exceptions import PermissionDenied
@@ -22,7 +25,7 @@ from .common import (
     types
 )
 from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
-from sources import confighandler
+from sources import confighandler, protectedclass
 
 __all__ = [
     "ConversationContext",
@@ -461,7 +464,6 @@ async def _gpt_ask_base(
     Returns:
         _type_: The response from the AI.
     """
-    print(api_key)
     temp_context: list = context.get_temporary_context(query, "user") if context else [{"role": "user", "content": query}]
 
     if not isinstance(context, ConversationContext | None):
@@ -911,14 +913,24 @@ class PaLM2(AIModel):
         except DefaultCredentialsError as google_response_error:
             raise DGException(
                 "Host machine not logged into gcloud. The host machine can login by executing `gcloud auth application-default set-quota-project <Project ID>` in the terminal.")
- 
+
+class Gemini(AIModel):
+    model: types.AIModels = "gemini-pro-vision"
+    display_name: str = "Gemini"
+    description: str = "TBD"
+    
+    _api_key: str = "vertex_project_id"
+    enabled = confighandler.has_api_key(_api_key)
+    
+    if enabled:
+        vertexai.init(project=confighandler.get_api_key("vertex_project_id"))
+    
 AIModelType = Type[AIModel]
 registered_models: dict[str, AIModelType] = {
     "gpt-4": GPT4,
-    "gpt-3.5-turbo-16k": GPT3Turbo,
-    "gpt-3.5-turbo": GPT3Turbo,
-    "chat-bison@002": PaLM2
+    "gpt-3": GPT3Turbo,
+    "palm2": PaLM2,
+    #"gemini": Gemini
 }
 enabled_models = [m for m in registered_models.values() if m.enabled]
 disabled_models = [m for m in registered_models.values() if not m.enabled]
-

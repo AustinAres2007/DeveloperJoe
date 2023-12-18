@@ -64,11 +64,11 @@ These commands are used to change the configuration values viewed with `/config`
 
 Commands that relate to starting a chat, or anything relating to it
 
-1. ## /start `chat_name` `stream_conversation` `gpt_model` `in_thread` `speak_reply` `in_private`
+1. ## /start `chat_name` `stream_conversation` `ai_model` `in_thread` `speak_reply` `in_private`
    * This command has 6 arguments. All are optional and defaults will be used.
         - `chat_name`: The name of the chat being created.
         - `stream_conversation`: Weather the chat will be streamed. (Text will appear gradually, like ChatGPT)
-        - `gpt_model`: What model of GPT you want to use.
+        - `ai_model`: What model of GPT you want to use.
         - `in_thread`: If a special thread will be made for this chat.
         - `speak_reply`: If the chat will be spoken in a voice channel. The bot will join if this is option is enabled, and the chat owner is in a voice channel.
         - `in_private`: If the chat is private. Meaning that the chat history cannot be exported by other people with the History ID.
@@ -97,10 +97,10 @@ Commands that relate to starting a chat, or anything relating to it
    * This command has no arguments.
    * This command ends all conversations a user may hold. Confirmation will be asked for.
 
-5. ## /inquire `query` `gpt_model`
-   * This command has 2 arguments. `gpt_model` is optional.
+5. ## /inquire `query` `ai_model`
+   * This command has 2 arguments. `ai_model` is optional.
       - `query`: What you want to ask DeveloperJoe.
-      - `gpt_model`: What model of GPT you want to use. This is optional and a default will be used if not provided.
+      - `ai_model`: What model of GPT you want to use. This is optional and a default will be used if not provided.
 
 # Chat Settings & Management
 
@@ -164,21 +164,21 @@ Commands that relate to chat history management (Like saving the transcript for 
 
 This group of commands limit what GPT Models can be used by certain rank of user.
 For example, if you want to lock GPT-4 behind a VIP role, you do it with:
-> /lock gpt_model: GPT 4 role: @VIP
+> /lock ai_model: GPT 4 role: @VIP
 
 1. ## /locks
    * This command has no arguments.
    * This command will view all locks placed upon models.
 
-2. ## /lock `gpt_model` `role`
+2. ## /lock `ai_model` `role`
    * This command has 2 arguments.
-      - `gpt_model`: The GPT Model you want to lock.
+      - `ai_model`: The GPT Model you want to lock.
       - `role` The role you want it to be locked behind.
    * This command will lock a GPT Model behind a role. Higher ranked users than the specified role will still be able to use specified model since they outrank the role that was used for the lock.
 
-3. ## /unlock `gpt_model` `role`
+3. ## /unlock `ai_model` `role`
    * This command has 2 arguments.
-      - `gpt_model` The GPT Model you want to unlock.
+      - `ai_model` The GPT Model you want to unlock.
       - `role` Role to remove the usage restriction from.
    * This command removes the role restriction that was placed upon by `/lock`
 

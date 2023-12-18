@@ -64,6 +64,4 @@ def add_guild_permission(guild: Guild, permission_object: str, roles: list[int])
 def remove_guild_permission(guild: Guild, permission_object: str) -> None:
     with DGGuildDatabasePermissionHandler(guild) as permission_handler:
         permission_handler.remove_from_permission_list(permission_object)
-        
-        
             
