@@ -97,7 +97,7 @@ Changelog
 - ~~Check if user logged in with `gcloud login` of whatever the shitty fucking command was~~ Same as above
 - ~~Add error handling for PaLM 2. No error handling is set at all. (https://cloud.google.com/vertex-ai/docs/generative-ai/learn/responsible-ai maybe? idk)~~
 - ~~Need to redesign /help for command groups~~
-- Need to add Gemini and add streaming capabilities to PaLM and or Gemini
+- ~~Need to add Gemini and add streaming capabilities to PaLM and or Gemini~~ In another update
 - ~~Test Protected Classes~~
 - ~~Add protected class functionality to functions (Will become much more useful hopefully)~~
 
@@ -106,3 +106,7 @@ Changelog
 - Bot listening bugs. Could be because I removed the silence thingy that was in ttsmodels.py
 - Might remove voice. This will fix the stdin error
 - The same stupid fucking error with self.stdin.flush(); flush of closed file error again (Happens when using /shutup)
+
+## Notes
+
+- Adding Gemini may be quite difficult due to how chat history is stored and how chats work. It may require big internal changes.

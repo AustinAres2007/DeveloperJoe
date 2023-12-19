@@ -701,7 +701,6 @@ class AIModel:
         """
         raise DGException("This model does not support image generation.")
 
-
 class GPT3Turbo(AIModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 
@@ -925,6 +924,10 @@ class Gemini(AIModel):
     if enabled:
         vertexai.init(project=confighandler.get_api_key("vertex_project_id"))
     
+
+    async def __askmodel__(self, query: str, context: ConversationContext | None, save_message: bool = True) -> AIQueryResponse:
+        return await super().__askmodel__(query, context, save_message)
+        
 AIModelType = Type[AIModel]
 registered_models: dict[str, AIModelType] = {
     "gpt-4": GPT4,
