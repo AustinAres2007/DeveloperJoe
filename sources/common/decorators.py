@@ -6,15 +6,12 @@ import discord, typing
 from .. import (
     exceptions,
     voice,
-    errors,
-    protectedclass
-)
-from . import (
-    types
+    errors
 )
 
 if typing.TYPE_CHECKING:
     from joe import DeveloperJoe
+    
 def check_enabled(func):
     """Decorator for checking if a conversation is enabled. If not, an `ChatIsDiabledError` will be raised. If making a custom method, this decorator MUST come first.
 

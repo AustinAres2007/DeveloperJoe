@@ -1,7 +1,6 @@
 """Handles conversations between the end-user and the GPT Engine."""
 
 from __future__ import annotations
-from curses import start_color
 
 import datetime as _datetime, discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
 
@@ -18,8 +17,7 @@ from . import (
     confighandler, 
     history, 
     ttsmodels,
-    models,
-    protectedclass
+    models
 )
 from .common import (
     decorators,
@@ -450,7 +448,7 @@ class DGTextChat(DGChats):
     def __str__(self) -> str:
         return self.display_name
 
-@protectedclass.protect_class
+
 class DGVoiceChat(DGTextChat):
     
     """Represents a voice and text DG Chat."""
@@ -486,18 +484,6 @@ class DGVoiceChat(DGTextChat):
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
-    
-    @classmethod
-    def get_protected_name(cls) -> str:
-        return "Voice Chat"
-    
-    @classmethod
-    def get_protected_description(cls) -> str:
-        return "This represents a voice and text chat."
-    
-    @classmethod
-    def get_error_message(cls, role: discord.Role) -> str:
-        return f"You need to be in the role **{role.name}** or higher to use voice capabilities."
     
     @property
     def voice(self):

@@ -3,7 +3,6 @@ import discord
 from .voice import pydub as _pydub # type: ignore Again, Python is being dumb. The dependency does exist.
 
 from . import (
-    protectedclass,
     exceptions
 )
 
@@ -55,24 +54,11 @@ class TTSModel:
         """
         raise NotImplementedError
 
-@protectedclass.protect_class
 class GTTSModel(TTSModel):
     """Google Text-to-Speech model."""
     
     def __init__(self, member: discord.Member, text: str) -> None:
         super().__init__(text)
-    
-    @classmethod
-    def get_protected_name(cls) -> str:
-        return "Google Text-to-Speech"
-
-    @classmethod
-    def get_protected_description(cls) -> str:
-        return "Uses Google's Text-to-Speech API to generate voice."
-    
-    @classmethod
-    def get_error_message(cls, role: discord.Role) -> str:
-        return f"You do not have permission to use Google Text-to-Speech. You must have the role **{role.name}** or higher."
     
     def process_text(self, speed: float) -> _io.BytesIO:
         """Processes text into the Google TTS voice.

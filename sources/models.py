@@ -23,7 +23,6 @@ __all__ = [
     "GPTModelType",
     "registered_models"
 ]        
-# TODO (Not important): add __repr__ and __str__ to Response classes 
 
 class AIResponse:
     
@@ -274,34 +273,15 @@ async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engin
     
 class AIModel:
 
-    _model: types.AIModels = 'gpt-3.5-turbo'
-    _display_name: str = ""
-    _description: str = ""
+    model: types.AIModels = 'gpt-3.5-turbo'
+    display_name: str = ""
+    description: str = ""
     _api_key: str = "openai_api_key"
     
     @classmethod
-    @property
-    def model(cls) -> types.AIModels:
-        """Returns the actual model name that is used to send communication requests."""
-        return cls._model
-    
-    @classmethod
-    @property
     def tokeniser(cls) -> tiktoken.Encoding:
         """The encoding used to calculate the amount of tokens used."""
         return tiktoken.encoding_for_model(cls.model)
-    
-    @classmethod
-    @property
-    def description(cls) -> str:
-        """The description for the model."""
-        return cls._description
-    
-    @classmethod
-    @property
-    def display_name(cls) -> str:
-        """User-readable display name for the model."""
-        return cls._display_name
     
     @classmethod
     def __repr__(cls):
@@ -309,7 +289,7 @@ class AIModel:
     
     @classmethod
     def __str__(cls) -> str:
-        return cls._model
+        return cls.model
     
     @classmethod
     async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIQueryResponse:
@@ -326,9 +306,9 @@ class AIModel:
 class GPT3Turbo(AIModel):
     """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
 
-    _model: types.AIModels = "gpt-3.5-turbo-16k"
-    _display_name: str = "GPT 3.5 Turbo"
-    _description: str = "Good for generating text and general usage. Cost-effective."
+    model: types.AIModels = "gpt-3.5-turbo-16k"
+    display_name: str = "GPT 3.5 Turbo"
+    description: str = "Good for generating text and general usage. Cost-effective."
     _api_key: str = "openai_api_key"
     
     @classmethod
@@ -341,7 +321,7 @@ class GPT3Turbo(AIModel):
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser(), cls.model, **kwargs)
             
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
@@ -350,9 +330,9 @@ class GPT3Turbo(AIModel):
 class GPT4(AIModel):
     """Generative Pre-Trained Transformer 4 (gpt-4)"""
 
-    _model: str = "gpt-4"
-    _display_name: str = "GPT 4"
-    _description: str = "Better than GPT 3 Turbo at everything. Would stay with GPT 3 for most purposes-- Can get expensive."
+    model: types.AIModels = "gpt-4"
+    display_name: str = "GPT 4"
+    description: str = "Better than GPT 3 Turbo at everything. Would stay with GPT 3 for most purposes-- Can get expensive."
     _api_key = "openai_api_key"
     
     @classmethod 
@@ -365,31 +345,15 @@ class GPT4(AIModel):
     
     @classmethod
     def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser, cls.model, **kwargs)
+        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser(), cls.model, **kwargs)
             
     @classmethod
     async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
         return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
     
-
-class GoogleBard(AIModel):
     
-    _model: str = "google-bard"
-    _display_name: str = "Google Bard"
-    _description: str = "TBD"
-    _api_key: str = "google_api_key"
-    
-    @classmethod
-    def __eq__(cls, __value: AIModel) -> bool:
-        return cls.model == __value.model
-
-    @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str = "user", save_message: bool = True, __model: str | None = None, **kwargs) -> AIQueryResponse:
-        raise DGException("This model does not exist.")
-    
-GPTModelType = GPT3Turbo | GPT4 | GoogleBard
+GPTModelType = GPT3Turbo | GPT4
 registered_models = {
     "gpt-4": GPT4,
-    "gpt-3.5-turbo": GPT3Turbo,
-    "google-bard": GoogleBard
+    "gpt-3.5-turbo": GPT3Turbo
 }

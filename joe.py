@@ -33,21 +33,9 @@ except ImportError as e:
     print(f"Missing Imports, please execute `pip install -r dependencies/requirements.txt` to install required dependencies. (Actual Error: {e})")
     exit(1)
 
-try:
-    from sources import (
-        protectedclass
-    )
-except ImportError:
-    print(f"Missing critical files. Please redownload DeveloperJoe and try again.")
-    exit(1)
 
-protected_class_handler = protectedclass.ProtectedClassHandler()
-protectedclass.protected_class_handler = protected_class_handler
 
 try:
-    from sources import (
-        protectedclass
-    )
     
     from sources.common import (
         commands_utils,
@@ -67,8 +55,7 @@ try:
         history, 
         modelhandler, 
         models, 
-        ttsmodels, 
-        protectedclass
+        ttsmodels
     )
     
     from sources.voice import pydub
@@ -106,8 +93,6 @@ class DeveloperJoe(commands.Bot):
         
         self.statuses: dict[str, int | discord.ActivityType] = confighandler.get_config('status_scrolling_options')
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
-        
-        self.protected_class_handler = protected_class_handler
         
         super().__init__(*args, **kwargs)
     
