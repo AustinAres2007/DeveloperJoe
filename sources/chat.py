@@ -33,43 +33,11 @@ if TYPE_CHECKING:
 from .voice import voice_client, reader
 
 __all__ = [
-    "GPTConversationContext",
     "DGTextChat",
     "DGVoiceChat"
 ]
     
-class GPTConversationContext:
-    """Class that should contain a users conversation history / context with a GPT Model."""
-    def __init__(self) -> None:
-        """Class that should contain a users conversation history / context with a GPT Model."""
-        self._display_context, self._context = [], []
-        
-    @property
-    def context(self) -> list:
-        return self._context   
-    
-    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
-        
-        data_query = {"role": user_type, "content": query}
-        data_reply = {"role": "assistant", "content": answer}
-        
-        self._context.extend([data_query, data_reply])
-        self._display_context.append([data_query, data_reply]) # Add as whole
-        
-        return self._context
-    
-    def add_image_entry(self, prompt: str, image_url: str) -> list:
-        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
-        self._display_context.append(interaction_data)
-        return self._display_context
-    
-    def get_temporary_context(self, query: str, user_type: str="user"):
 
-        data = {"content": query, "role": user_type}
-        _temp_context = self._context.copy()
-        _temp_context.append(data)
-        
-        return _temp_context
         
 class DGChats:
         
@@ -117,7 +85,7 @@ class DGChats:
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
-        self.context = GPTConversationContext()
+    
         # Voice attributes
         
         self._voice = voice
@@ -139,6 +107,10 @@ class DGChats:
     def private(self) -> bool:
         return self._private
 
+    @property
+    def context(self) -> models.ReadableContext:
+        return self.model.context
+    
     @private.setter
     def private(self, is_p: bool):
         self._private = is_p
@@ -147,10 +119,10 @@ class DGChats:
         self.is_processing = True
         # Put necessary variables here (Doesn't matter weather streaming or not)
         # Reply format: ({"content": "Reply content", "role": "assistent"})
-        # XXX: Need to transfer this code to GPT-3 / GPT-4 model classes (__askmodel__)
         
         try:
             response: models.AIQueryResponse = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
+            # FIXME: Waiting to be transfered to new model system
             
             if save_message:
                 self.tokens += response.completion_tokens
@@ -168,7 +140,7 @@ class DGChats:
     async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
         # Required Arguments: Prompt (String < 1000 chars), Size (String)
         try:
-            # XXX: Remove and insert into another function
+            # FIXME: Waiting to be transfered to new model system
             
             response = await self.model.__imagegenerate__("Cat doing a backflip", "1024x1024", "dall-e-2")
             if response.is_image == True:
@@ -179,6 +151,8 @@ class DGChats:
         return response
     
     async def __stream_send_query__(self, query: str, save_message: bool=True, **kwargs) -> _AsyncGenerator[str, None]:
+        # FIXME: Waiting to be transfered to new model system
+        
         self.is_processing = True
         try:
             tokens = 0
@@ -403,6 +377,8 @@ class DGTextChat(DGChats):
 
     def clear(self) -> None:
         """Clears the internal chat history."""
+        # FIXME: Waiting to be transfered to new model system
+        
         self.context._context.clear()
         self.context._display_context.clear()
     

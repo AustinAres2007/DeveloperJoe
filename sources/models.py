@@ -1,4 +1,5 @@
 from httpx import ReadTimeout
+from numpy import isin
 import tiktoken, json, tiktoken, openai
 from sources import confighandler
 
@@ -158,6 +159,9 @@ class AIQueryResponseChunk(AIResponse):
     @property
     def finish_reason(self) -> str:
         return self.raw["choices"][0]["finish_reason"]
+
+class ReadableContext:
+    ...
     
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
 
@@ -272,85 +276,134 @@ async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engin
     raise TypeError("Expected AIImageResponse or AIErrorResponse, got {}".format(type(response)))
     
 class AIModel:
+    """Generic base class for all AIModels and blueprints for how they should be defined. Use a subclass of this."""
+    
+    def __init__(self) -> None:
+        self._context: ReadableContext = ReadableContext()
+    
+    @property
+    def model(self) -> str:
+        return "AIModel"
+    
+    @property
+    def display_name(self):
+        return "AI Model"
+    
+    @property
+    def context(self) -> ReadableContext:
+        return self._context
+    
+    async def start_chat(self) -> None:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def ask_model(self, query: str) -> AIResponse:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk, None]:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def generate_image(self, *args, **kwargs) -> AIImageResponse:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    def __repr__(self):
+        return f"<{self.__name__} display_name={self.display_name}, model={self.model}>"
+    
+    def __str__(self) -> str:
+        return self.model
 
-    model: types.AIModels = 'gpt-3.5-turbo'
-    display_name: str = ""
-    description: str = ""
-    _api_key: str = "openai_api_key"
-    
-    @classmethod
-    def tokeniser(cls) -> tiktoken.Encoding:
-        """The encoding used to calculate the amount of tokens used."""
-        return tiktoken.encoding_for_model(cls.model)
-    
-    @classmethod
-    def __repr__(cls):
-        return f"<{cls.__name__} display_name={cls.display_name}, model={cls.model}>"
-    
-    @classmethod
-    def __str__(cls) -> str:
-        return cls.model
-    
-    @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIQueryResponse:
-        raise NotImplementedError
-    
-    @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        raise NotImplementedError
-    
-    @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2") -> AIImageResponse:
-        raise NotImplementedError
-    
-class GPT3Turbo(AIModel):
-    """Generative Pre-Trained Transformer 3.5 Turbo (gpt-3.5-turbo)"""
+# GPT AI Code
 
-    model: types.AIModels = "gpt-3.5-turbo-16k"
-    display_name: str = "GPT 3.5 Turbo"
-    description: str = "Good for generating text and general usage. Cost-effective."
-    _api_key: str = "openai_api_key"
+class GPTConversationContext:
+    """Class that contains a users conversation history / context with a GPT Model."""
+    def __init__(self) -> None:
+        """Class that contains a users conversation history / context with a GPT Model."""
+        self._display_context, self._context = [], []
+        
+    @property
+    def context(self) -> list:
+        return self._context   
     
-    @classmethod
-    def __eq__(cls, __value: AIModel) -> bool:
-        return cls.model == __value.model
+    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+        
+        data_query = {"role": user_type, "content": query}
+        data_reply = {"role": "assistant", "content": answer}
+        
+        self._context.extend([data_query, data_reply])
+        self._display_context.append([data_query, data_reply]) # Add as whole
+        
+        return self._context
     
-    @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIQueryResponse:
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
+    def add_image_entry(self, prompt: str, image_url: str) -> list:
+        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
+        self._display_context.append(interaction_data)
+        return self._display_context
     
-    @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser(), cls.model, **kwargs)
-            
-    @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
-        return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
+    def get_temporary_context(self, query: str, user_type: str="user"):
+
+        data = {"content": query, "role": user_type}
+        _temp_context = self._context.copy()
+        _temp_context.append(data)
+        
+        return _temp_context
+    
+class GPTModel(AIModel):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self._tokeniser = tiktoken.encoding_for_model(self.model)
+        self._gpt_context: GPTConversationContext | None = None
+    
+    def _check_internal_context(self) -> bool:
+        return isinstance(self._gpt_context, GPTConversationContext) == True
+    
+    @property
+    def tokeniser(self) -> tiktoken.Encoding:
+        return self._tokeniser
+    
+    async def start_chat(self) -> None:
+        self._gpt_context = GPTConversationContext()
+    
+    async def ask_model(self, query: str) -> AIResponse:
+        if self._check_internal_context:
+            raise NotImplemented("Use a subclass of GPTModel.")
+        raise TypeError("Internal chat context undefined. Did you call `start_chat` before calling this method?")
+    
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk, None]:
+        if self._check_internal_context:
+            raise NotImplemented("Use a subclass of GPTModel.")
+        raise TypeError("Internal chat context undefined. Did you call `start_chat` before calling this method?")
+    
+    async def generate_image(self, *args, **kwargs) -> AIImageResponse:
+        if self._check_internal_context:
+            raise NotImplemented("Use a subclass of GPTModel.")
+        raise TypeError("Internal chat context undefined. Did you call `start_chat` before calling this method?")
+    
+class GPT3Turbo(GPTModel):
+    
+    @property
+    def model(self) -> str:
+        return "gpt-3.5-turbo"
+    
+    @property
+    def display_name(self) -> str:
+        return "GPT 3.5 Turbo"
+
+    # TODO: Use _gpt_image_base and other respective functions for all methods below
+    async def ask_model(self, query: str) -> AIResponse:
+        await super().ask_model(query)
+        ...
+    
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk, None]:
+        await super().ask_model_stream(query)
+        ...
+    
+    async def generate_image(self, *args, **kwargs) -> AIImageResponse:
+        await super().generate_image(*args, **kwargs)
+        ...
     
 class GPT4(AIModel):
-    """Generative Pre-Trained Transformer 4 (gpt-4)"""
-
-    model: types.AIModels = "gpt-4"
-    display_name: str = "GPT 4"
-    description: str = "Better than GPT 3 Turbo at everything. Would stay with GPT 3 for most purposes-- Can get expensive."
-    _api_key = "openai_api_key"
-    
-    @classmethod 
-    def __eq__(cls, __value: AIModel) -> bool:
-        return cls.model == __value.model
-
-    @classmethod
-    async def __askmodel__(cls, query: str, context: GPTConversationContext | None, role: str="user", save_message: bool=True, **kwargs) -> AIQueryResponse:
-        return await _gpt_ask_base(query, context, confighandler.get_api_key(cls._api_key), role, save_message, cls.model, **kwargs)
-    
-    @classmethod
-    def __askmodelstream__(cls, query: str, context: GPTConversationContext, role: str="user", **kwargs) -> AsyncGenerator[tuple[str, int], None]:
-        return _gpt_ask_stream_base(query, context, confighandler.get_api_key(cls._api_key), role, cls.tokeniser(), cls.model, **kwargs)
-            
-    @classmethod
-    async def __imagegenerate__(cls, prompt: str, resolution: types.Resolution="256x256", image_engine: types.ImageEngine="dall-e-2",) -> AIImageResponse:
-        return await _gpt_image_base(prompt, resolution, image_engine, confighandler.get_api_key(cls._api_key))
-    
+    # TODO: Basically copy and paste GPT 3 code but change model param to gpt-4 instead of gpt-3.5-turbo (in xxx_base functions at top of files)
+    ...
     
 GPTModelType = GPT3Turbo | GPT4
 registered_models = {
