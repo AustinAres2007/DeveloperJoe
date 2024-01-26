@@ -502,5 +502,5 @@ def main(keys: dict[str, str]):
         pass
 
 if __name__ == "__main__":
-    common.send_fatal_error_warning(f"Please use main.py to run {confighandler.get_config('bot_name')} or call the main() function.")
+    common.send_fatal_error_warning(f"Please use the bot script to run {confighandler.get_config('bot_name')}.")
     
