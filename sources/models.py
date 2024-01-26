@@ -1,18 +1,16 @@
 from httpx import ReadTimeout
-from numpy import isin
 import tiktoken, json, tiktoken, openai
-from sources import confighandler
 
 from typing import (
     Any,
     AsyncGenerator
 )
-
-from .chat import GPTConversationContext
-
 from .common import (
     developerconfig,
     types
+)
+from . import (
+    confighandler
 )
 
 from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
@@ -160,10 +158,51 @@ class AIQueryResponseChunk(AIResponse):
     def finish_reason(self) -> str:
         return self.raw["choices"][0]["finish_reason"]
 
+# Contexts
+
 class ReadableContext:
     ...
+
+# GPT Contexts
+
+class GPTConversationContext:
+    """Class that contains a users conversation history / context with a GPT Model."""
+    def __init__(self) -> None:
+        """Class that contains a users conversation history / context with a GPT Model."""
+        self._display_context, self._context = [], []
+        
+    @property
+    def context(self) -> list:
+        return self._context   
     
+    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+        
+        data_query = {"role": user_type, "content": query}
+        data_reply = {"role": "assistant", "content": answer}
+        
+        self._context.extend([data_query, data_reply])
+        self._display_context.append([data_query, data_reply]) # Add as whole
+        
+        return self._context
+    
+    def add_image_entry(self, prompt: str, image_url: str) -> list:
+        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
+        self._display_context.append(interaction_data)
+        return self._display_context
+    
+    def get_temporary_context(self, query: str, user_type: str="user"):
+
+        data = {"content": query, "role": user_type}
+        _temp_context = self._context.copy()
+        _temp_context.append(data)
+        
+        return _temp_context
+
+
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
+
+def generate_empty_context(query: str) -> list:
+    return [{"role": "user", "content": query}]
 
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
     actual_data: dict = data if isinstance(data, dict) else json.loads(data)
@@ -181,22 +220,22 @@ def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
 
 def _handle_error(response: AIErrorResponse) -> None:
     raise DGException(response.error_message, response.error_code)
-       
-async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_key: str, role: str="user", save_message: bool=True, model: types.AIModels="gpt-3.5-turbo-16k") -> AIQueryResponse:
-    temp_context: list = context.get_temporary_context(query, role) if context else [{"role": role, "content": query}]
+    
+async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: types.AIModels, api_key: str, **kwargs) -> AIQueryResponse:
+    temp_context: list = context.get_temporary_context(query, "user") if context else generate_empty_context(query)
     
     if not isinstance(context, GPTConversationContext | None):
         raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(context)))
     
     try:
         async with openai.AsyncOpenAI(api_key=api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
-            _reply = await async_openai_client.chat.completions.create(model=model, messages=temp_context)
+            _reply = await async_openai_client.chat.completions.create(model=model, messages=temp_context, **kwargs)
             response = _response_factory(_reply.model_dump_json())
             
             if isinstance(response, AIErrorResponse):
                 _handle_error(response)
             elif isinstance(response, AIQueryResponse):
-                if save_message and context:
+                if isinstance(context, GPTConversationContext):
                     context.add_conversation_entry(query, str(response.response), "user")
                     
                 return response
@@ -206,14 +245,34 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None, api_
     
     raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     
-async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_key: str, role: str, tokenizer: tiktoken.Encoding, model: str, **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+async def _gpt_ask_stream_base(
+    query: str, 
+    context: GPTConversationContext | None, 
+    model: str, 
+    api_key: str, 
+    **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    
+    """Streams a response from the AI. This is not meant to be used directly.
+
+    Raises:
+        TypeError: If a chunk of a response is not of type AIErrorResponse or AIQueryResponse.
+        DGException: If the API key is invalid.
+        GPTReachedLimit: If the response has reached the token limit.
+        GPTContentFilter: If the response has been filtered by the content filter for explicit terms. 
+
+    Returns:
+        _type_: None
+
+    Yields:
+        _type_: A tuple containing the response and the amount of tokens used.
+    """
+    tokenizer = tiktoken.encoding_for_model(model)
     total_tokens = len(tokenizer.encode(query))
     replied_content = ""
 
     add_history = True
-    
-    history: list = context.get_temporary_context(query, role)
-    
+    history: list = context.get_temporary_context(query, "user") if context else generate_empty_context(query)
+
     def _is_valid_chunk(chunk_data: str) -> bool:
         try:
             # NOTE: json.loads can take byte array
@@ -223,45 +282,52 @@ async def _gpt_ask_stream_base(query: str, context: GPTConversationContext, api_
                 return False
         except:
             return False
-    
+
     async def _get_streamed_response() -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse, None]:
-        async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
-            _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True)
+        try:
+            async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+                _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True, **kwargs)
+
+                async for raw_chunk in _reply.response.aiter_text():
+                    readable_chunks = filter(
+                        _is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
+                    for chunk_text in readable_chunks:
+                        chunk = _response_factory(chunk_text)
+
+                        if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
+                            yield chunk
+                        else:
+                            raise TypeError(
+                                "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
+                            
+        except openai.AuthenticationError:
+            raise DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
         
-            async for raw_chunk in _reply.response.aiter_text():
-                readable_chunks = filter(_is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
-                for chunk_text in readable_chunks:
-                    chunk = _response_factory(chunk_text)
-                    
-                    if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
-                        yield chunk
-                    else:
-                        raise TypeError("Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
-                
     readable_chunks = _get_streamed_response()
-    
+
     async for chunk in readable_chunks:
         if isinstance(chunk, AIErrorResponse):
             _handle_error(chunk)
         else:
             stop_reason = chunk.finish_reason
-            
+
             if stop_reason == None:
-                c_token = chunk.response 
+                c_token = chunk.response
                 replied_content += c_token
                 total_tokens += len(tokenizer.encode(c_token))
 
                 yield (c_token, total_tokens)
+                
             elif stop_reason == "length":
                 add_history = False
                 raise GPTReachedLimit()
 
             elif stop_reason == "content_filter":
                 add_history = False
-                raise GPTContentFilter(kwargs["content"])
+                raise GPTContentFilter(query)
 
-    if add_history == True:
-        context.add_conversation_entry(query, replied_content, role)
+    if add_history == True and isinstance(context, GPTConversationContext):
+        context.add_conversation_entry(query, replied_content, "user")
 
 async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
@@ -312,39 +378,6 @@ class AIModel:
         return self.model
 
 # GPT AI Code
-
-class GPTConversationContext:
-    """Class that contains a users conversation history / context with a GPT Model."""
-    def __init__(self) -> None:
-        """Class that contains a users conversation history / context with a GPT Model."""
-        self._display_context, self._context = [], []
-        
-    @property
-    def context(self) -> list:
-        return self._context   
-    
-    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
-        
-        data_query = {"role": user_type, "content": query}
-        data_reply = {"role": "assistant", "content": answer}
-        
-        self._context.extend([data_query, data_reply])
-        self._display_context.append([data_query, data_reply]) # Add as whole
-        
-        return self._context
-    
-    def add_image_entry(self, prompt: str, image_url: str) -> list:
-        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
-        self._display_context.append(interaction_data)
-        return self._display_context
-    
-    def get_temporary_context(self, query: str, user_type: str="user"):
-
-        data = {"content": query, "role": user_type}
-        _temp_context = self._context.copy()
-        _temp_context.append(data)
-        
-        return _temp_context
     
 class GPTModel(AIModel):
     
@@ -381,7 +414,7 @@ class GPTModel(AIModel):
 class GPT3Turbo(GPTModel):
     
     @property
-    def model(self) -> str:
+    def model(self) -> types.AIModels:
         return "gpt-3.5-turbo"
     
     @property
@@ -391,15 +424,15 @@ class GPT3Turbo(GPTModel):
     # TODO: Use _gpt_image_base and other respective functions for all methods below
     async def ask_model(self, query: str) -> AIResponse:
         await super().ask_model(query)
-        ...
+        return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
     
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[tuple[str, int], None]:
         await super().ask_model_stream(query)
-        ...
+        return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
     
-    async def generate_image(self, *args, **kwargs) -> AIImageResponse:
+    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
         await super().generate_image(*args, **kwargs)
-        ...
+        return await _gpt_image_base(image_prompt, "512x512", "dall-e-2", confighandler.get_api_key("openai_api_key"))
     
 class GPT4(AIModel):
     # TODO: Basically copy and paste GPT 3 code but change model param to gpt-4 instead of gpt-3.5-turbo (in xxx_base functions at top of files)
