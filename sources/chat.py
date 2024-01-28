@@ -163,13 +163,14 @@ class DGChat:
         except TimeoutError:
             raise exceptions.GPTTimeoutError()
 
-    async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
+    async def __generate_image__(self, prompt: str, save_message: bool=True, **kwargs) -> models.AIImageResponse:
         # Required Arguments: Prompt (String < 1000 chars), Size (String)
         try:
             # FIXME: Waiting to be transfered to new model system
+            # TODO: Move to `generate_image`. Only used there.
             
-            response = await self.model.generate_image("Cat doing a backflip")
-            if response.is_image == True:
+            response = await self.model.generate_image(prompt, resolution="512x512")
+            if response.is_image == True and save_message:
                 self.context.add_image_entry(kwargs["prompt"], response.image_url if response.image_url else "Empty")
         except _openai.BadRequestError:
             raise exceptions.GPTContentFilter(kwargs["prompt"])
@@ -378,7 +379,7 @@ class DGTextChat(DGChat):
         if self.model.can_generate_images == False:
             raise exceptions.DGException(f"{self.model} does not support image generation.")
         
-        return await self.__generate_image__(query_type="image", prompt=prompt, size=resolution, n=1)
+        return await self.__generate_image__(prompt=prompt, size=resolution)
     
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
