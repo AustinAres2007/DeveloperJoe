@@ -142,12 +142,12 @@ class DeveloperJoe(commands.Bot):
         """
         return self.chats[member.id]
     
-    def get_user_has_permission(self, member: discord.Member, model: models.GPTModelType) -> bool:
+    def get_user_has_permission(self, member: discord.Member, model: models.AIModelType) -> bool:
         """Return if the user has permission to user a model
 
         Args:
             member (Union[discord.Member, None]): The member to be checked
-            model (GPTModelType): The model to try the user agaisnt.
+            model (AIModelType): The model to try the user agaisnt.
 
         Returns:
             bool: True if the user has correct permissions, False if not.

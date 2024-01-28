@@ -12,9 +12,7 @@ from sources import (
     exceptions, 
     chat,
     errors,
-    history,
-    confighandler,
-    models
+    confighandler
 )
 from sources.common import (
     commands_utils,
@@ -31,13 +29,13 @@ class Communication(commands.Cog):
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
                                    ai_model="The model being used for the AI (GPT 3 or GPT 4)",
-                                   in_thread=f"If you want a dedi   cated private thread to talk with {confighandler.get_config('bot_name')} in.",
+                                   in_thread=f"If you want a dedicated private thread to talk with {confighandler.get_config('bot_name')} in.",
                                    speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {confighandler.get_config('bot_name')} will join and speak your replies.",
-                                   is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default.",
-                                   silent="Dictates weather a welcome message will be provided upon /start being sent. By default it is true and a welcome message will not be sent. Chats will start a lot quicker."
+                                   is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
+                                   
     )
     @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, silent: bool=True):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
@@ -67,7 +65,7 @@ class Communication(commands.Cog):
                     await chat_thread.add_user(member)
                     await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
                     
-            chat_args = (member, self.client, confighandler.get_api_key(actual_model._api_key), actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
+            chat_args = (member, self.client, actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
             
             if speak_reply == False:
                 convo = chat.DGTextChat(*chat_args)
@@ -81,12 +79,11 @@ class Communication(commands.Cog):
                 convo = chat.DGTextChat(*chat_args)
             
             await interaction.response.defer(ephemeral=False, thinking=True)
-            ai_welcome = await convo.start(silent)
+            await convo.start()
             
-            if not ai_welcome or len(ai_welcome.response) > 1500:
-                ai_welcome = "Started chat."
+            ai_welcome = f"Started chat. {convo}"
                 
-            welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {actual_model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
+            welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
             await interaction.followup.send(welcome, ephemeral=False)
     
         if self.client.get_user_has_permission(member, actual_model):
@@ -169,15 +166,14 @@ class Communication(commands.Cog):
             raise exceptions.UserDoesNotHaveAnyChats()
         
     @discord.app_commands.command(name="image", description="Create an image with specified parameters.")
-    @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", resolution="Resolution of the final image.", save_to="What chat you want to save the image history too. (For exporting)")
-    @discord.app_commands.choices(resolution=developerconfig.IMAGE_SIZE_CHOICES) 
-    async def image_generate(self, interaction: discord.Interaction, prompt: str, resolution: str, save_to: str=""):
+    @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", save_to="What chat you want to save the image history too. (For exporting)") 
+    async def image_generate(self, interaction: discord.Interaction, prompt: str, save_to: str=""):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, save_to)
 
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        image = await convo.generate_image(prompt, resolution)
+        image = await convo.generate_image(prompt)
         result = f"Created Image at {datetime.datetime.fromtimestamp(image.timestamp)}\nImage Link: {image.image_url}"
         return await interaction.followup.send(result, ephemeral=False)
 

@@ -51,7 +51,9 @@ class General(_Cog):
     @discord.app_commands.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
     async def get_models(self, interaction: discord.Interaction):
         embed = self.client.get_embed("GPT Models")
-        [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in models.registered_models.values()]
+        model_values = models.registered_models.values()
+
+        [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in model_values]
         await interaction.response.send_message(embed=embed)
     
     @discord.app_commands.command(name="permtest", description="Tests permission decorator.")

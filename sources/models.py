@@ -13,17 +13,19 @@ from . import (
     confighandler
 )
 
-from .exceptions import GPTContentFilter, GPTReachedLimit, DGException, GPTTimeoutError
+from .exceptions import DGException, GPTTimeoutError
 
 __all__ = [
     "AIModel",
     "GPT3Turbo",
     "GPT4",
-    "GPTModelType",
+    "AIModelType",
     "registered_models"
-]        
+]       
+missing_context = "Internal chat context undefined. Did you call `start_chat` before calling this method?"
 
 class AIResponse:
+    """Generic base class for an AI response"""
     
     def __init__(self, data: str | dict[Any, Any]={}) -> None:
         if not isinstance(data, str | dict):
@@ -86,8 +88,6 @@ class AIQueryResponse(AIResponse):
     @property
     def finish_reason(self) -> str:
         return self.raw["choices"][0]["finish_reason"]
-
-            
 
 class AIErrorResponse(AIResponse):
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
@@ -158,47 +158,74 @@ class AIQueryResponseChunk(AIResponse):
     def finish_reason(self) -> str:
         return self.raw["choices"][0]["finish_reason"]
 
+class AIEmptyResponseChunk(AIQueryResponseChunk):
+    
+    @property
+    def response(self) -> str:
+        return ""
+    
+    def __bool__(self):
+        return False
+    
+    def __len__(self):
+        return 0
+    
 # Contexts
 
 class ReadableContext:
-    ...
-
-# GPT Contexts
-
-class GPTConversationContext:
     """Class that contains a users conversation history / context with a GPT Model."""
     def __init__(self) -> None:
         """Class that contains a users conversation history / context with a GPT Model."""
-        self._display_context, self._context = [], []
+        self._display_context = []
         
     @property
     def context(self) -> list:
-        return self._context   
+        return self._display_context   
     
-    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+    def clear(self) -> None:
+        self._display_context.clear()
         
-        data_query = {"role": user_type, "content": query}
-        data_reply = {"role": "assistant", "content": answer}
+    def add_conversation_entry(self, query: str, answer: str) -> list:
         
-        self._context.extend([data_query, data_reply])
-        self._display_context.append([data_query, data_reply]) # Add as whole
+        data_query = {"role": "user", "content": query}
+        data_reply = {"role": "ai", "content": answer}
+        context_entry = [data_query, data_reply]
         
-        return self._context
+        self._display_context.append(context_entry) # Add as whole
+        
+        return context_entry
     
     def add_image_entry(self, prompt: str, image_url: str) -> list:
         interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
         self._display_context.append(interaction_data)
-        return self._display_context
+        return interaction_data
     
-    def get_temporary_context(self, query: str, user_type: str="user"):
+# GPT Contexts
+
+class GPTConversationContext:
+    def __init__(self) -> None:
+        super().__init__()
+        self._context = []
+    
+    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+        data_query = {"role": "user", "content": query}
+        data_reply = {"role": "assistant", "content": answer}
+        context_entry = [data_query, data_reply]
+        
+        self._context.extend(context_entry)
+        return context_entry
+
+    def clear(self) -> None:
+        self._context.clear()
+    
+    def get_temporary_context(self, query: str, user_type: str="user") -> list:
 
         data = {"content": query, "role": user_type}
         _temp_context = self._context.copy()
         _temp_context.append(data)
         
         return _temp_context
-
-
+    
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
 
 def generate_empty_context(query: str) -> list:
@@ -212,7 +239,10 @@ def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
     elif actual_data.get("data", False): # If the response is an image
         return AIImageResponse(data)
     elif actual_data.get("object", False) == "chat.completion.chunk":
-        return AIQueryResponseChunk(data)
+        if actual_data["choices"][0]["delta"] != {}:
+            return AIQueryResponseChunk(data)
+        return AIEmptyResponseChunk(data)
+    
     elif actual_data.get("id", False): # If the response is a query
         return AIQueryResponse(data)
     else:
@@ -250,7 +280,7 @@ async def _gpt_ask_stream_base(
     context: GPTConversationContext | None, 
     model: str, 
     api_key: str, 
-    **kwargs) -> AsyncGenerator[tuple[str, int], None]:
+    **kwargs) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
     
     """Streams a response from the AI. This is not meant to be used directly.
 
@@ -266,11 +296,6 @@ async def _gpt_ask_stream_base(
     Yields:
         _type_: A tuple containing the response and the amount of tokens used.
     """
-    tokenizer = tiktoken.encoding_for_model(model)
-    total_tokens = len(tokenizer.encode(query))
-    replied_content = ""
-
-    add_history = True
     history: list = context.get_temporary_context(query, "user") if context else generate_empty_context(query)
 
     def _is_valid_chunk(chunk_data: str) -> bool:
@@ -283,51 +308,25 @@ async def _gpt_ask_stream_base(
         except:
             return False
 
-    async def _get_streamed_response() -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse, None]:
-        try:
-            async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
-                _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True, **kwargs)
 
-                async for raw_chunk in _reply.response.aiter_text():
-                    readable_chunks = filter(
-                        _is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
-                    for chunk_text in readable_chunks:
-                        chunk = _response_factory(chunk_text)
+    try:
+        async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+            _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True, **kwargs)
 
-                        if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
-                            yield chunk
-                        else:
-                            raise TypeError(
-                                "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
-                            
-        except openai.AuthenticationError:
-            raise DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
-        
-    readable_chunks = _get_streamed_response()
+            async for raw_chunk in _reply.response.aiter_text():
+                readable_chunks = filter(
+                    _is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
+                for chunk_text in readable_chunks:
+                    chunk = _response_factory(chunk_text)
 
-    async for chunk in readable_chunks:
-        if isinstance(chunk, AIErrorResponse):
-            _handle_error(chunk)
-        else:
-            stop_reason = chunk.finish_reason
-
-            if stop_reason == None:
-                c_token = chunk.response
-                replied_content += c_token
-                total_tokens += len(tokenizer.encode(c_token))
-
-                yield (c_token, total_tokens)
-                
-            elif stop_reason == "length":
-                add_history = False
-                raise GPTReachedLimit()
-
-            elif stop_reason == "content_filter":
-                add_history = False
-                raise GPTContentFilter(query)
-
-    if add_history == True and isinstance(context, GPTConversationContext):
-        context.add_conversation_entry(query, replied_content, "user")
+                    if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
+                        yield chunk
+                    else:
+                        raise TypeError(
+                            "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
+                        
+    except openai.AuthenticationError:
+        raise DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
 
 async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
@@ -344,38 +343,47 @@ async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engin
 class AIModel:
     """Generic base class for all AIModels and blueprints for how they should be defined. Use a subclass of this."""
     
+    model: types.AIModels = "AIModel"
+    display_name: str = "AI Model"
+    description: str | None = None
+
     def __init__(self) -> None:
         self._context: ReadableContext = ReadableContext()
-    
-    @property
-    def model(self) -> str:
-        return "AIModel"
-    
-    @property
-    def display_name(self):
-        return "AI Model"
     
     @property
     def context(self) -> ReadableContext:
         return self._context
     
-    async def start_chat(self) -> None:
+    @property
+    def can_talk(self) -> bool:
+        return False
+    @property
+    def can_stream(self) -> bool:
+        return False
+    @property
+    def can_generate_images(self) -> bool:
+        return False
+    
+    def clear_context(self) -> None:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    async def ask_model(self, query: str) -> AIResponse:
+    def start_chat(self) -> None:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk, None]:
+    async def ask_model(self, query: str) -> AIQueryResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    async def generate_image(self, *args, **kwargs) -> AIImageResponse:
+    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
     def __repr__(self):
         return f"<{self.__name__} display_name={self.display_name}, model={self.model}>"
     
     def __str__(self) -> str:
-        return self.model
+        return self.display_name
 
 # GPT AI Code
     
@@ -387,59 +395,87 @@ class GPTModel(AIModel):
         self._gpt_context: GPTConversationContext | None = None
     
     def _check_internal_context(self) -> bool:
+        print(self._gpt_context)
         return isinstance(self._gpt_context, GPTConversationContext) == True
     
     @property
     def tokeniser(self) -> tiktoken.Encoding:
         return self._tokeniser
     
-    async def start_chat(self) -> None:
+    @property
+    def can_talk(self) -> bool:
+        return True
+    @property
+    def can_stream(self) -> bool:
+        return True
+    @property
+    def can_generate_images(self) -> bool:
+        return True
+    
+    def clear_context(self) -> None:
+        if self._check_internal_context():
+            self._gpt_context.clear() # type: ignore shutup, that is what the check is for.
+            self.context.clear()
+            
+        raise TypeError(missing_context)
+    
+    def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
     
-    async def ask_model(self, query: str) -> AIResponse:
-        if self._check_internal_context:
-            raise NotImplemented("Use a subclass of GPTModel.")
-        raise TypeError("Internal chat context undefined. Did you call `start_chat` before calling this method?")
+    async def ask_model(self, query: str) -> AIQueryResponse:
+        raise NotImplemented("Use a subclass of GPTModel.")
     
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk, None]:
-        if self._check_internal_context:
-            raise NotImplemented("Use a subclass of GPTModel.")
-        raise TypeError("Internal chat context undefined. Did you call `start_chat` before calling this method?")
+    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+        raise NotImplemented("Use a subclass of GPTModel.")
     
-    async def generate_image(self, *args, **kwargs) -> AIImageResponse:
-        if self._check_internal_context:
-            raise NotImplemented("Use a subclass of GPTModel.")
-        raise TypeError("Internal chat context undefined. Did you call `start_chat` before calling this method?")
+    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
+        raise NotImplemented("Use a subclass of GPTModel.")
     
 class GPT3Turbo(GPTModel):
     
-    @property
-    def model(self) -> types.AIModels:
-        return "gpt-3.5-turbo"
-    
-    @property
-    def display_name(self) -> str:
-        return "GPT 3.5 Turbo"
+    model: types.AIModels = "gpt-3.5-turbo"
+    description = "Cost effective, smart, image generation. Everything normal users need."
+    display_name = "GPT 3.5 Turbo"
 
     # TODO: Use _gpt_image_base and other respective functions for all methods below
-    async def ask_model(self, query: str) -> AIResponse:
-        await super().ask_model(query)
-        return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+    async def ask_model(self, query: str) -> AIQueryResponse:
+        if self._check_internal_context():
+            return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+        raise TypeError(missing_context)
     
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[tuple[str, int], None]:
-        await super().ask_model_stream(query)
-        return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+        if self._check_internal_context():
+            return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+        raise TypeError(missing_context)
     
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
-        await super().generate_image(*args, **kwargs)
-        return await _gpt_image_base(image_prompt, "512x512", "dall-e-2", confighandler.get_api_key("openai_api_key"))
+        if self._check_internal_context():
+            return await _gpt_image_base(image_prompt, kwargs.get("resolution", "512x512"), "dall-e-2", confighandler.get_api_key("openai_api_key"))
+        raise TypeError(missing_context)
     
-class GPT4(AIModel):
-    # TODO: Basically copy and paste GPT 3 code but change model param to gpt-4 instead of gpt-3.5-turbo (in xxx_base functions at top of files)
-    ...
+class GPT4(GPTModel):
     
-GPTModelType = GPT3Turbo | GPT4
-registered_models = {
+    model = "gpt-4"
+    description = "Slightly better at everything that GPT-3 does, costs more. For normal use, use GPT-3."
+    display_name = "GPT 4"
+    
+    async def ask_model(self, query: str) -> AIQueryResponse:
+        if self._check_internal_context():
+            return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+        raise TypeError(missing_context)
+    
+    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+        if self._check_internal_context():
+            return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+        raise TypeError(missing_context)   
+    
+    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
+        if self._check_internal_context():
+            return await _gpt_image_base(image_prompt, kwargs.get("resolution", "512x512"), "dall-e-3", confighandler.get_api_key("openai_api_key"))
+        raise TypeError(missing_context)
+    
+AIModelType = type(GPT3Turbo) | type(GPT4)
+registered_models: dict[str, AIModelType] = {
     "gpt-4": GPT4,
     "gpt-3.5-turbo": GPT3Turbo
 }

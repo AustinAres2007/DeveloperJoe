@@ -64,7 +64,7 @@ def is_correct_channel(channel: typing.Any) -> developerconfig.InteractableChann
         return channel
     raise exceptions.IncorrectInteractionSetting(channel, developerconfig.InteractableChannel)
 
-def get_modeltype_from_name(name: str) -> models.GPTModelType:
+def get_modeltype_from_name(name: str) -> models.AIModelType:
     """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
     if name in list(models.registered_models):
         return models.registered_models[name]

@@ -17,7 +17,8 @@ from . import (
     confighandler, 
     history, 
     ttsmodels,
-    models
+    models,
+    exceptions
 )
 from .common import (
     decorators,
@@ -32,23 +33,48 @@ if TYPE_CHECKING:
 
 from .voice import voice_client, reader
 
+_openai.api_key = confighandler.get_api_key("openai_api_key")
 __all__ = [
     "DGTextChat",
     "DGVoiceChat"
 ]
     
 
-        
-class DGChats:
+"""
+async for chunk in readable_chunks:
+        if isinstance(chunk, AIErrorResponse):
+            _handle_error(chunk)
+        else:
+            stop_reason = chunk.finish_reason
+
+            if stop_reason == None:
+                c_token = chunk.response
+                replied_content += c_token
+                total_tokens += len(tokenizer.encode(c_token))
+
+                yield (c_token, total_tokens)
+                
+            elif stop_reason == "length":
+                add_history = False
+                raise GPTReachedLimit()
+
+            elif stop_reason == "content_filter":
+                add_history = False
+                raise GPTContentFilter(query)
+
+    if add_history == True and isinstance(context, GPTConversationContext):
+        context.add_conversation_entry(query, replied_content, "user")
+""" # TODO: Implement into ask_stream
+    
+class DGChat:
         
     def __init__(self,
                 member:  discord.Member, 
                 bot_instance: DeveloperJoe,
-                openai_token: str, 
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -62,7 +88,7 @@ class DGChats:
             name (str): _description_
             stream (bool): _description_
             display_name (str): _description_
-            model (models.GPTModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
+            model (models.AIModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
             associated_thread (_Union[discord.Thread, None], optional): _description_. Defaults to None.
             is_private (bool, optional): _description_. Defaults to True.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): _description_. Defaults to None.
@@ -74,13 +100,16 @@ class DGChats:
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + member.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
         self.last_channel: developerconfig.InteractableChannel | None = None
-        self.oapi = openai_token
 
         self.name = name
         self.display_name = display_name
         self.stream = stream
 
-        self.model = model if isinstance(model, models.GPTModelType) else commands_utils.get_modeltype_from_name(model)
+        if isinstance(model, models.AIModelType):
+            self.model: models.AIModelType = model() # type: ignore shutup I did the check
+        else:
+            self.model: models.AIModelType = commands_utils.get_modeltype_from_name(model)()
+            
         self.tokens = 0
 
         self._private, self._is_active, self.is_processing = is_private, True, False
@@ -93,7 +122,6 @@ class DGChats:
         self.proc_packet, self._is_speaking = False, False
         
         self.voice_tss_queue: list[str] = []
-        _openai.api_key = self.oapi
     
     @property
     def is_active(self) -> bool:
@@ -115,13 +143,13 @@ class DGChats:
     def private(self, is_p: bool):
         self._private = is_p
             
-    async def __send_query__(self, query_type: str, save_message: bool=True, **kwargs) -> models.AIQueryResponse:
+    async def __send_query__(self, query: str, save_message: bool=True) -> models.AIQueryResponse:
         self.is_processing = True
         # Put necessary variables here (Doesn't matter weather streaming or not)
         # Reply format: ({"content": "Reply content", "role": "assistent"})
         
         try:
-            response: models.AIQueryResponse = await self.model.__askmodel__(kwargs["content"], self.context, "user", save_message)
+            response: models.AIQueryResponse = await self.model.ask_model(query)
             # FIXME: Waiting to be transfered to new model system
             
             if save_message:
@@ -134,44 +162,19 @@ class DGChats:
             return await self.bot.close()
         except TimeoutError:
             raise exceptions.GPTTimeoutError()
-        
-        return response
 
     async def __generate_image__(self, save_message: bool=True, **kwargs) -> models.AIImageResponse:
         # Required Arguments: Prompt (String < 1000 chars), Size (String)
         try:
             # FIXME: Waiting to be transfered to new model system
             
-            response = await self.model.__imagegenerate__("Cat doing a backflip", "1024x1024", "dall-e-2")
+            response = await self.model.generate_image("Cat doing a backflip")
             if response.is_image == True:
                 self.context.add_image_entry(kwargs["prompt"], response.image_url if response.image_url else "Empty")
         except _openai.BadRequestError:
             raise exceptions.GPTContentFilter(kwargs["prompt"])
         
         return response
-    
-    async def __stream_send_query__(self, query: str, save_message: bool=True, **kwargs) -> _AsyncGenerator[str, None]:
-        # FIXME: Waiting to be transfered to new model system
-        
-        self.is_processing = True
-        try:
-            tokens = 0
-            ai_reply = self.model.__askmodelstream__(query, self.context, "user", **kwargs)
-            async for chunk, token in ai_reply:
-                tokens += token
-                yield chunk
-                
-        except exceptions.GPTReachedLimit as e:
-            self.is_active = False
-            raise e
-        except AttributeError:
-            self.is_active = False
-            raise exceptions.DGException("This model does not support streaming.")
-        finally:
-            self.is_processing = False
-        
-        if save_message:
-            self.tokens += tokens
     
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
@@ -185,6 +188,7 @@ class DGChats:
     async def start(self) -> None:
         self.bot.add_conversation(self.member, self.display_name, self)
         self.bot.set_default_conversation(self.member, self.display_name)
+        self.model.start_chat()
 
     def clear(self) -> None:
         raise NotImplementedError
@@ -247,16 +251,15 @@ class DGChats:
     def __str__(self) -> str:
         return self.display_name
 
-class DGTextChat(DGChats):
+class DGTextChat(DGChat):
     """Represents a text-only DG Chat."""
     def __init__(self, 
                 member: discord.Member,
                 bot_instance: DeveloperJoe,
-                _openai_token: str, 
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -269,14 +272,13 @@ class DGTextChat(DGChats):
             name (str): Name of the chat.
             stream (bool): Weather the chat will be streamed. (Like ChatGPT)
             display_name (str): What the display name of the chat will be.
-            model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
+            model (AIModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
             associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             is_private (bool): Weather the chat will be private (Only showable to the user) Defaults to True.
         """
         
         super().__init__(
             bot_instance=bot_instance,
-            openai_token=_openai_token,
             member=member,
             name=name,
             stream=stream,
@@ -308,10 +310,34 @@ class DGTextChat(DGChats):
     
     @decorators.check_enabled
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> str:
+        
+        if self.model.can_stream == False:
+            raise exceptions.DGException(f"{self.model} does not support streaming text.")
+        
         og_message = await channel.send(developerconfig.STREAM_PLACEHOLDER)
-                            
+        self.is_processing = True
+        
+        async def _stream_reply():
+            try:
+                ai_reply: _AsyncGenerator[models.AIQueryResponseChunk | models.AIErrorResponse, None] = self.model.ask_model_stream(query)
+                async for chunk in ai_reply:
+                    if isinstance(chunk, models.AIQueryResponseChunk):
+                        yield chunk.response
+                    
+                    elif isinstance(chunk, models.AIErrorResponse):
+                        models._handle_error(chunk)
+                    
+            except exceptions.GPTReachedLimit as e:
+                self.is_active = False
+                raise e
+            except AttributeError:
+                self.is_active = False
+                raise exceptions.DGException("This model does not support streaming.")
+            finally:
+                self.is_processing = False
+                
         msg: list[discord.Message] = [og_message]
-        reply = self.__stream_send_query__(query, True)
+        reply = _stream_reply()
         full_message = f"## {self.header}\n\n"
         i, start_message_at = 0, 0
         sendable_portion = "<>"
@@ -349,12 +375,18 @@ class DGTextChat(DGChats):
     
     @decorators.check_enabled
     async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
+        if self.model.can_generate_images == False:
+            raise exceptions.DGException(f"{self.model} does not support image generation.")
+        
         return await self.__generate_image__(query_type="image", prompt=prompt, size=resolution, n=1)
     
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
+        if self.model.can_talk == False:
+            raise exceptions.DGException(f"{self.model} cannot talk somehow.")
+        
         async with channel.typing():
-            reply = await self.__send_query__(query_type="query", role="user", content=query)
+            reply = await self.__send_query__(query)
             final_user_reply = f"## {self.header}\n\n{reply.response}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
@@ -365,22 +397,20 @@ class DGTextChat(DGChats):
                 
         return reply
             
-    async def start(self, silent: bool=True) -> models.AIQueryResponse | None:
+    async def start(self) -> None:
         """Sends a start query to GPT.
 
         Returns:
             str: The welcome message.
         """
         await super().start()
-        if not silent:
-            return await self.__send_query__(save_message=False, query_type="query", role="system", content=confighandler.get_config("starting_query"))
 
     def clear(self) -> None:
         """Clears the internal chat history."""
         # FIXME: Waiting to be transfered to new model system
-        
-        self.context._context.clear()
-        self.context._display_context.clear()
+
+        self.model.clear_context()
+        self.context.clear()
     
     async def stop(self, interaction: discord.Interaction, save_history: bool) -> str:
         """Stops the chat instance.
@@ -415,6 +445,9 @@ class DGTextChat(DGChats):
                 if isinstance(self.chat_thread, discord.Thread):
                     await self.chat_thread.delete()
                 return farewell
+            
+            # TODO: Return History ID instead of a message
+            
             except discord.Forbidden as e:
                 raise exceptions.DGException(f"I have not been granted suffient permissions to delete your thread in this server. Please contact the servers administrator(s).", e)
 
@@ -433,11 +466,10 @@ class DGVoiceChat(DGTextChat):
             self,
             member: discord.Member, 
             bot_instance: DeveloperJoe,
-            openai_token: str, 
             name: str,
             stream: bool,
             display_name: str, 
-            model: models.GPTModelType | str=confighandler.get_config('default_gpt_model'), 
+            model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
             associated_thread: _Union[discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -451,11 +483,11 @@ class DGVoiceChat(DGTextChat):
             name (str): Name of the chat.
             stream (bool): Weather the chat will be streamed. (Like ChatGPT)
             display_name (str): What the display name of the chat will be.
-            model (GPTModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
+            model (AIModelType, optional): Which GPT Model to use. Defaults to DEFAULT_GPT_MODEL.
             associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
-        super().__init__(member, bot_instance, openai_token, name, stream, display_name, model, associated_thread, is_private)
+        super().__init__(member, bot_instance, name, stream, display_name, model, associated_thread, is_private)
         self._voice = voice
         self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
@@ -649,4 +681,4 @@ class DGVoiceChat(DGTextChat):
     def __str__(self) -> str:
         return self.display_name
 
-DGChatType = DGTextChat | DGVoiceChat | DGChats
+DGChatType = DGTextChat | DGVoiceChat | DGChat
