@@ -56,11 +56,10 @@ class Communication(commands.Cog):
         
         # Actual Code
         
-        if in_thread:
-            if type(channel) == discord.TextChannel:
-                chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
-                await chat_thread.add_user(member)
-                await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here.")
+        if in_thread and type(channel) == discord.TextChannel:
+            chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
+            await chat_thread.add_user(member)
+            await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here.")
                 
         chat_args = (member, self.client, actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
         
@@ -77,10 +76,8 @@ class Communication(commands.Cog):
         
         await interaction.response.defer(ephemeral=False, thinking=True)
         await convo.start()
-        
-        ai_welcome = f"Started chat. {convo}"
             
-        welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
+        welcome = f"*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
         await interaction.followup.send(welcome, ephemeral=False)
         
     @discord.app_commands.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
@@ -147,8 +144,8 @@ class Communication(commands.Cog):
             if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
                 return await interaction.followup.send("Cencelled action.", ephemeral=False)
             
-            chat_len = len(self.client.get_all_user_conversations(member))
-            convos.clear()
+            chat_len = len(convos)
+            await self.client.delete_all_conversations(member)
             
             await interaction.followup.send(f"Deleted {chat_len} chat{'s.' if chat_len > 1 else '.'}")
         else:

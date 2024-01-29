@@ -218,6 +218,14 @@ class DeveloperJoe(commands.Bot):
         del self.chats[member.id][conversation_name]
         del self.default_chats[f"{member.id}-latest"]
 
+    async def delete_all_conversations(self, member: discord.Member) -> None:
+        
+        for convo in self.get_all_user_conversations(member).values():
+            await convo.model.end()
+            
+        self.chats[member.id].clear()
+        self.default_chats[f"{member.id}-latest"] = None
+        
     @decorators.chat_not_exist
     def add_conversation(self, member: discord.Member | discord.User, name: str, conversation: chat.DGChatType) -> None:
         """Adds a conversation to a users chat database.
@@ -442,7 +450,7 @@ class DeveloperJoe(commands.Bot):
 
                     self.start_time = datetime.datetime.now(tz=self.__tz__)
                     await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
-                    self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored∏
+                    self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored
                     
                     common.send_affirmative_text(f"{self.application.name} / {confighandler.get_config('bot_name')} Online.")
                     

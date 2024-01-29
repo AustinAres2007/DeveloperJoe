@@ -292,6 +292,8 @@ class DGTextChat(DGChat):
                     elif isinstance(chunk, models.AIErrorResponse):
                         models._handle_error(chunk)
                     
+                    # TODO: Must sort out stop_reason (If is ResponseChunk)
+                    
             except exceptions.GPTReachedLimit as e:
                 self.is_active = False
                 raise e

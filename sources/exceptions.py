@@ -50,12 +50,6 @@ class GuildExistsError(DGException):
     def __init__(self, guild: _discord.Guild, *args):
         super().__init__(self.reply, guild, *args)
 
-class UserNotAMember(DGException):
-    reply = errors.UserErrors.INCORRECT_USER_TYPE
-    def __init__(self, user: _discord.User, guild: _discord.Guild, *args):
-        """Will be raised if a user was once part of a guild, but no longer."""
-        super().__init__(self.reply.format(user, guild.name), user, guild, *args)
-
 class UserDoesNotHaveChat(DGException):
     reply = errors.ConversationErrors.NO_CONVO
     def __init__(self, name: _Union[str, None], *args):
@@ -84,12 +78,6 @@ class IncorrectInteractionSetting(DGException):
         """Will be raised if a user tries to send a command in wrong conditions"""
         super().__init__(self.reply, incorrect_object, correct_object, *args)
 
-class GPTReplyError(DGException):
-    reply = errors.GptErrors.GPT_PORTAL_ERROR
-    def __init__(self, server_reply: _Union[_httpx.Response, _Any], *args):
-        """Will be raised if an OpenAI error occurs."""
-        super().__init__(self.reply, server_reply, log_error=True, *args)
-
 class GPTContentFilter(DGException):
     reply = errors.GptErrors.GPT_CONTENT_FILTER
     def __init__(self, query: str, *args):
@@ -101,12 +89,6 @@ class ChatIsDisabledError(DGException):
     def __init__(self, chat, *args):
         """Will be raised if the users chat has been disabled for any reason."""
         super().__init__(self.reply, chat, *args)
-
-class ModelIsLockedError(DGException):
-    reply = errors.ModelErrors.MODEL_LOCKED
-    def __init__(self, model: str, *args):
-        """Will be raised if a user does not have access to a model they want to use."""
-        super().__init__(self.reply, model, log_error=True, send_exceptions=True, *args)
 
 class VoiceIsLockedError(DGException):
     reply = errors.VoiceConversationErrors.VOICE_IS_LOCKED
@@ -131,11 +113,7 @@ class HistoryNotExist(DGException):
         """Will be raised when a given history ID does not exist within the database."""
         super().__init__(self.reply, _id, *args)
 
-class InvalidHistoryOwner(DGException):
-    reply = errors.HistoryErrors.HISTORY_NOT_USERS
-    def __init__(self, _id: str):
-        """Will be raised when a user other than the owner of a private chat requests the transcript."""
-        super().__init__(self.reply, _id)
+# FIXME: remove unused exceptions and replace with generic
         
 class ChatChannelDoesntExist(DGException):
     reply = errors.ConversationErrors.CHANNEL_DOESNT_EXIST
