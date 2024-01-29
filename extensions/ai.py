@@ -39,56 +39,49 @@ class Communication(commands.Cog):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
-        actual_model = commands_utils.get_modeltype_from_name(ai_model)
-        
-        async def command():
-        
-            actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{member.display_name}"
-            chats = self.client.get_all_user_conversations(member)
-            name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
-            chat_thread: discord.Thread | None = None
-            
-            # Error Checking
-
-            if len(actual_name) > 39:
-                raise exceptions.DGException("The name of your chat must be less than 40 characters.", len(actual_name))
-            elif isinstance(chats, dict) and name in list(chats):
-                raise exceptions.DGException(errors.ConversationErrors.HAS_CONVO)
-            elif isinstance(chats, dict) and len(chats) > developerconfig.CHATS_LIMIT:
-                raise exceptions.DGException(errors.ConversationErrors.CONVO_LIMIT)
-            
-            # Actual Code
-            
-            if in_thread:
-                if type(channel) == discord.TextChannel:
-                    chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
-                    await chat_thread.add_user(member)
-                    await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here. I am still processing your chat request. So please wait a few moments.")
-                    
-            chat_args = (member, self.client, actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
-            
-            if speak_reply == False:
-                convo = chat.DGTextChat(*chat_args)
-            elif speak_reply and self.client.is_voice_compatible == False:
-                raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
-            elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(interaction.guild, "voice-enabled") == False:
-                raise exceptions.VoiceIsLockedError()
-            elif speak_reply and self.client.is_voice_compatible:
-                convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
-            else:
-                convo = chat.DGTextChat(*chat_args)
-            
-            await interaction.response.defer(ephemeral=False, thinking=True)
-            await convo.start()
-            
-            ai_welcome = f"Started chat. {convo}"
-                
-            welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
-            await interaction.followup.send(welcome, ephemeral=False)
     
-        if self.client.get_user_has_permission(member, actual_model):
-            return await command()
-        raise exceptions.ModelIsLockedError(ai_model)
+        actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{member.display_name}"
+        chats = self.client.get_all_user_conversations(member)
+        name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
+        chat_thread: discord.Thread | None = None
+        
+        # Error Checking
+
+        if len(actual_name) > 39:
+            raise exceptions.DGException("The name of your chat must be less than 40 characters.", len(actual_name))
+        elif isinstance(chats, dict) and name in list(chats):
+            raise exceptions.DGException(errors.ConversationErrors.HAS_CONVO)
+        elif isinstance(chats, dict) and len(chats) > developerconfig.CHATS_LIMIT:
+            raise exceptions.DGException(errors.ConversationErrors.CONVO_LIMIT)
+        
+        # Actual Code
+        
+        if in_thread:
+            if type(channel) == discord.TextChannel:
+                chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
+                await chat_thread.add_user(member)
+                await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here.")
+                
+        chat_args = (member, self.client, actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
+        
+        if speak_reply == False:
+            convo = chat.DGTextChat(*chat_args)
+        elif speak_reply and self.client.is_voice_compatible == False:
+            raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
+        elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(interaction.guild, "voice-enabled") == False:
+            raise exceptions.VoiceIsLockedError()
+        elif speak_reply and self.client.is_voice_compatible:
+            convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
+        else:
+            convo = chat.DGTextChat(*chat_args)
+        
+        await interaction.response.defer(ephemeral=False, thinking=True)
+        await convo.start()
+        
+        ai_welcome = f"Started chat. {convo}"
+            
+        welcome = f"{ai_welcome}\n\n*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
+        await interaction.followup.send(welcome, ephemeral=False)
         
     @discord.app_commands.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
@@ -98,22 +91,18 @@ class Communication(commands.Cog):
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
             conversation = self.client.manage_defaults(member, name)
             status = f'/help and "{message}"'
-            
-            if self.client.get_user_has_permission(member, conversation.model): # If user has model permission
 
-                await interaction.response.send_message("Thinking..")
-                
-                self.client.add_status(status, 2)
-                if stream == True or (conversation.stream == True and stream != False):
-                    
-                    await conversation.ask_stream(message, channel)
-                else:
-                    await conversation.ask(message, channel)
-                
-                self.client.remove_status(status)
-                return await interaction.delete_original_response()
+            await interaction.response.send_message("Thinking..")
             
-            raise exceptions.ModelIsLockedError(conversation.model.model)
+            self.client.add_status(status, 2)
+            if stream == True or (conversation.stream == True and stream != False):
+                
+                await conversation.ask_stream(message, channel)
+            else:
+                await conversation.ask(message, channel)
+            
+            self.client.remove_status(status)
+            return await interaction.delete_original_response()
 
     @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
     async def enabled_listening(self, interaction: discord.Interaction, listen: bool | None=None):
@@ -188,7 +177,6 @@ class Communication(commands.Cog):
 
         embeds = (
             {"name": "Started At", "value": str(convo.time), "inline": False},
-            {"name": "Used Tokens", "value": f"{convo.tokens} (An estimation, very likely inaccurate)", "inline": False},
             {"name": "Chat Length", "value": str(len(convo.context.context)), "inline": False},
             {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
             {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
@@ -227,15 +215,13 @@ class Communication(commands.Cog):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         actual_model = commands_utils.get_modeltype_from_name(gpt_model)
         
-        if self.client.get_user_has_permission(member, actual_model):
-            asked = await actual_model.ask_model(query)
+        async with actual_model(member) as model:
+            asked = await model.ask_model(query)
             reply = asked.response
-            
+        
             if reply and len(reply) >= 2000:
                 return await interaction.response.send_message(file=commands_utils.to_file(reply, "reply.txt"))
             return await interaction.response.send_message(reply)
-        
-        raise exceptions.ModelIsLockedError(actual_model.model)
     
 async def setup(client):
     await client.add_cog(Communication(client))

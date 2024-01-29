@@ -106,9 +106,9 @@ class DGChat:
         self.stream = stream
 
         if isinstance(model, models.AIModelType):
-            self.model: models.AIModelType = model() # type: ignore shutup I did the check
+            self.model: models.AIModelType = model(member) # type: ignore shutup I did the check
         else:
-            self.model: models.AIModelType = commands_utils.get_modeltype_from_name(model)()
+            self.model: models.AIModelType = commands_utils.get_modeltype_from_name(model)(member)
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
@@ -422,7 +422,7 @@ class DGTextChat(DGChat):
                 raise exceptions.CannotDeleteThread(self.chat_thread)
             try:
                 farewell = f"Ended chat: {self.display_name} with {confighandler.get_config('bot_name')}!"
-                self.bot.delete_conversation(member, self.display_name)
+                await self.bot.delete_conversation(member, self.display_name)
                 self.bot.reset_default_conversation(member)
                 
                 if save_history == True:

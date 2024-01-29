@@ -1,5 +1,5 @@
 from httpx import ReadTimeout
-import tiktoken, json, tiktoken, openai
+import tiktoken, json, tiktoken, openai, discord
 
 from typing import (
     Any,
@@ -10,7 +10,9 @@ from .common import (
     types
 )
 from . import (
-    confighandler
+    confighandler,
+    modelhandler,
+    errors
 )
 
 from .exceptions import DGException, GPTTimeoutError
@@ -22,8 +24,7 @@ __all__ = [
     "AIModelType",
     "registered_models"
 ]       
-missing_context = "Internal chat context undefined. Did you call `start_chat` before calling this method?"
-
+missing_perms = errors.ModelErrors.MODEL_LOCKED
 class AIResponse:
     """Generic base class for an AI response"""
     
@@ -351,8 +352,25 @@ class AIModel:
     can_stream = False
     can_generate_images = False
     
-    def __init__(self) -> None:
+    async def __aenter__(self):
+        self.start_chat()
+        return self
+    
+    async def __aexit__(self, blah, _blah, __blah) -> None:
+        await self.end()
+    
+    def _check_user_permissions(self):
+        return modelhandler.user_has_model_permissions(self.member, self)
+    
+    def __init__(self, member: discord.Member) -> None:
         self._context: ReadableContext = ReadableContext()
+        self.member = member
+        
+        if not self._check_user_permissions():
+            raise DGException(missing_perms)
+    
+    def is_init(self):
+        return isinstance(self._context, ReadableContext)
     
     @property
     def context(self) -> ReadableContext:
@@ -373,8 +391,8 @@ class AIModel:
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    def end(self) -> None:
-        del self
+    async def end(self) -> None:
+        pass
         
     def __repr__(self):
         return f"<{self.__name__} display_name={self.display_name}, model={self.model}>"
@@ -386,24 +404,22 @@ class AIModel:
     
 class GPTModel(AIModel):
     
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, member: discord.Member) -> None:
+        super().__init__(member)
         self._tokeniser = tiktoken.encoding_for_model(self.model)
         self._gpt_context: GPTConversationContext | None = None
     
-    def _check_internal_context(self) -> bool:
-        return isinstance(self._gpt_context, GPTConversationContext) == True
+    def is_init(self):
+        return isinstance(self._gpt_context, GPTConversationContext) and super().is_init()
     
     @property
     def tokeniser(self) -> tiktoken.Encoding:
         return self._tokeniser
     
     def clear_context(self) -> None:
-        if self._check_internal_context():
+        if self.is_init():
             self._gpt_context.clear() # type: ignore shutup, that is what the check is for.
             self.context.clear()
-            
-        raise TypeError(missing_context)
     
     def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
@@ -429,19 +445,20 @@ class GPT3Turbo(GPTModel):
     
     # TODO: Use _gpt_image_base and other respective functions for all methods below
     async def ask_model(self, query: str) -> AIQueryResponse:
-        if self._check_internal_context():
+        print(self._check_user_permissions())
+        if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
-        raise TypeError(missing_context)
+        raise DGException(missing_perms)
     
     def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
-        if self._check_internal_context():
+        if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
-        raise TypeError(missing_context)
+        raise DGException(missing_perms)
     
     async def generate_image(self, image_prompt: str) -> AIImageResponse:
-        if self._check_internal_context():
+        if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
-        raise TypeError(missing_context)
+        raise DGException(missing_perms)
     
 class GPT4(GPTModel):
     
@@ -454,19 +471,19 @@ class GPT4(GPTModel):
     can_generate_images = True
     
     async def ask_model(self, query: str) -> AIQueryResponse:
-        if self._check_internal_context():
+        if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
-        raise TypeError(missing_context)
+        raise DGException(missing_perms)
     
     def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
-        if self._check_internal_context():
+        if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
-        raise TypeError(missing_context)   
+        raise DGException(missing_perms)
     
     async def generate_image(self, image_prompt: str) -> AIImageResponse:
-        if self._check_internal_context():
+        if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
-        raise TypeError(missing_context)
+        raise DGException(missing_perms)
     
 AIModelType = type(GPT3Turbo) | type(GPT4)
 registered_models: dict[str, AIModelType] = {

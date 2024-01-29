@@ -53,12 +53,12 @@ class Listeners(commands.Cog):
         try:
             
             
-            async def respond_to_mention():
+            async def respond_to_mention(member: discord.Member):
                 model: models.AIModelType = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
                 
-                if self.client.get_user_has_permission(member, model):
+                async with model(member) as ai_model:
                     async with message.channel.typing():
-                        ai_reply = await model.ask_model(message.clean_content)
+                        ai_reply = await ai_model.ask_model(message.clean_content)
                     
                         if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
                             return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
@@ -70,30 +70,26 @@ class Listeners(commands.Cog):
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
                 
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
-                    print(convo)
                     if isinstance(channel := message.channel, discord.Thread):
-                        if self.client.get_user_has_permission(member, convo.model):
 
-                            thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
-                            content: str = message.content
-                            has_private_thread = thread and thread.is_private()
+                        thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
+                        content: str = message.content
+                        has_private_thread = thread and thread.is_private()
+                        
+                        if has_private_thread and convo.is_processing != True:
+                            if convo.stream == True:
+                                await convo.ask_stream(content, channel)
+                            else:
+                                await convo.ask(content, channel)
                             
-                            if has_private_thread and convo.is_processing != True:
-                                if convo.stream == True:
-                                    await convo.ask_stream(content, channel)
-                                else:
-                                    await convo.ask(content, channel)
-                                
-                            elif has_private_thread and convo.is_processing == True:
-                                raise exceptions.DGException(f"{confighandler.get_config('bot_name')} is still processing your last request.")
-                        else:
-                            raise exceptions.ModelIsLockedError(convo.model.model)
+                        elif has_private_thread and convo.is_processing == True:
+                            raise exceptions.DGException(f"{confighandler.get_config('bot_name')} is still processing your last request.")
                         
                     elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
-                        await respond_to_mention()
+                        await respond_to_mention(member)
                         
                 elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
-                    await respond_to_mention()
+                    await respond_to_mention(member)
 
         except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
             await message.channel.send(error.message)

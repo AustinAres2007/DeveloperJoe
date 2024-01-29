@@ -53,7 +53,7 @@ class General(_Cog):
         embed = self.client.get_embed("GPT Models")
         model_values = models.registered_models.values()
 
-        [embed.add_field(name=model.display_name, value=model.description, inline=False) for model in model_values]
+        [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description} Stream Text? {model.can_stream} | Art Generation? {model.can_generate_images}"), inline=False) for model in model_values]
         await interaction.response.send_message(embed=embed)
     
     @discord.app_commands.command(name="permtest", description="Tests permission decorator.")

@@ -168,8 +168,11 @@ class DeveloperJoe(commands.Bot):
         Returns:
             Union[DGChatType, None]: The default chat, or None if the user doesn't have one.
         """
-        return self.default_chats[f"{member.id}-latest"]
-    
+        try:
+            return self.default_chats[f"{member.id}-latest"]
+        except KeyError:
+            return
+        
     @decorators.user_exists
     def get_default_voice_conversation(self, member: discord.Member) -> chat.DGVoiceChat | None:
         """Returns a users default conversation only if it supports voice.
@@ -199,7 +202,7 @@ class DeveloperJoe(commands.Bot):
         return __chat__ if isinstance(__chat__, chat.DGVoiceChat) else None
     
     @decorators.user_has_chat
-    def delete_conversation(self, member: discord.Member, conversation_name: str) -> None:
+    async def delete_conversation(self, member: discord.Member, conversation_name: str) -> None:
         """Deletes a members chat.
 
         Args:
@@ -208,6 +211,9 @@ class DeveloperJoe(commands.Bot):
         """
         convo = self.get_user_conversation(member, conversation_name)
         
+        if convo:
+            await convo.model.end()
+            
         del convo
         del self.chats[member.id][conversation_name]
         del self.default_chats[f"{member.id}-latest"]

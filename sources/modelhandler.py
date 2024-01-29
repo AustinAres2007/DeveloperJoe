@@ -1,12 +1,14 @@
+from __future__ import annotations
 import json, discord
+
 from typing import ( 
-    Any as _Any
+    Any as _Any,
+    TYPE_CHECKING
 )
 
 from . import (
     database, 
-    exceptions,
-    models
+    exceptions
 )
 from .common import (
     commands_utils,
@@ -15,6 +17,11 @@ from .common import (
 __all__ = [
     "DGGuildDatabaseModelHandler"
 ]
+
+if TYPE_CHECKING:
+    from . import (
+        models
+    )
 class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
     # Old: DGRules
     """Database connection that manages model permissions (Model Lock List, or MLL, etc..) maybe more in the future."""
@@ -91,10 +98,9 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
             list[int]: A list of user role IDs attached to the model.
         """
         models = self.get_guild_models()
-        
         if models:
-            if model in models: 
-                return models[model]
+            if model.model in models: 
+                return models[model.model]
             raise exceptions.ModelNotExist(self.guild, model.model)
         return []
     
@@ -105,7 +111,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
             dict[models.AIModelType, list[int]]: _description_
         """
         models = self._get_guild_models_raw()
-        return {commands_utils.get_modeltype_from_name(model): data for model, data in models.items()}
+        return {model: data for model, data in models.items()}
 
     def _get_guild_models_raw(self) -> dict[str, list[int]]:
         """Fetches raw database data regarding the guilds models
@@ -225,13 +231,10 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
             or (not model_roles or bool(_does_have_senior_role())) # Check if the model has no restrictions. The user has a role contained within any possible restrictions, or if the user has a role that is higher that of any lower role.
         except exceptions.ModelNotExist:
             return True
-    
-    def get_models(self) -> tuple[models.AIModelType, ...]:
-        """Get all models in the lock list. Like `get_guild_models` but just the keys.
 
-        Returns:
-            tuple[models.AIModelType, ...]: A tuple containing all registered models.
-        """
-        models = self.get_guild_models()
-        return tuple(models.keys())
-         
+def user_has_model_permissions(member: discord.Member, model: models.AIModelType):
+    if isinstance(member, discord.Member):
+        with DGGuildDatabaseModelHandler(member.guild) as check_rules:
+            return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
+    else:
+        raise TypeError("member must be discord.Member, not {}".format(member.__class__))

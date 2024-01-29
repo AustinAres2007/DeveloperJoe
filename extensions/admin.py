@@ -1,4 +1,5 @@
 from sqlite3 import DatabaseError
+from click import command
 import discord as _discord
 from discord.ext.commands import Cog as _Cog
 
@@ -92,10 +93,14 @@ class Administration(_Cog):
                 no_roles = "No added roles. \n\n"
 
                 model_texts = []
-                for model_name, model_roles in models.items():
+                
+                for model_code_name, model_roles in models.items():
+                    model = commands_utils.get_modeltype_from_name(model_code_name)
+                    
                     roles_joint = '\n'.join([_get_valid_role_mention(r_id) for r_id in model_roles])
-                    model_text = f"\n{model_name.display_name}\n{no_roles if not roles_joint else roles_joint}"
+                    model_text = f"\n{model.display_name}\n{no_roles if not roles_joint else roles_joint}"
                     model_texts.append(model_text)
+                    
                 text = '\n'.join(model_texts) if models else no_roles
 
                 await interaction.response.send_message(text)
