@@ -55,10 +55,6 @@ class General(_Cog):
 
         [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description} Stream Text? {model.can_stream} | Art Generation? {model.can_generate_images}"), inline=False) for model in model_values]
         await interaction.response.send_message(embed=embed)
-    
-    @discord.app_commands.command(name="permtest", description="Tests permission decorator.")
-    async def perm_test(self, interaction: discord.Interaction, model: str):
-        ...
         
 async def setup(client):
     await client.add_cog(General(client))
