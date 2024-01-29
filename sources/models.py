@@ -314,8 +314,8 @@ async def _gpt_ask_stream_base(
             _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True, **kwargs)
 
             async for raw_chunk in _reply.response.aiter_text():
-                readable_chunks = filter(
-                    _is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
+                readable_chunks = filter(_is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
+                
                 for chunk_text in readable_chunks:
                     chunk = _response_factory(chunk_text)
 
@@ -328,9 +328,9 @@ async def _gpt_ask_stream_base(
     except openai.AuthenticationError:
         raise DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
 
-async def _gpt_image_base(prompt: str, resolution: types.Resolution, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
+async def _gpt_image_base(prompt: str, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
-        _image_reply = await async_openai_client.images.generate(prompt=prompt, size=resolution, model=image_engine)
+        _image_reply = await async_openai_client.images.generate(prompt=prompt, model=image_engine)
         response = _response_factory(_image_reply.model_dump_json())
         
         if isinstance(response, AIErrorResponse):
@@ -395,7 +395,6 @@ class GPTModel(AIModel):
         self._gpt_context: GPTConversationContext | None = None
     
     def _check_internal_context(self) -> bool:
-        print(self._gpt_context)
         return isinstance(self._gpt_context, GPTConversationContext) == True
     
     @property
@@ -448,9 +447,9 @@ class GPT3Turbo(GPTModel):
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise TypeError(missing_context)
     
-    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
+    async def generate_image(self, image_prompt: str) -> AIImageResponse:
         if self._check_internal_context():
-            return await _gpt_image_base(image_prompt, kwargs.get("resolution", "512x512"), "dall-e-2", confighandler.get_api_key("openai_api_key"))
+            return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
         raise TypeError(missing_context)
     
 class GPT4(GPTModel):
@@ -469,9 +468,9 @@ class GPT4(GPTModel):
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise TypeError(missing_context)   
     
-    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
+    async def generate_image(self, image_prompt: str, ) -> AIImageResponse:
         if self._check_internal_context():
-            return await _gpt_image_base(image_prompt, kwargs.get("resolution", "512x512"), "dall-e-3", confighandler.get_api_key("openai_api_key"))
+            return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
         raise TypeError(missing_context)
     
 AIModelType = type(GPT3Turbo) | type(GPT4)

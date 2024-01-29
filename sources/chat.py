@@ -162,20 +162,6 @@ class DGChat:
             return await self.bot.close()
         except TimeoutError:
             raise exceptions.GPTTimeoutError()
-
-    async def __generate_image__(self, prompt: str, save_message: bool=True, **kwargs) -> models.AIImageResponse:
-        # Required Arguments: Prompt (String < 1000 chars), Size (String)
-        try:
-            # FIXME: Waiting to be transfered to new model system
-            # TODO: Move to `generate_image`. Only used there.
-            
-            response = await self.model.generate_image(prompt, resolution="512x512")
-            if response.is_image == True and save_message:
-                self.context.add_image_entry(kwargs["prompt"], response.image_url if response.image_url else "Empty")
-        except _openai.BadRequestError:
-            raise exceptions.GPTContentFilter(kwargs["prompt"])
-        
-        return response
     
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
@@ -367,11 +353,12 @@ class DGTextChat(DGChat):
                         await og_message.edit(content=sendable_portion)
                     else:
                         await msg[-1].edit(content=sendable_portion)
-                        
+            
         except discord.NotFound:
             self.is_processing = False
             raise exceptions.DGException("Stopped query since someone deleted the streaming message.")
         else:            
+            self.context.add_conversation_entry(query, full_message)
             return message
     
     @decorators.check_enabled
@@ -379,12 +366,17 @@ class DGTextChat(DGChat):
         if self.model.can_generate_images == False:
             raise exceptions.DGException(f"{self.model} does not support image generation.")
         
-        return await self.__generate_image__(prompt=prompt, size=resolution)
-    
+        try:
+            image = await self.model.generate_image(prompt)
+            self.context.add_image_entry(prompt, str(image.image_url))
+            return image
+        except _openai.BadRequestError as e:
+            print(e)
+            raise exceptions.GPTContentFilter(prompt)
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
         if self.model.can_talk == False:
-            raise exceptions.DGException(f"{self.model} cannot talk somehow.")
+            raise exceptions.DGException(f"{self.model} cannot talk.")
         
         async with channel.typing():
             reply = await self.__send_query__(query)
@@ -395,7 +387,8 @@ class DGTextChat(DGChat):
                 await channel.send(file=file_reply)
             else:
                 await channel.send(final_user_reply)
-                
+        
+        self.context.add_conversation_entry(query, reply.response)        
         return reply
             
     async def start(self) -> None:
@@ -553,7 +546,7 @@ class DGVoiceChat(DGTextChat):
                         
                             if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
                                 await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
-                                ...
+                            
                                 
         except _speech_recognition.RequestError:
             common.send_fatal_error_warning("The connection has been lost, or the operation failed.")       
