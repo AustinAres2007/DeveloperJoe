@@ -32,7 +32,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         super().__exit__(type_, value_, traceback_)
 
     def __init__(self, guild: discord.Guild):
-        """Class that manages model permissions (Model Lock List, or MLL, etc..) maybe more in the future."""
+        """Class that manages model permissions (Model Lock List, etc..) maybe more in the future."""
         
         self._guild: discord.Guild = guild
         self.in_database = False
@@ -41,12 +41,28 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
     
 
     def _get_raw_models_database(self) -> list[tuple[str, ...]]:
+        """Retrieves all models in the lock list of the specified guild.
+
+        Raises:
+            exceptions.GuildNotExist: If the guild does not exist in the lock list.
+
+        Returns:
+            list[tuple[str, ...]]: The models.
+        """
         raw_models = self._exec_db_command("SELECT jsontables FROM model_rules WHERE gid=?", (self.guild.id,))
         if raw_models:
             return raw_models
         raise exceptions.GuildNotExist(self.guild)
     
     def _dump_into_database(self, __object: _Any) -> list[_Any]:
+        """Dumps raw dictionary data into the guilds lock list
+
+        Args:
+            __object (_Any): Data.
+
+        Returns:
+            list[_Any]: SQLite3 Response.
+        """
         json_string = json.dumps(__object)
         return self._exec_db_command("UPDATE model_rules SET jsontables=? WHERE gid=?", (json_string, self.guild.id))
 
@@ -63,6 +79,17 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         return self._guild
     
     def get_guild_model(self, model: models.AIModelType) -> list[int]:
+        """Retrieves a specified model from the lock list.
+
+        Args:
+            model (models.AIModelType): The model to be fetched.
+
+        Raises:
+            exceptions.ModelNotExist: If the specified model does not exist within the lock list.
+
+        Returns:
+            list[int]: A list of user role IDs attached to the model.
+        """
         models = self.get_guild_models()
         
         if models:
@@ -72,10 +99,20 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         return []
     
     def get_guild_models(self) -> dict[models.AIModelType, list[int]]:
+        """Fetches all guild models from the lock list.
+
+        Returns:
+            dict[models.AIModelType, list[int]]: _description_
+        """
         models = self._get_guild_models_raw()
         return {commands_utils.get_modeltype_from_name(model): data for model, data in models.items()}
 
     def _get_guild_models_raw(self) -> dict[str, list[int]]:
+        """Fetches raw database data regarding the guilds models
+
+        Returns:
+            dict[str, list[int]]: Returned database data.
+        """
         _guild_pointer = self._get_raw_models_database()
 
         if _guild_pointer:
@@ -84,9 +121,23 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         return {}
     
     def has_guild(self) -> bool:
+        """If the guild is in the database.
+
+        Returns:
+            bool: If the guild is, or is not present.
+        """
         return bool(self._exec_db_command("SELECT jsontables FROM model_rules WHERE gid=?", (self.guild.id,)))
     
     def upload_guild_model(self, model: models.AIModelType, role: discord.Role) -> bool:
+        """Adds a specified role to the lock list.
+
+        Args:
+            model (models.AIModelType): The model to be locked
+            role (discord.Role): What role to be locked.
+
+        Returns:
+            bool: If the operation was successful or not.
+        """
         guild_rules = self._get_guild_models_raw() 
 
         if model.model in list(guild_rules) and isinstance(guild_rules, dict) and role.id not in guild_rules[model.model]:
@@ -103,6 +154,18 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         return True
 
     def remove_guild_model(self, model: models.AIModelType, role: discord.Role):
+        """Performs the opposite of `upload_guild_model` (Removes a role from the lock list)
+
+        Args:
+            model (models.AIModelType): The role to be unlocked
+            role (discord.Role): The role to be freed.
+
+        Raises:
+            exceptions.ModelNotExist: If the model is not present in the lock list.
+
+        Returns:
+            None
+        """
         models_allowed_roles = self._get_guild_models_raw()
 
         if model.model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model.model]):
@@ -110,24 +173,48 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         elif model not in list(models_allowed_roles):
             raise exceptions.ModelNotExist(self.guild, model.display_name)
         else:
-            return None
+            return
         
         self._dump_into_database(models_allowed_roles)
-        return role.id in self.get_guild_model(model)
 
-    def add_guild(self) -> bool:
+    def add_guild(self) -> bool:  
+        """Adds a guild to the lock list database.
+
+        Raises:
+            exceptions.GuildExistsError: If the guild is already present in the database.
+
+        Returns:
+            bool: Always True if `GuildExistsError` is not raised.
+        """
         if self.in_database == False:
             self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (self.guild.id, json.dumps({})))
             return self.has_guild()
         raise exceptions.GuildExistsError(self.guild)
     
     def del_guild(self) -> bool:
+        """Removes a guild from the lock list database.
+
+        Raises:
+            exceptions.GuildNotExist: If the guild is already not present in the database.
+
+        Returns:
+            bool: _description_
+        """
         if self.in_database == True:
             self._exec_db_command("DELETE FROM model_rules WHERE gid=?", (self.guild.id,))
             return not self.has_guild()
         raise exceptions.GuildNotExist(self.guild)
     
     def user_has_model_permissions(self, user_role: discord.Role, model: models.AIModelType) -> bool:
+        """Checks if the specified role has permission to used a specified model.
+
+        Args:
+            user_role (discord.Role): The role to be checked.
+            model (models.AIModelType): The model to be checked.
+
+        Returns:
+            bool: True if usable, False if otherwise.
+        """
         try:
             model_roles = self.get_guild_model(model)
             def _does_have_senior_role():
@@ -140,6 +227,11 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
             return True
     
     def get_models(self) -> tuple[models.AIModelType, ...]:
+        """Get all models in the lock list. Like `get_guild_models` but just the keys.
+
+        Returns:
+            tuple[models.AIModelType, ...]: A tuple containing all registered models.
+        """
         models = self.get_guild_models()
         return tuple(models.keys())
          

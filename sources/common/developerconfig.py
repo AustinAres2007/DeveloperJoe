@@ -15,7 +15,7 @@ GPT_REQUEST_TIMEOUT = 180 # Any less than 30 and the bot is very lightly to cra
 QUERY_TIMEOUT = 10 # Timeout for destructive actions.
 QUERY_CONFIRMATION = ">y" # What keyword to use for confirmation of destructive actions
 
-STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a GPT reply, this dictates every set amount of tokens to update the message. Any less that 10 and it will lag.
+STREAM_UPDATE_MESSAGE_FREQUENCY = 10 # When streaming a reply, this dictates every set amount of chunks to update the message. Any less that 10 and it will lag.
 CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be more than 14.
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 

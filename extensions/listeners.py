@@ -11,7 +11,8 @@ from sources import (
     exceptions,
     database,
     voice,
-    confighandler
+    confighandler,
+    models
 )
 from sources.common import (
     commands_utils,
@@ -53,11 +54,11 @@ class Listeners(commands.Cog):
             
             
             async def respond_to_mention():
-                model = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
+                model: models.AIModelType = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
                 
                 if self.client.get_user_has_permission(member, model):
                     async with message.channel.typing():
-                        ai_reply = await model.__askmodel__(message.clean_content, None, "user", False)
+                        ai_reply = await model.ask_model(message.clean_content)
                     
                         if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
                             return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
@@ -69,6 +70,7 @@ class Listeners(commands.Cog):
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
                 
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
+                    print(convo)
                     if isinstance(channel := message.channel, discord.Thread):
                         if self.client.get_user_has_permission(member, convo.model):
 

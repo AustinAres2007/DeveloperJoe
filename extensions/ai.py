@@ -228,7 +228,7 @@ class Communication(commands.Cog):
         actual_model = commands_utils.get_modeltype_from_name(gpt_model)
         
         if self.client.get_user_has_permission(member, actual_model):
-            asked = await actual_model.__askmodel__(query, None, "user", False)
+            asked = await actual_model.ask_model(query)
             reply = asked.response
             
             if reply and len(reply) >= 2000:

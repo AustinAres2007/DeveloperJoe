@@ -109,8 +109,6 @@ class DGChat:
             self.model: models.AIModelType = model() # type: ignore shutup I did the check
         else:
             self.model: models.AIModelType = commands_utils.get_modeltype_from_name(model)()
-            
-        self.tokens = 0
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
@@ -142,26 +140,6 @@ class DGChat:
     @private.setter
     def private(self, is_p: bool):
         self._private = is_p
-            
-    async def __send_query__(self, query: str, save_message: bool=True) -> models.AIQueryResponse:
-        self.is_processing = True
-        # Put necessary variables here (Doesn't matter weather streaming or not)
-        # Reply format: ({"content": "Reply content", "role": "assistent"})
-        
-        try:
-            response: models.AIQueryResponse = await self.model.ask_model(query)
-            # FIXME: Waiting to be transfered to new model system
-            
-            if save_message:
-                self.tokens += response.completion_tokens
-            self.is_processing = False
-
-            return response
-        except KeyError:
-            common.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
-            return await self.bot.close()
-        except TimeoutError:
-            raise exceptions.GPTTimeoutError()
     
     async def ask(self, query: str, *_args, **_kwargs) -> str:
         raise NotImplementedError
@@ -373,13 +351,30 @@ class DGTextChat(DGChat):
         except _openai.BadRequestError as e:
             print(e)
             raise exceptions.GPTContentFilter(prompt)
+        
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
         if self.model.can_talk == False:
             raise exceptions.DGException(f"{self.model} cannot talk.")
         
+        async def _send_query():
+            self.is_processing = True
+            # Put necessary variables here (Doesn't matter weather streaming or not)
+            # Reply format: ({"content": "Reply content", "role": "assistent"})
+            
+            try:
+                response: models.AIQueryResponse = await self.model.ask_model(query)
+                self.is_processing = False
+
+                return response
+            except KeyError:
+                common.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
+                return await self.bot.close()
+            except TimeoutError:
+                raise exceptions.GPTTimeoutError()
+            
         async with channel.typing():
-            reply = await self.__send_query__(query)
+            reply = await _send_query()
             final_user_reply = f"## {self.header}\n\n{reply.response}"
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:

@@ -206,7 +206,11 @@ class DeveloperJoe(commands.Bot):
             member (discord.Member): The member that the chat belongs to.
             conversation_name (str): The name of the chat to be deleted.
         """
+        convo = self.get_user_conversation(member, conversation_name)
+        
+        del convo
         del self.chats[member.id][conversation_name]
+        del self.default_chats[f"{member.id}-latest"]
 
     @decorators.chat_not_exist
     def add_conversation(self, member: discord.Member | discord.User, name: str, conversation: chat.DGChatType) -> None:

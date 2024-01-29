@@ -294,7 +294,7 @@ async def _gpt_ask_stream_base(
         _type_: None
 
     Yields:
-        _type_: A tuple containing the response and the amount of tokens used.
+        _type_: FIXME: Add new description
     """
     history: list = context.get_temporary_context(query, "user") if context else generate_empty_context(query)
 
@@ -347,22 +347,16 @@ class AIModel:
     display_name: str = "AI Model"
     description: str | None = None
 
+    can_talk = False
+    can_stream = False
+    can_generate_images = False
+    
     def __init__(self) -> None:
         self._context: ReadableContext = ReadableContext()
     
     @property
     def context(self) -> ReadableContext:
         return self._context
-    
-    @property
-    def can_talk(self) -> bool:
-        return False
-    @property
-    def can_stream(self) -> bool:
-        return False
-    @property
-    def can_generate_images(self) -> bool:
-        return False
     
     def clear_context(self) -> None:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
@@ -379,6 +373,9 @@ class AIModel:
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
+    def end(self) -> None:
+        del self
+        
     def __repr__(self):
         return f"<{self.__name__} display_name={self.display_name}, model={self.model}>"
     
@@ -400,16 +397,6 @@ class GPTModel(AIModel):
     @property
     def tokeniser(self) -> tiktoken.Encoding:
         return self._tokeniser
-    
-    @property
-    def can_talk(self) -> bool:
-        return True
-    @property
-    def can_stream(self) -> bool:
-        return True
-    @property
-    def can_generate_images(self) -> bool:
-        return True
     
     def clear_context(self) -> None:
         if self._check_internal_context():
@@ -436,6 +423,10 @@ class GPT3Turbo(GPTModel):
     description = "Cost effective, smart, image generation. Everything normal users need."
     display_name = "GPT 3.5 Turbo"
 
+    can_talk = True
+    can_stream = True
+    can_generate_images = True
+    
     # TODO: Use _gpt_image_base and other respective functions for all methods below
     async def ask_model(self, query: str) -> AIQueryResponse:
         if self._check_internal_context():
@@ -458,6 +449,10 @@ class GPT4(GPTModel):
     description = "Slightly better at everything that GPT-3 does, costs more. For normal use, use GPT-3."
     display_name = "GPT 4"
     
+    can_talk = True
+    can_stream = True
+    can_generate_images = True
+    
     async def ask_model(self, query: str) -> AIQueryResponse:
         if self._check_internal_context():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
@@ -468,7 +463,7 @@ class GPT4(GPTModel):
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise TypeError(missing_context)   
     
-    async def generate_image(self, image_prompt: str, ) -> AIImageResponse:
+    async def generate_image(self, image_prompt: str) -> AIImageResponse:
         if self._check_internal_context():
             return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
         raise TypeError(missing_context)
