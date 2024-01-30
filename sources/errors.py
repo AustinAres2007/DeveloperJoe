@@ -62,7 +62,7 @@ class UserErrors:
 class GptErrors:
     """Errors pertaining to the OpenAI / GPT Servers."""
 
-    GPT_CONTENT_FILTER = "You have asked a query that flagged GPT's content filter. Do not ask the same query or anything like it again."
+    GPT_REQUEST_ERROR = "Error generating image. This could be because you used obscene language or illicit terminology."
     GPT_PORTAL_ERROR = "Invalid command from OpenAI Gateway server."
     GPT_TIMEOUT_ERROR = "The server took too long to respond. Please ask your query again."
 

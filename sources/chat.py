@@ -18,7 +18,8 @@ from . import (
     history, 
     ttsmodels,
     models,
-    exceptions
+    exceptions,
+    errors
 )
 from .common import (
     decorators,
@@ -120,6 +121,19 @@ class DGChat:
         self.proc_packet, self._is_speaking = False, False
         
         self.voice_tss_queue: list[str] = []
+    
+    async def get_personal_channel_or_current(self, channel: discord.abc.Messageable) -> discord.abc.Messageable:
+        
+        if not self.private:
+            return channel
+        elif self.private and self.member.dm_channel == None:
+            return await self.member.create_dm()
+        elif isinstance(self.member.dm_channel, discord.DMChannel):
+            return self.member.dm_channel
+        
+        return channel
+            
+    
     
     @property
     def is_active(self) -> bool:
@@ -279,7 +293,8 @@ class DGTextChat(DGChat):
         if self.model.can_stream == False:
             raise exceptions.DGException(f"{self.model} does not support streaming text.")
         
-        og_message = await channel.send(developerconfig.STREAM_PLACEHOLDER)
+        private_channel = self.get_personal_channel_or_current(channel)
+        og_message = await private_channel.send(developerconfig.STREAM_PLACEHOLDER)
         self.is_processing = True
         
         async def _stream_reply():
@@ -350,9 +365,8 @@ class DGTextChat(DGChat):
             image = await self.model.generate_image(prompt)
             self.context.add_image_entry(prompt, str(image.image_url))
             return image
-        except _openai.BadRequestError as e:
-            print(e)
-            raise exceptions.GPTContentFilter(prompt)
+        except _openai.BadRequestError:
+            raise exceptions.DGException(errors.GptErrors.GPT_REQUEST_ERROR)
         
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
@@ -378,12 +392,13 @@ class DGTextChat(DGChat):
         async with channel.typing():
             reply = await _send_query()
             final_user_reply = f"## {self.header}\n\n{reply.response}"
+            private_channel = await self.get_personal_channel_or_current(channel)
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
                 file_reply: discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
-                await channel.send(file=file_reply)
+                await private_channel.send(file=file_reply)
             else:
-                await channel.send(final_user_reply)
+                await private_channel.send(final_user_reply)
         
         self.context.add_conversation_entry(query, reply.response)        
         return reply

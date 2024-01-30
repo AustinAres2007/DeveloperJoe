@@ -74,11 +74,11 @@ class Communication(commands.Cog):
         else:
             convo = chat.DGTextChat(*chat_args)
         
-        await interaction.response.defer(ephemeral=False, thinking=True)
+        await interaction.response.defer(ephemeral=is_private, thinking=True)
         await convo.start()
             
         welcome = f"*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
-        await interaction.followup.send(welcome, ephemeral=False)
+        await interaction.followup.send(welcome, ephemeral=is_private)
         
     @discord.app_commands.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
@@ -89,11 +89,10 @@ class Communication(commands.Cog):
             conversation = self.client.manage_defaults(member, name)
             status = f'/help and "{message}"'
 
-            await interaction.response.send_message("Thinking..")
+            await interaction.response.send_message("Thinking..", ephemeral=conversation.private)
             
-            self.client.add_status(status, 2)
+            self.client.add_status(status, 2) if not conversation.private else None
             if stream == True or (conversation.stream == True and stream != False):
-                
                 await conversation.ask_stream(message, channel)
             else:
                 await conversation.ask(message, channel)

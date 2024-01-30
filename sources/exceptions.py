@@ -78,12 +78,6 @@ class IncorrectInteractionSetting(DGException):
         """Will be raised if a user tries to send a command in wrong conditions"""
         super().__init__(self.reply, incorrect_object, correct_object, *args)
 
-class GPTContentFilter(DGException):
-    reply = errors.GptErrors.GPT_CONTENT_FILTER
-    def __init__(self, query: str, *args):
-        """Raised when the user asks illegal questions. (Retaining to pornography or anything of the sort)"""
-        super().__init__(self.reply, query, *args)
-
 class ChatIsDisabledError(DGException):
     reply = errors.ConversationErrors.CONVO_CLOSED
     def __init__(self, chat, *args):

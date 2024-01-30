@@ -1,8 +1,9 @@
-import asyncio
 import discord, random
 
 from discord.ext import commands, tasks
 from typing import Union
+
+import openai
 
 from joe import DeveloperJoe
 
@@ -14,6 +15,7 @@ from sources import (
     confighandler,
     models
 )
+
 from sources.common import (
     commands_utils,
     developerconfig,
@@ -55,15 +57,27 @@ class Listeners(commands.Cog):
             
             async def respond_to_mention(member: discord.Member):
                 model: models.AIModelType = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
+                lowered_text = message.clean_content.lower()
                 
                 async with model(member) as ai_model:
-                    async with message.channel.typing():
-                        ai_reply = await ai_model.ask_model(message.clean_content)
-                    
-                        if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
-                            return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
-                        return await message.channel.send(reply)
-                
+                    if not "image:" in lowered_text:
+                        async with message.channel.typing():
+                            ai_reply = await ai_model.ask_model(message.clean_content)
+                        
+                            if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                                return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                            return await message.channel.send(reply)
+                    else:
+                        try:
+                            start_index = lowered_text.find("image:") + len("image:")
+                            prompt = lowered_text[start_index:].lstrip()
+                            
+                            reply = await ai_model.generate_image(prompt)
+                            
+                            return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
+                        except openai.BadRequestError:
+                            return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
+                        
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
                 
@@ -91,7 +105,7 @@ class Listeners(commands.Cog):
                 elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                     await respond_to_mention(member)
 
-        except (exceptions.DGException, exceptions.ChatIsDisabledError, exceptions.GPTContentFilter) as error:
+        except (exceptions.DGException, exceptions.ChatIsDisabledError) as error:
             await message.channel.send(error.message)
         except discord.Forbidden:
             raise exceptions.ChatChannelDoesntExist(message, str(convo)) 

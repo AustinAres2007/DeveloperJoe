@@ -445,7 +445,6 @@ class GPT3Turbo(GPTModel):
     
     # TODO: Use _gpt_image_base and other respective functions for all methods below
     async def ask_model(self, query: str) -> AIQueryResponse:
-        print(self._check_user_permissions())
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise DGException(missing_perms)
