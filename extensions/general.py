@@ -50,7 +50,7 @@ class General(_Cog):
     
     @discord.app_commands.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
     async def get_models(self, interaction: discord.Interaction):
-        embed = self.client.get_embed("GPT Models")
+        embed = self.client.get_embed("AI Models")
         model_values = models.registered_models.values()
 
         [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description} Stream Text? {model.can_stream} | Art Generation? {model.can_generate_images}"), inline=False) for model in model_values]

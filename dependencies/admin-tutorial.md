@@ -1,11 +1,11 @@
 # Hello Administrator.
 
 This is a prompt on how to use {0}.
-This is assuming you have the knowledge of what GPT Models are, and you know the rules of hierarchy with discord roles. If you do not know one, I recommend doing research.
+This is assuming you have the knowledge of what AI Models are, and you know the rules of hierarchy with discord roles. If you do not know one, I recommend doing research.
 
 A small rundown of those two principles will be given in this tutorial.
 
-## How to lock GPT Models
+## How to lock AI Models
 
 You may use the `/lock` command to lock a GPT Model. It requires two arguments— The model of GPT you want to lock, and the role you permit to use the locked model. For example:
 
@@ -20,7 +20,7 @@ So above VIP would be Moderators and Administrators. Below VIP would be @everyon
 
 **IMPORTANT NOTE: If no roles are added to a specified GPT models lock list, is will be permitted to be used by all users.**
 
-## How to unlock GPT Models
+## How to unlock AI Models
 
 You may use the `/unlock` command to unlock a GPT Model. It requires the same two arguments as `/lock`— The model of GPT you want to unlock, and the role you want to remove from the specified GPT models lock list.
 

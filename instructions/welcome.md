@@ -162,7 +162,7 @@ Commands that relate to chat history management (Like saving the transcript for 
 
 # Model Restriction
 
-This group of commands limit what GPT Models can be used by certain rank of user.
+This group of commands limit what AI Models can be used by certain rank of user.
 For example, if you want to lock GPT-4 behind a VIP role, you do it with:
 > /lock gpt_model: GPT 4 role: @VIP
 
