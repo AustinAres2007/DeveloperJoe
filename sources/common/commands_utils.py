@@ -1,17 +1,17 @@
 """Utils that commands use."""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-import discord, io, typing, yaml, os
+import discord, io, typing
 
 from .. import (
     exceptions,
-    models
+    models,
+    errors
 )
 from . import (
     developerconfig,
-    common
 )
 
 if TYPE_CHECKING:
@@ -53,18 +53,18 @@ def to_file(content: str, name: str) -> discord.File:
 def is_voice_conversation(conversation: chat.DGChatType | None) -> chat.DGVoiceChat:
     if isinstance(conversation, chat.DGVoiceChat):
         return conversation
-    raise exceptions.UserDoesNotHaveChat(str(conversation))
+    raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
 
 def assure_class_is_value(object, __type: type):
     """For internal use. Exact same as `isinstance` but raises `IncorrectInteractionSetting` if the result is `False`."""
     if type(object) == __type:
         return object
-    raise exceptions.IncorrectInteractionSetting(object, type)
+    raise exceptions.ConversationError(errors.ConversationErrors.CONVO_CANNOT_TALK)
 
 def is_correct_channel(channel: typing.Any) -> developerconfig.InteractableChannel:
     if isinstance(channel, developerconfig.InteractableChannel):
         return channel
-    raise exceptions.IncorrectInteractionSetting(channel, developerconfig.InteractableChannel)
+    raise exceptions.ConversationError(errors.ConversationErrors.CONVO_CANNOT_TALK)
 
 def get_modeltype_from_name(name: str) -> models.AIModelType:
     """Get GPT Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
@@ -82,4 +82,4 @@ def in_correct_channel(interaction: discord.Interaction) -> bool:
 def get_correct_channel(channel: typing.Any | None) -> developerconfig.InteractableChannel:
     if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel
-    raise exceptions.CannotTalkInChannel(channel)
+    raise exceptions.DGException(errors.ConversationErrors.CANNOT_CONVO)

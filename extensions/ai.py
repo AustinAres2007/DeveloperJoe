@@ -28,7 +28,7 @@ class Communication(commands.Cog):
     @discord.app_commands.command(name="start", description=f"Start a {confighandler.get_config('bot_name')} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
-                                   ai_model="The model being used for the AI (GPT 3 or GPT 4)",
+                                   ai_model="The model being used for the AI.",
                                    in_thread=f"If you want a dedicated private thread to talk with {confighandler.get_config('bot_name')} in.",
                                    speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {confighandler.get_config('bot_name')} will join and speak your replies.",
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
@@ -66,9 +66,9 @@ class Communication(commands.Cog):
         if speak_reply == False:
             convo = chat.DGTextChat(*chat_args)
         elif speak_reply and self.client.is_voice_compatible == False:
-            raise exceptions.VoiceNotEnabled(self.client.is_voice_compatible)
+            raise exceptions.DGException(errors.VoiceConversationErrors.NO_VOICE)
         elif speak_reply and interaction.guild and confighandler.get_guild_config_attribute(interaction.guild, "voice-enabled") == False:
-            raise exceptions.VoiceIsLockedError()
+            raise exceptions.DGException(errors.VoiceConversationErrors.VOICE_IS_LOCKED)
         elif speak_reply and self.client.is_voice_compatible:
             convo = chat.DGVoiceChat(*chat_args, voice=member.voice.channel if member.voice else None)
         else:
@@ -113,26 +113,24 @@ class Communication(commands.Cog):
                 await vc_chat.stop_listening()
                 await interaction.response.send_message("Stopped listening to voice.")
         else:
-            raise exceptions.UserDoesNotHaveVoiceChat(vc_chat)
+            raise exceptions.DGException(errors.VoiceConversationErrors.NO_VOICE_CONVO)
             
     @discord.app_commands.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=False):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         
-        async def func(gpt: chat.DGChatType):
+        # checks because app_commands cannot use normal ones.
+        if convo := self.client.get_user_conversation(member, name):
             reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {developerconfig.QUERY_TIMEOUT} seconds, and "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
             if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
                 return await interaction.followup.send("Cancelled action.", ephemeral=False)
             
-            farewell = await gpt.stop(interaction, save_chat)
+            farewell = await convo.stop(interaction, save_chat)
             await interaction.followup.send(farewell, ephemeral=False)
             
-        # checks because app_commands cannot use normal ones.
-        if convo := self.client.get_user_conversation(member, name):
-            return await func(convo)
         else:
-            raise exceptions.UserDoesNotHaveChat(name)
+            raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
 
     @discord.app_commands.command(name="end", description=f"Stop all conversations you hold with {confighandler.get_config('bot_name')}. No conversation threads will be deleted.")
     async def stop_all(self, interaction: discord.Interaction):
@@ -148,7 +146,7 @@ class Communication(commands.Cog):
             
             await interaction.followup.send(f"Deleted {chat_len} chat{'s.' if chat_len > 1 else '.'}")
         else:
-            raise exceptions.UserDoesNotHaveAnyChats()
+            raise exceptions.DGException(errors.ConversationErrors.NO_CONVOS)
         
     @discord.app_commands.command(name="image", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", save_to="What chat you want to save the image history too. (For exporting)") 
@@ -177,7 +175,7 @@ class Communication(commands.Cog):
             {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
             {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
             {"name": "Is Active", "value": str(convo.is_active), "inline": False},
-            {"name": "GPT Model", "value": str(convo.model.display_name), "inline": False},
+            {"name": "AI Model", "value": str(convo.model.display_name), "inline": False},
             {"name": "Is Voice", "value": f"Yes" if isinstance(convo, chat.DGVoiceChat) else "No", "inline": False},
             {"name": f"{self.client.application.name} Version", "value": developerconfig.VERSION, "inline": False}, # type: ignore Client will be logged in by the time this is executed.
             {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False} # type: ignore Client will be logged in by the time this is executed. 
@@ -206,10 +204,10 @@ class Communication(commands.Cog):
             
     @discord.app_commands.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
     @discord.app_commands.describe(query="The question you wish to pose.")
-    @discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
-    async def inquire_once(self, interaction: discord.Interaction, query: str, gpt_model: str=confighandler.get_config('default_gpt_model')):
+    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str=confighandler.get_config('default_gpt_model')):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        actual_model = commands_utils.get_modeltype_from_name(gpt_model)
+        actual_model = commands_utils.get_modeltype_from_name(ai_model)
         
         async with actual_model(member) as model:
             asked = await model.ask_model(query)

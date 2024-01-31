@@ -309,7 +309,7 @@ class DGTextChat(DGChat):
                     
                     # TODO: Must sort out stop_reason (If is ResponseChunk)
                     
-            except exceptions.GPTReachedLimit as e:
+            except discord.Forbidden as e: # XXX: old exception was GPTReachedLimit. Must conform to new model systems. New exception (Forbidden) is temp
                 self.is_active = False
                 raise e
             except AttributeError:
@@ -366,7 +366,7 @@ class DGTextChat(DGChat):
             self.context.add_image_entry(prompt, str(image.image_url))
             return image
         except _openai.BadRequestError:
-            raise exceptions.DGException(errors.GptErrors.GPT_REQUEST_ERROR)
+            raise exceptions.DGException(errors.AIErrors.AI_REQUEST_ERROR)
         
     @decorators.check_enabled
     async def ask(self, query: str, channel: developerconfig.InteractableChannel):
@@ -387,7 +387,7 @@ class DGTextChat(DGChat):
                 common.send_fatal_error_warning(f"The Provided OpenAI API key was invalid.")
                 return await self.bot.close()
             except TimeoutError:
-                raise exceptions.GPTTimeoutError()
+                raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
             
         async with channel.typing():
             reply = await _send_query()
@@ -436,7 +436,7 @@ class DGTextChat(DGChat):
         with history.DGHistorySession() as dg_history:
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
             if isinstance(self.chat_thread, discord.Thread) and self.chat_thread.id == interaction.channel_id:
-                raise exceptions.CannotDeleteThread(self.chat_thread)
+                raise exceptions.DGException(errors.ConversationErrors.CANNOT_STOP_IN_CHANNEL)
             try:
                 farewell = f"Ended chat: {self.display_name} with {confighandler.get_config('bot_name')}!"
                 await self.bot.delete_conversation(member, self.display_name)
@@ -531,6 +531,11 @@ class DGVoiceChat(DGTextChat):
     def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
         self._client_voice_instance = _bot_vc 
     
+    async def cleanup_voice(self):
+        self.voice_tss_queue.clear()
+        await self.stop_listening()
+        await self.stop_speaking()
+        
     async def manage_voice_packet_callback(self, member: discord.Member, voice: _io.BytesIO):
         try:
             if self.proc_packet == False:
@@ -578,7 +583,7 @@ class DGVoiceChat(DGTextChat):
             if voice and voice.is_connected() and (self.voice != voice.channel):
                 await voice.move_to(self.voice)
             elif self.voice:
-                self.client_voice = await self.voice.connect(cls=voice_client.VoiceRecvClient)
+                self.client_voice = await self.voice.connect(cls=voice_client.VoiceRecvClient) # type: ignore shutup it'll work. it conforms
                 voice: voice_client.VoiceRecvClient = self.client_voice
             await _asyncio.sleep(5.0)
         
@@ -617,7 +622,6 @@ class DGVoiceChat(DGTextChat):
         except IndexError:
             self.voice_tss_queue.clear()
             
-        
     @decorators.check_enabled
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel

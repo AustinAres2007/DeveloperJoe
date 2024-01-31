@@ -21,7 +21,7 @@ def check_enabled(func):
     async def _inner(self, *args, **kwargs):
         if self.is_active:
             return await func(self, *args, **kwargs)
-        raise exceptions.ChatIsDisabledError(self)
+        raise exceptions.ConversationError(errors.ConversationErrors.CONVO_CLOSED)
     return _inner
 
 def has_voice(func):
@@ -41,7 +41,7 @@ def dg_in_voice_channel(func):
     async def _inner(self, *args, **kwargs):
         if isinstance(self.client_voice, voice.VoiceRecvClient) and self.client_voice.is_connected():
             return await func(self, *args, **kwargs)
-        raise exceptions.DGNotInVoiceChat(self.voice)
+        raise exceptions.DGException(errors.VoiceConversationErrors.NOT_IN_CHANNEL)
     
     return _inner
 
@@ -54,7 +54,7 @@ def has_voice_with_error(func):
     async def _inner(self, *args, **kwargs):
         if self.voice:
             return await func(self, *args, **kwargs)
-        raise exceptions.UserNotInVoiceChannel(self.voice)
+        raise exceptions.DGException(errors.VoiceConversationErrors.USER_NOT_IN_CHANNEL)
     return _inner
 
 def dg_is_speaking(func):
@@ -66,7 +66,7 @@ def dg_is_speaking(func):
     async def _inner(self, *args, **kwargs):
         if self.is_speaking:
             return await func(self, *args, **kwargs)
-        raise exceptions.DGNotTalking(self.voice)
+        raise exceptions.DGException(errors.VoiceConversationErrors.NOT_SPEAKING)
     
     return _inner
 
@@ -79,7 +79,7 @@ def dg_isnt_speaking(func):
     async def _inner(self, *args, **kwargs):
         if self.client_voice and (self.client_voice.is_paused() or not self.client_voice.is_playing()):
             return await func(self, *args, **kwargs)
-        raise exceptions.DGIsTalking(self.voice)
+        raise exceptions.DGException(errors.VoiceConversationErrors.IS_SPEAKING)
 
     return _inner
 
@@ -92,7 +92,7 @@ def dg_is_listening(func):
     async def _inner(self, *args, **kwargs):
         if self.client_voice.is_listening():
             return await func(self, *args, **kwargs)
-        raise exceptions.DGNotListening()
+        raise exceptions.VoiceError(errors.VoiceConversationErrors.NOT_LISTENING)
     return _inner
 
 def dg_isnt_listening(func):
@@ -104,7 +104,7 @@ def dg_isnt_listening(func):
     async def _inner(self, *args, **kwargs):
         if not self.client_voice.is_listening():
             return await func(self, *args, **kwargs)
-        raise exceptions.DGIsListening()
+        raise exceptions.DGException(errors.VoiceConversationErrors.IS_LISTENING)
     return _inner
 
 # Config Decorators
@@ -157,7 +157,7 @@ def user_has_chat(func):
         chat_name = str(chat_name or self.get_default_conversation(member))
         if chat_name in list(self.chats[member.id]):
             return func(self, member, chat_name, *args, **kwargs)
-        raise exceptions.UserDoesNotHaveChat(chat_name, member)
+        raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
     
     return _member_wrapper
 

@@ -8,7 +8,8 @@ from sources import (
     modelhandler,
     exceptions,
     database,
-    confighandler
+    confighandler,
+    errors
 )
 from sources.common import (
     commands_utils,
@@ -32,7 +33,7 @@ class Administration(_Cog):
             await self.client.close()
 
             return exit(0)
-        raise exceptions.MissingPermissions(interaction.user)
+        raise exceptions.DGException(errors.GenericErrors.USER_MISSING_PERMISSIONS)
         
     @owner_group.command(name="backup", description="Backs up the database file.")
     @_discord.app_commands.checks.has_permissions(administrator=True)
@@ -41,7 +42,7 @@ class Administration(_Cog):
             with database.DGDatabaseSession() as new_database:
                 location = new_database.backup_database()
                 return await interaction.response.send_message(f'Backed up database to "{location}"')
-        raise exceptions.MissingPermissions(interaction.user)
+        raise exceptions.DGException(errors.GenericErrors.USER_MISSING_PERMISSIONS)
     
     @owner_group.command(name="load", description="Loads backup made with /backup")
     @_discord.app_commands.checks.has_permissions(administrator=True)
@@ -54,29 +55,29 @@ class Administration(_Cog):
                 except DatabaseError:
                     return await interaction.response.send_message(f'You cannot load this backup as it is too old. The backup has been kept.')
                 
-        raise exceptions.MissingPermissions(interaction.user)
+        raise exceptions.DGException(errors.GenericErrors.USER_MISSING_PERMISSIONS)
 
-    @admin_group.command(name="lock", description="Locks a select GPT Model behind a role or permission.")
+    @admin_group.command(name="lock", description="Locks a select AI Model behind a role or permission.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
-    @_discord.app_commands.describe(gpt_model="The GPT model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
+    @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @_discord.app_commands.describe(ai_model="The AI model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @_discord.app_commands.check(commands_utils.in_correct_channel)
-    async def lock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
+    async def lock_role(self, interaction: _discord.Interaction, ai_model: str, role: _discord.Role):
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
-            _gpt_model = commands_utils.get_modeltype_from_name(gpt_model)
+            _gpt_model = commands_utils.get_modeltype_from_name(ai_model)
             rules.upload_guild_model(_gpt_model, role)
-            await interaction.response.send_message(f"Added {gpt_model} behind role {role.mention}.")
+            await interaction.response.send_message(f"Added {ai_model} behind role {role.mention}.")
 
-    @admin_group.command(name="unlock", description="Unlocks a previously locked GPT Model.")
+    @admin_group.command(name="unlock", description="Unlocks a previously locked AI Model.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.choices(gpt_model=developerconfig.MODEL_CHOICES)
-    @_discord.app_commands.describe(gpt_model="The GPT model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
+    @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @_discord.app_commands.describe(ai_model="The AI model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
     @_discord.app_commands.check(commands_utils.in_correct_channel)
-    async def unlock_role(self, interaction: _discord.Interaction, gpt_model: str, role: _discord.Role):
+    async def unlock_role(self, interaction: _discord.Interaction, ai_model: str, role: _discord.Role):
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
-            model = commands_utils.get_modeltype_from_name(gpt_model)
+            model = commands_utils.get_modeltype_from_name(ai_model)
             new_rules = rules.remove_guild_model(model, role)
-            await interaction.response.send_message(f"Removed requirement role {role.mention} from {gpt_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
+            await interaction.response.send_message(f"Removed requirement role {role.mention} from {ai_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
 
     @admin_group.command(name="locks", description="View all models and which roles may utilise them.")
     @_discord.app_commands.checks.has_permissions(manage_channels=True)

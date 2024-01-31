@@ -13,7 +13,8 @@ from sources import (
     database,
     voice,
     confighandler,
-    models
+    models,
+    errors
 )
 
 from sources.common import (
@@ -105,10 +106,10 @@ class Listeners(commands.Cog):
                 elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                     await respond_to_mention(member)
 
-        except (exceptions.DGException, exceptions.ChatIsDisabledError) as error:
+        except (exceptions.DGException, exceptions.ConversationError) as error:
             await message.channel.send(error.message)
         except discord.Forbidden:
-            raise exceptions.ChatChannelDoesntExist(message, str(convo)) 
+            raise exceptions.DGException(errors.ConversationErrors.CHANNEL_DOESNT_EXIST)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
@@ -147,10 +148,9 @@ class Listeners(commands.Cog):
                 
                 async def _manage_bot_disconnect(convo: chat.DGVoiceChat):
                     if bot_voice:
-                        try:
-                            await convo.stop_listening()
-                            convo.voice_tss_queue.clear() 
-                        except exceptions.DGNotListening:
+                        try: 
+                            await convo.cleanup_voice()
+                        except exceptions.VoiceError:
                             pass
                         finally:
                             await bot_voice.disconnect()
@@ -169,7 +169,7 @@ class Listeners(commands.Cog):
                             
                         elif isinstance(b_channel, discord.VoiceChannel) and isinstance(a_channel, discord.VoiceChannel): # User done something with VC or moved
                             if b_channel == a_channel: # User has muted or deafened. Etc...
-                                pass
+                                await convo.stop_speaking()
                             elif b_channel != a_channel: # User has moved channel
                                 await _manage_bot_disconnect(convo)
                                 

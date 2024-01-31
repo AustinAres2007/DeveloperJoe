@@ -40,7 +40,7 @@ class History(commands.Cog):
                 return await interaction.followup.send("Cancelled action.")
 
         except ValueError:
-            raise exceptions.InvalidHistoryID(history_id)
+            raise exceptions.DGException(errors.HistoryErrors.INVALID_HISTORY_ID)
         except asyncio.TimeoutError:
             return
 
@@ -75,9 +75,9 @@ class History(commands.Cog):
                         await interaction.user.send(file=discord.File(history_file))
                         return await interaction.response.send_message("I have sent the history transcript to our direct messages.")
                     raise exceptions.DGException(errors.HistoryErrors.HISTORY_DOESNT_EXIST)
-                raise exceptions.HistoryNotExist(history_id)
+                raise exceptions.DGException(errors.HistoryErrors.HISTORY_DOESNT_EXIST)
         except ValueError:
-            raise exceptions.InvalidHistoryID(history_id)
+            raise exceptions.DGException(errors.HistoryErrors.INVALID_HISTORY_ID)
         
 async def setup(client):
     await client.add_cog(History(client))

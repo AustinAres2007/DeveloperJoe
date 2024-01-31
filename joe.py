@@ -13,7 +13,7 @@ from __future__ import annotations
 from asyncio import CancelledError
 import shutil
 import sys, os
-from typing import Any
+from typing import Any, Sequence
 
 v_info = sys.version_info
 
@@ -122,9 +122,6 @@ class DeveloperJoe(commands.Bot):
             member (discord.Member): The member of whoms chat will be returned.
             chat_name (Union[str, None], optional): The name of the chat. Defaults to None.
 
-        Raises:
-            UserDoesNotHaveChat: If the specified chat does not exist.
-
         Returns:
             Union[Union[DGTextChat, DGVoiceChat], None]: The chat, or None if chat_name is not specified.
         """
@@ -142,6 +139,18 @@ class DeveloperJoe(commands.Bot):
         """
         return self.chats[member.id]
     
+    @decorators.user_exists
+    def get_all_user_voice_conversations(self, member: discord.Member) -> dict[str, chat.DGVoiceChat]:
+        """Returns all voice chats a member has.
+
+        Args:
+            member (discord.Member): The member.
+
+        Returns:
+            dict[str, chat.DGVoiceChat]: A dictionary containing all the users voice chats, if any.
+        """
+        return {chat_name: voice for chat_name, voice in self.get_all_user_conversations(member).items() if isinstance(voice, chat.DGVoiceChat)}
+        
     def get_user_has_permission(self, member: discord.Member, model: models.AIModelType) -> bool:
         """Return if the user has permission to user a model
 
@@ -278,11 +287,11 @@ class DeveloperJoe(commands.Bot):
             elif current_default:
                 return current_default
             else:
-                raise exceptions.UserDoesNotHaveChat(member.name)
+                raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
         else:
             if current_default:
                 return current_default
-            raise exceptions.UserDoesNotHaveChat(member.name)
+            raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
         
     def get_member_conversation_bot_voice_instance(self, voice_channel: discord.VoiceChannel):
         return discord.utils.get(self.voice_clients, guild=voice_channel.guild)

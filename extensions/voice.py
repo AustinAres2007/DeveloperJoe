@@ -1,4 +1,3 @@
-from click import command
 import discord
 from discord.ext.commands import Cog
 
@@ -6,7 +5,9 @@ from joe import DeveloperJoe
 from sources import (
     confighandler, 
     chat, 
-    exceptions
+    exceptions,
+    voice,
+    errors
 )
 from sources.common import (
     commands_utils
@@ -46,9 +47,9 @@ class Voice(Cog):
             await default_chat.stop_speaking()
             return await interaction.response.send_message(f"I have shut up.")
         elif default_chat:
-            raise exceptions.ChatIsTextOnly(default_chat.model.model)
+            raise exceptions.DGException(errors.VoiceConversationErrors.TEXT_ONLY_CHAT)
         else:
-            raise exceptions.UserDoesNotHaveChat(str(default_chat))
+            raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
 
     @discord.app_commands.command(name="pause", description="Paused the bots voice reply.")
     async def pause_reply(self, interaction: discord.Interaction):
@@ -59,9 +60,9 @@ class Voice(Cog):
             await default_chat.pause_speaking()
             return await interaction.response.send_message(f"I have paused my reply.")
         elif default_chat:
-            raise exceptions.ChatIsTextOnly(default_chat.model.model)
+            raise exceptions.DGException(errors.VoiceConversationErrors.TEXT_ONLY_CHAT)
         else:
-            raise exceptions.UserDoesNotHaveChat(str(default_chat))
+            raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
     
     @discord.app_commands.command(name="resume", description="Resues the bots voice reply.")
     async def resume_reply(self, interaction: discord.Interaction):
@@ -72,9 +73,30 @@ class Voice(Cog):
             await default_chat.resume_speaking()
             return await interaction.response.send_message("Speaking...")
         elif default_chat:
-            raise exceptions.ChatIsTextOnly(default_chat.model.model)
+            raise exceptions.DGException(errors.VoiceConversationErrors.TEXT_ONLY_CHAT)
         else:
-            raise exceptions.UserDoesNotHaveChat(str(default_chat))
+            raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
+    
+    @discord.app_commands.command(name="leave", description="Leaves the voice channel the bot is currently in.")
+    async def leave_vc(self, interaction: discord.Interaction):
+        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        bot_voice: voice.VoiceRecvClient | None = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
+        member_convos = self.client.get_all_user_voice_conversations(member).values()
+        
+        if isinstance(bot_voice, voice.VoiceRecvClient):
+            
+            for convo in member_convos:
+                try:
+                    await convo.cleanup_voice()
+                except exceptions.VoiceError:
+                    continue
+                
+            await bot_voice.disconnect()
+            bot_voice.cleanup() # XXX: We gonna get the stupid ass stdin error AGAIN?
+            
+            return await interaction.response.send_message(f"{getattr(self.client.user, "display_name", "Bot")} has left your voice channel.")
+        return await interaction.response.send_message("I am not in a voice channel.")
+
 async def setup(client):
     await client.add_cog(Voice(client))

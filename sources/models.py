@@ -15,7 +15,7 @@ from . import (
     errors
 )
 
-from .exceptions import DGException, GPTTimeoutError
+from .exceptions import DGException
 
 __all__ = [
     "AIModel",
@@ -272,7 +272,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
                 return response
                 
     except (TimeoutError, ReadTimeout):
-        raise GPTTimeoutError()
+        raise DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
     
     raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     

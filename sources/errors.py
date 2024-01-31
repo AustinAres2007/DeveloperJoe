@@ -7,7 +7,7 @@ __all__ = [
     "ConversationErrors",
     "VoiceConversationErrors",
     "UserErrors",
-    "GptErrors",
+    "AIErrors",
     "HistoryErrors",
     "ModelErrors"
 ]
@@ -34,8 +34,8 @@ class ConversationErrors:
     CONVO_TOKEN_LIMIT = "You have reached your maximum conversation length. I have disabled your chat. You may still export and save it."
     CONVO_CLOSED = "The chat selected has been closed. This is because you have reached the conversation limit. You can still export and save this chat. Please start another if you wish to keep talking."
     CONVO_CANNOT_TALK = "We cannot interact here. You must be in a discord server channel to make commands. (No stages, private direct messages)"
-    CANNOT_STOP_IN_CHANNEL = "You cannot do /stop in the thread created by your conversation ({})"
-    CHANNEL_DOESNT_EXIST = 'Channel: "{}" pertaining to "{}" from conversation "{}" belonging to user "{}" no longer exists.'
+    CANNOT_STOP_IN_CHANNEL = "You cannot do /stop in the thread created by your conversation."
+    CHANNEL_DOESNT_EXIST = "Cannot send message. Channel was deleted."
     TEXT_ONLY_CONVO_TYPE = "You only have a text chat."
     
 class VoiceConversationErrors:
@@ -59,12 +59,12 @@ class UserErrors:
 
     INCORRECT_USER_TYPE = "{} is not a member of {}."
 
-class GptErrors:
+class AIErrors:
     """Errors pertaining to the OpenAI / GPT Servers."""
 
-    GPT_REQUEST_ERROR = "Error generating image. This could be because you used obscene language or illicit terminology."
-    GPT_PORTAL_ERROR = "Invalid command from OpenAI Gateway server."
-    GPT_TIMEOUT_ERROR = "The server took too long to respond. Please ask your query again."
+    AI_REQUEST_ERROR = "Error generating image. This could be because you used obscene language or illicit terminology."
+    AI_PORTAL_ERROR = "Invalid command from OpenAI Gateway server."
+    AI_TIMEOUT_ERROR = "The server took too long to respond. Please ask your query again."
 
 class HistoryErrors:
     """Errors pertaining to the history database / incorrect parameters."""

@@ -4,6 +4,7 @@ import json
 from . import (
     database, 
     exceptions,
+    errors
 )    
     
 __all__ = [
@@ -68,7 +69,7 @@ class DGHistorySession(database.DGDatabaseSession):
         if self.retrieve_chat_history(history_id):
             self._exec_db_command("DELETE FROM history WHERE uid=?", (history_id,))
             return f"Deleted chat history with ID: {history_id}"
-        raise exceptions.HistoryNotExist(history_id)
+        raise exceptions.DGException(errors.HistoryErrors.HISTORY_DOESNT_EXIST)
     
     def upload_chat_history(self, chat) -> list:
         json_dump = json.dumps(chat.context._display_context)

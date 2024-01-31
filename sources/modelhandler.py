@@ -8,10 +8,8 @@ from typing import (
 
 from . import (
     database, 
-    exceptions
-)
-from .common import (
-    commands_utils,
+    exceptions,
+    errors
 )
 
 __all__ = [
@@ -59,7 +57,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         raw_models = self._exec_db_command("SELECT jsontables FROM model_rules WHERE gid=?", (self.guild.id,))
         if raw_models:
             return raw_models
-        raise exceptions.GuildNotExist(self.guild)
+        raise exceptions.DGException(errors.ModelErrors.GUILD_NOT_IN_DATABASE)
     
     def _dump_into_database(self, __object: _Any) -> list[_Any]:
         """Dumps raw dictionary data into the guilds lock list
@@ -101,7 +99,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         if models:
             if model.model in models: 
                 return models[model.model]
-            raise exceptions.ModelNotExist(self.guild, model.model)
+            raise exceptions.ModelError(errors.ModelErrors.MODEL_NOT_IN_DATABASE)
         return []
     
     def get_guild_models(self) -> dict[models.AIModelType, list[int]]:
@@ -177,7 +175,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         if model.model in list(models_allowed_roles) and isinstance(models_allowed_roles, dict) and role.id in list(models_allowed_roles[model.model]):
             models_allowed_roles[model.model].remove(role.id)
         elif model not in list(models_allowed_roles):
-            raise exceptions.ModelNotExist(self.guild, model.display_name)
+            raise exceptions.ModelError(errors.ModelErrors.MODEL_NOT_IN_DATABASE)
         else:
             return
         
@@ -195,7 +193,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         if self.in_database == False:
             self._exec_db_command("INSERT INTO model_rules VALUES(?, ?)", (self.guild.id, json.dumps({})))
             return self.has_guild()
-        raise exceptions.GuildExistsError(self.guild)
+        raise exceptions.DGException(errors.ModelErrors.GUILD_IN_MODEL_DATABASE)
     
     def del_guild(self) -> bool:
         """Removes a guild from the lock list database.
@@ -209,7 +207,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         if self.in_database == True:
             self._exec_db_command("DELETE FROM model_rules WHERE gid=?", (self.guild.id,))
             return not self.has_guild()
-        raise exceptions.GuildNotExist(self.guild)
+        raise exceptions.DGException(errors.ModelErrors.GUILD_NOT_IN_DATABASE)
     
     def user_has_model_permissions(self, user_role: discord.Role, model: models.AIModelType) -> bool:
         """Checks if the specified role has permission to used a specified model.
@@ -229,7 +227,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
             return (bool(model_roles) == False) \
             or (user_role.id in model_roles if isinstance(model_roles, list) else False) \
             or (not model_roles or bool(_does_have_senior_role())) # Check if the model has no restrictions. The user has a role contained within any possible restrictions, or if the user has a role that is higher that of any lower role.
-        except exceptions.ModelNotExist:
+        except exceptions.ModelError:
             return True
 
 def user_has_model_permissions(member: discord.Member, model: models.AIModelType):

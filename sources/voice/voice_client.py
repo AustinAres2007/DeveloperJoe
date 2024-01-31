@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 import discord
 import threading
 
 from discord import AudioSource, opus
+from discord.abc import Connectable
+from discord.client import Client
 from discord.errors import ClientException
 from discord.gateway import DiscordVoiceWebSocket
 from .gateway import hook
 from .reader import AudioReader, AudioSink
 
+if TYPE_CHECKING:
+    from joe import DeveloperJoe
+    
 class BodgedAudioPlayer(discord.player.AudioPlayer):
     def run(self) -> None:
         try:
@@ -22,6 +28,8 @@ class BodgedAudioPlayer(discord.player.AudioPlayer):
             self._call_after()
 
 class BodgedVoiceClient(discord.VoiceClient):
+    def __init__(self, client: Client, channel: Connectable) -> None:
+        super().__init__(client, channel)
     def play(self, source: BodgedAudioPlayer, *, after: Optional[Callable[[Optional[Exception]], Any]] = None) -> None:
         """Plays an :class:`AudioSource`.
 
@@ -70,9 +78,10 @@ class BodgedVoiceClient(discord.VoiceClient):
         self._player.start()
         
 class VoiceRecvClient(BodgedVoiceClient):
-    def __init__(self, client, channel):
+    def __init__(self, client: DeveloperJoe, channel):
         super().__init__(client, channel)
 
+        self.client: DeveloperJoe = client
         self._connecting = threading.Condition()
         self._reader = None
         self._ssrc_to_id = {}
@@ -119,7 +128,7 @@ class VoiceRecvClient(BodgedVoiceClient):
         super().cleanup()
         self.stop()
     
-    # TODO: copy over new functions
+    # TODO: copy over new functionsw
     # add/remove/get ssrc
 
     def _add_ssrc(self, user_id, ssrc):
