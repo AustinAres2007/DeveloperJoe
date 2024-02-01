@@ -41,16 +41,6 @@ class Configuration(_Cog):
                 confighandler.edit_guild_config(guild, "timezone", timezone)
                 return await interaction.response.send_message(f"Changed bots timezone to {timezone}.")
             await interaction.response.send_message(f"Unknown timezone: {timezone}")
-    
-    @discord.app_commands.command(name="keyword", description='Changes the bots listening keyword in this server. (E.G. "Alexa" or "Siri" for example)')
-    @discord.app_commands.checks.has_permissions(administrator=True)
-    @discord.app_commands.check(commands_utils.in_correct_channel)
-    async def change_keyword(self, interaction: discord.Interaction, keyword: str | None=None):
-        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            if keyword == None:
-                return await interaction.response.send_message(f'Current voice keyword is "{confighandler.get_guild_config_attribute(guild, "voice-keyword")}"')
-            confighandler.edit_guild_config(guild, "voice-keyword", keyword)
-            await interaction.response.send_message(f'Changed this servers listening keyword to: "{keyword}"')
         
     @discord.app_commands.command(name="voice", description=f"Configure if users can have spoken {confighandler.get_config('bot_name')} chats.")
     @discord.app_commands.checks.has_permissions(administrator=True)

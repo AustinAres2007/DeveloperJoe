@@ -28,7 +28,6 @@ def generate_config_key():
         "timezone": get_config("timezone"),
         "voice-enabled": True,
         "voice-speed": get_config("voice_speedup_multiplier"),
-        "voice-keyword": get_config("listening_keyword"),
         "voice-volume": get_config("voice_volume"),
         "default-ai-model": get_config("default_gpt_model")
     }

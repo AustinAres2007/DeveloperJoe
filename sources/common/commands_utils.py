@@ -83,3 +83,15 @@ def get_correct_channel(channel: typing.Any | None) -> developerconfig.Interacta
     if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel
     raise exceptions.ConversationError(errors.ConversationErrors.CANNOT_CONVO)
+
+async def send_regardless(interaction: discord.Interaction, content: str) -> None:
+    file: typing.Any = None
+    
+    if len(content) >= 2000:
+        file = to_file(content, f"{interaction.command.name if interaction.command else "message"}.txt")
+        
+    try:
+        await interaction.response.send_message(content if file == None else None, file=file)
+    except discord.errors.InteractionResponded:
+        content = "" if file == None else content
+        await interaction.followup.send(content, file=file)

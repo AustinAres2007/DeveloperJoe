@@ -5,7 +5,6 @@ import discord, typing
 
 from .. import (
     exceptions,
-    voice,
     errors
 )
 
@@ -39,7 +38,7 @@ def dg_in_voice_channel(func):
     """Decorator for checking if the bot is in a voice channel with you."""
     
     async def _inner(self, *args, **kwargs):
-        if isinstance(self.client_voice, voice.VoiceRecvClient) and self.client_voice.is_connected():
+        if isinstance(self.client_voice, discord.VoiceClient) and self.client_voice.is_connected():
             return await func(self, *args, **kwargs)
         raise exceptions.VoiceError(errors.VoiceConversationErrors.NOT_IN_CHANNEL)
     
@@ -81,30 +80,6 @@ def dg_isnt_speaking(func):
             return await func(self, *args, **kwargs)
         raise exceptions.VoiceError(errors.VoiceConversationErrors.IS_SPEAKING)
 
-    return _inner
-
-def dg_is_listening(func):
-    """Decorator for checking if the bot instance is listening to voice chat.
-
-    Args:
-        func (_type_): The function.
-    """
-    async def _inner(self, *args, **kwargs):
-        if self.client_voice.is_listening():
-            return await func(self, *args, **kwargs)
-        raise exceptions.VoiceError(errors.VoiceConversationErrors.NOT_LISTENING)
-    return _inner
-
-def dg_isnt_listening(func):
-    """Decorator for checking if the bot instance is not listening to voice chat.
-
-    Args:
-        func (_type_): The function.
-    """
-    async def _inner(self, *args, **kwargs):
-        if not self.client_voice.is_listening():
-            return await func(self, *args, **kwargs)
-        raise exceptions.VoiceError(errors.VoiceConversationErrors.IS_LISTENING)
     return _inner
 
 # Config Decorators

@@ -16,7 +16,8 @@ from sources import (
 )
 from sources.common import (
     commands_utils,
-    developerconfig
+    developerconfig,
+    types
 )
 
 class Communication(commands.Cog):
@@ -99,21 +100,6 @@ class Communication(commands.Cog):
             
             self.client.remove_status(status)
             return await interaction.delete_original_response()
-
-    @discord.app_commands.command(name="listen", description="Enables the bot to listen to your queries in a voice chat.")
-    async def enabled_listening(self, interaction: discord.Interaction, listen: bool | None=None):
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        if vc_chat := self.client.get_default_voice_conversation(member):
-            if listen == None:
-                await interaction.response.send_message(f"Bot is currently{' not' if vc_chat.is_listening != True else ''} listening.")
-            elif listen == True:
-                await vc_chat.listen()
-                await interaction.response.send_message("Listening to voice..")
-            else:
-                await vc_chat.stop_listening()
-                await interaction.response.send_message("Stopped listening to voice.")
-        else:
-            raise exceptions.VoiceError(errors.VoiceConversationErrors.NO_VOICE_CONVO)
             
     @discord.app_commands.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
@@ -198,7 +184,7 @@ class Communication(commands.Cog):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         embed = self.client.get_embed(f"{member} Conversations")
         for chat in self.client.get_all_user_conversations(member).values():
-            embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private}", inline=False)
+            embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private} | Voice - {True if chat.type == types.DGChatTypesEnum.VOICE else False}", inline=False)
              
         await interaction.response.send_message(embed=embed)
             

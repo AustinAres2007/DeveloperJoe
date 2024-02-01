@@ -32,7 +32,6 @@ from .common import (
 if TYPE_CHECKING:
     from joe import DeveloperJoe
 
-from .voice import voice_client, reader
 
 _openai.api_key = confighandler.get_api_key("openai_api_key")
 __all__ = [
@@ -117,7 +116,7 @@ class DGChat:
         # Voice attributes
         
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: discord.VoiceClient | None = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self.proc_packet, self._is_speaking = False, False
         
         self.voice_tss_queue: list[str] = []
@@ -133,8 +132,6 @@ class DGChat:
         
         return channel
             
-    
-    
     @property
     def is_active(self) -> bool:
         return self._is_active
@@ -174,55 +171,10 @@ class DGChat:
     
     async def stop(self, interaction: discord.Interaction, save_history: bool) -> str:
         raise NotImplementedError
-
-    @property
-    def voice(self):
-        return self._voice
-    
-    @voice.setter
-    def voice(self, _voice: _Union[discord.VoiceChannel, discord.StageChannel, None]):
-        self._voice = _voice
     
     @property
     def type(self):
         return types.DGChatTypesEnum.VOICE
-
-    @property
-    def is_speaking(self) -> bool:
-        return self.client_voice.is_playing() if self.client_voice else False
-    
-    @property
-    def client_voice(self) -> voice_client.VoiceRecvClient | None:
-        return self._client_voice_instance
-    
-    @property
-    def has_voice(self):
-        return True if self.voice else False
-    
-    @client_voice.setter
-    def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
-        self._client_voice_instance = _bot_vc 
-    
-    async def manage_voice_packet_callback(self, member: discord.Member, voice: _io.BytesIO):
-        raise NotImplementedError
-        
-    async def manage_voice(self) -> discord.VoiceClient:
-       raise NotImplementedError
-   
-    async def speak(self, text: str, channel: developerconfig.InteractableChannel): 
-       raise NotImplementedError
-            
-    def stop_speaking(self):
-        raise NotImplementedError
-    
-    def pause_speaking(self):
-        raise NotImplementedError
-    
-    def resume_speaking(self):
-        raise NotImplementedError
-    
-    def listen(self):
-        raise NotImplementedError
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>"
@@ -495,7 +447,7 @@ class DGVoiceChat(DGTextChat):
         """
         super().__init__(member, bot_instance, name, stream, display_name, model, associated_thread, is_private)
         self._voice = voice
-        self._client_voice_instance: _Union[voice_client.VoiceRecvClient, None] = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        self._client_voice_instance: discord.VoiceClient | None = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False
         self.voice_tss_queue: list[str] = []
     
@@ -516,65 +468,18 @@ class DGVoiceChat(DGTextChat):
         return self.client_voice.is_playing() if self.client_voice else False
     
     @property
-    def is_listening(self) -> bool:
-        return self.client_voice.is_listening() if self.client_voice else False
-    
-    @property
-    def client_voice(self) -> voice_client.VoiceRecvClient | None:
-        return self._client_voice_instance
-    
-    @property
-    def has_voice(self):
+    def has_voice(self) -> bool:
         return True if self.voice else False
-    
-    @client_voice.setter
-    def client_voice(self, _bot_vc: voice_client.VoiceRecvClient | None) -> None:
-        self._client_voice_instance = _bot_vc 
+
     
     async def cleanup_voice(self):
         self.voice_tss_queue.clear()
-        await self.stop_listening()
         await self.stop_speaking()
-        
-    async def manage_voice_packet_callback(self, member: discord.Member, voice: _io.BytesIO):
-        try:
-            if self.proc_packet == False:
-                self.proc_packet = True
-                
-                recogniser = _speech_recognition.Recognizer()
 
-                try:
-                    with _speech_recognition.AudioFile(voice) as wav_file:
-                        
-                        recogniser.adjust_for_ambient_noise(wav_file, 0.7) # type: ignore float values can be used but that package does not have annotations                  
-                        data = recogniser.record(wav_file)
-                        text = recogniser.recognize_google(data, pfilter=0)
-                        
-                except _speech_recognition.UnknownValueError:
-                    pass
-                else:
-                    prefix = confighandler.get_guild_config_attribute(member.guild, "voice-keyword").lower()
-
-                    if prefix and isinstance(text, str) and self.last_channel: # Recognise keyword
-                        text = text.lower()
-                        if keyword_index := text.find(prefix) != -1:
-                            text = text[keyword_index + len(prefix):].lstrip()
-                            usr_voice_convo = self.bot.get_default_voice_conversation(member)
-                        
-                            if isinstance(usr_voice_convo, DGVoiceChat): # Make sure user has vc chat
-                                await getattr(usr_voice_convo, "ask" if usr_voice_convo.stream == False else "ask_stream")(text, self.last_channel)
-                            
-                                
-        except _speech_recognition.RequestError:
-            common.send_fatal_error_warning("The connection has been lost, or the operation failed.")       
-        except Exception as error:
-            common.send_fatal_error_warning(str(error))
-        finally:
-            self.proc_packet = False
         
     async def manage_voice(self) -> discord.VoiceClient:
         
-        voice: voice_client.VoiceRecvClient = discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
+        voice: discord.VoiceClient = discord.utils.get(self.bot.voice_clients, guild=self.voice.guild if self.voice else None) # type: ignore because all single instances are `discord.VoiceClient`
         
         # I know elif exists. I am doing this for effiency.
         if voice and voice.is_connected() and (self.voice == voice.channel):
@@ -583,8 +488,8 @@ class DGVoiceChat(DGTextChat):
             if voice and voice.is_connected() and (self.voice != voice.channel):
                 await voice.move_to(self.voice)
             elif self.voice:
-                self.client_voice = await self.voice.connect(cls=voice_client.VoiceRecvClient) # type: ignore shutup it'll work. it conforms
-                voice: voice_client.VoiceRecvClient = self.client_voice
+                self.client_voice = await self.voice.connect() # type: ignore shutup it'll work. it conforms
+                voice: discord.VoiceClient = self.client_voice
             await _asyncio.sleep(5.0)
         
         return voice
@@ -645,25 +550,6 @@ class DGVoiceChat(DGTextChat):
     async def resume_speaking(self):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
-    
-    @decorators.check_enabled
-    @decorators.has_voice_with_error
-    @decorators.dg_in_voice_channel
-    @decorators.dg_isnt_speaking
-    @decorators.dg_isnt_listening
-    async def listen(self):
-        """Starts the listening events for a users voice conversation."""
-        self.client_voice.listen(reader.SentenceSink(self.bot, self.manage_voice_packet_callback, 0.7)) # type: ignore Checks done with decorators.
-    
-    @decorators.check_enabled
-    @decorators.has_voice_with_error
-    @decorators.dg_in_voice_channel
-    @decorators.dg_is_listening
-    async def stop_listening(self):
-        """Stops the listening events for a users voice conversation"""
-        self.client_voice._reader.sink.cleanup() # type: ignore Checks done with decorators.
-        self.client_voice.stop_listening() # type: ignore Checks done with decorators.
-        
         
     async def ask(self, query: str, channel: developerconfig.InteractableChannel) -> str:
         

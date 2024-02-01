@@ -48,8 +48,6 @@ class VoiceConversationErrors:
     NO_VOICE = "This bot currently does not have voice support setup."
     IS_PROCESSING_VOICE = "I am still processing / playing your last voice request."
     VOICE_IS_LOCKED = "This discord server has disabled voice abilities."
-    IS_LISTENING = "I am already listening to voice."
-    NOT_LISTENING = "I am not listening to voice."
 
 class AIErrors:
     """Errors pertaining AIs"""

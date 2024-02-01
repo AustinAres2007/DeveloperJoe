@@ -6,7 +6,6 @@ from sources import (
     confighandler, 
     chat, 
     exceptions,
-    voice,
     errors
 )
 from sources.common import (
@@ -80,11 +79,11 @@ class Voice(Cog):
     @discord.app_commands.command(name="leave", description="Leaves the voice channel the bot is currently in.")
     async def leave_vc(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        bot_voice: voice.VoiceRecvClient | None = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        bot_voice: discord.VoiceClient | None = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
         member_convos = self.client.get_all_user_voice_conversations(member).values()
         
-        if isinstance(bot_voice, voice.VoiceRecvClient):
+        if isinstance(bot_voice, discord.VoiceClient):
             
             for convo in member_convos:
                 try:

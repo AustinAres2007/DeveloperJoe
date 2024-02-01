@@ -55,11 +55,6 @@ These commands are used to change the configuration values viewed with `/config`
    * This command can only be used by the servers administrators.
    * This command changes the timezone that is used at the footer of some commands (Bottom of the command)
 
-4. ## /keyword `keyword`
-   * This command has 1 argument. (keyword: Anything you like)
-   * This command can only be used by the servers administrators.
-   * This command changes the listening-keyword that invokes the bots listening. (E.G. You can change it to "Siri" or "Alexa" if you want something that you recognise)
-
 # AI Commands 
 
 Commands that relate to starting a chat, or anything relating to it
@@ -123,20 +118,15 @@ Commands that relate to chats.
 
 Commands that relate to voice capabilities. All these commands require you have a conversation with `speak_reply` active (Set to `True`)
 
-1. ## /listen `listen`
-   * This command has 1 argument.
-      - `listen`: Weather the bot will listen to your voice requests. Like any other smart assistant.
-   * This will enable / disable listening. You may ask DeveloperJoe a query with the listening keyword. By default, it is "assistant" but you can change it with `/keyword`
-
-2. ## /shutup
+1. ## /shutup
    * This command has no arguments.
    * This command will stop DeveloperJoe from talking if what it is saying takes to long, or you recieve a response that is not favourable.
   
-3. ## /pause
+2. ## /pause
    * This command has no arguments.
    * This command will pause DeveloperJoe from speaking. You can undo this with `/resume`
 
-4. ## /resume
+3. ## /resume
    * This command has no arguments.
    * This command will resume DeveloperJoe from a paused state invoked with `/pause`
 

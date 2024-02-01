@@ -66,8 +66,6 @@ default_config_keys = {
     "enable_status_scrolling": False,
     "status_scrolling_options": {"/help and different peoples!": 2, "/help and documentries.": 3, "/help and math tournaments!": 5, "/help and monoply :(": 0},
     "default_gpt_model": "gpt-3.5-turbo",
-    "listening_keyword": "assistant",
-    "listening_timeout": 2.5,
     "voice_speedup_multiplier": 1.3,
     "voice_volume": 1.0,
     "allow_voice": True,

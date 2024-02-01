@@ -11,7 +11,6 @@ from sources import (
     chat,
     exceptions,
     database,
-    voice,
     confighandler,
     models,
     errors
@@ -138,7 +137,7 @@ class Listeners(commands.Cog):
             after (discord.VoiceState): The users new voice state
         """
         
-        bot_voice: voice.VoiceRecvClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
+        bot_voice: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         
         b_channel = getattr(before, "channel", None)
         a_channel = getattr(after, "channel", None)
