@@ -83,3 +83,4 @@ I will add to this later, and try and make a more indepth and easy to understand
 - Remove listening support (too buggy, too many dependencies for too little reward that does not even work correctly)
 - Add comments to functions
 - Add `/server` -> Displays publically avalible configuration about the server
+- Still have to fix that stdin error.

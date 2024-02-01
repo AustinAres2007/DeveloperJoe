@@ -340,6 +340,8 @@ class DeveloperJoe(commands.Bot):
         
         if isinstance(error, discord.app_commands.CheckFailure):
             return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
+        elif isinstance(error, discord.app_commands.CommandSignatureMismatch):
+            return await send("Command mismatch. The bot must be restarted to fix this issue.")
         
         logging.error(exception)
         error_text = f"From error handler: {str(error)}"
