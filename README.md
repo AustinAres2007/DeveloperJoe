@@ -65,6 +65,7 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 - `/disconnect` -> Disconnects bot from voice channel it is in, if any.
 - Can now generate images by @ing the bot. Usage: `@DeveloperJoe image: {image prompt}`
+- Removed listening capabilities due to a multiude of bugs associated with it.
 
 #### 3. Bug Fixes
 
