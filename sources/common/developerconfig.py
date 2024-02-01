@@ -25,7 +25,6 @@ VERSION = "1.4.3-rework-ARC"
 # It's really cool to have your own custom version scheme isn't it? But to others it is probably very confusing and unnessersary.
 
 DATABASE_VERSION = "1.0.2"
-
 DATABASE_EXTENSION = "db"
 DATABASE_FILENAME = "dg_database"
 DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}.{DATABASE_EXTENSION}" # Where the SQLite3 Database file is located. (Reletive)
@@ -72,8 +71,6 @@ default_config_keys = {
     "voice_speedup_multiplier": 1.3,
     "voice_volume": 1.0,
     "allow_voice": True,
-    "starting_query": "Please give a short and formal introduction (MUST be under 1500 characters) of yourself (ChatGPT) what you can do and limitations.",
-    "voice_debug": False,
     "backup_upon_start": False
 }
 

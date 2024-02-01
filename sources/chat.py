@@ -293,7 +293,7 @@ class DGTextChat(DGChat):
         if self.model.can_stream == False:
             raise exceptions.DGException(f"{self.model} does not support streaming text.")
         
-        private_channel = self.get_personal_channel_or_current(channel)
+        private_channel = await self.get_personal_channel_or_current(channel)
         og_message = await private_channel.send(developerconfig.STREAM_PLACEHOLDER)
         self.is_processing = True
         

@@ -61,24 +61,24 @@ class Listeners(commands.Cog):
                 lowered_text = message.clean_content.lower()
                 
                 async with model(member) as ai_model:
-                    if not "image:" in lowered_text:
-                        async with message.channel.typing():
-                            ai_reply = await ai_model.ask_model(message.clean_content)
-                        
-                            if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
-                                return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
-                            return await message.channel.send(reply)
-                    else:
-                        try:
-                            start_index = lowered_text.find("image:") + len("image:")
-                            prompt = lowered_text[start_index:].lstrip()
+                    async with message.channel.typing():
+                        if not "image:" in lowered_text:
+                                ai_reply = await ai_model.ask_model(message.clean_content)
                             
-                            reply = await ai_model.generate_image(prompt)
+                                if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                                    return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                                return await message.channel.send(reply)
+                        else:
+                            try:
+                                start_index = lowered_text.find("image:") + len("image:")
+                                prompt = lowered_text[start_index:].lstrip()
+                                
+                                reply = await ai_model.generate_image(prompt)
+                                
+                                return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
+                            except openai.BadRequestError:
+                                return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
                             
-                            return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
-                        except openai.BadRequestError:
-                            return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
-                        
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
                 

@@ -17,7 +17,7 @@ def send_fatal_error_warning(text: str) -> None:
     Args:
         text (str): _description_
     """
-    print(colorama.Fore.LIGHTRED_EX + "\nLETHAL WARNING: " + colorama.Fore.RED + f"{text}\n" + colorama.Fore.WHITE)
+    print(colorama.Fore.LIGHTRED_EX + "\nLETHAL ERROR: " + colorama.Fore.RED + f"{text}\n" + colorama.Fore.WHITE)
     
 def warn_for_error(text: str) -> None:
     """Prints a yellow formatted text warning to the end client.
