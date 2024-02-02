@@ -51,6 +51,10 @@ class General(_Cog):
 
         [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description} Stream Text? {model.can_stream} | Art Generation? {model.can_generate_images}"), inline=False) for model in model_values]
         await interaction.response.send_message(embed=embed)
+    
+    @discord.app_commands.command(name="server", description="Lists general information about the server and the servers settings.")
+    async def list_server(self, interaction: discord.Interaction):
+        ...
         
 async def setup(client):
     await client.add_cog(General(client))

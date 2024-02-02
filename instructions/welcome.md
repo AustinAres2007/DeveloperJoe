@@ -41,16 +41,12 @@ I shall state most importants first
 
 These commands are used to change the configuration values viewed with `/config`
 
-1. ## /voice `enable_voice`
+1. ## /voice-enabled `enable_voice`
    * This command has 1 argument. (enable_voice: True or False value)
    * This command can only be used by the servers administrators.
    * This command disabled voice usage within the server the command was sent in. 
 
-2. ## /speed `speed`
-   * This command has 1 argument. (speed: decimal or round value. Anything between 1.0 and 4.0)
-   * This command changes how fast the bot can speak if enabled. I would personally not recommend anything higher 1.4
-
-3. ## /timezone `timezone`
+2. ## /timezone `timezone`
    * This command has 1 argument. (timezone: This value has to be a valid timezone. You can view them with `/times`)
    * This command can only be used by the servers administrators.
    * This command changes the timezone that is used at the footer of some commands (Bottom of the command)
@@ -87,7 +83,7 @@ Commands that relate to starting a chat, or anything relating to it
       - `save_chat`: If you want the chat to be stored for long term storage. This is active by default.
    * This command stops a chat that was started with `/start`.
 
-4. ## /end
+4. ## /end-all
    * This command has no arguments.
    * This command ends all conversations a user may hold. Confirmation will be asked for.
 
@@ -114,19 +110,35 @@ Commands that relate to chats.
    * This chat has no arguments.
    * This command lists all chats that a user holds.
 
-# Voice
+# Voice (/voice)
 
-Commands that relate to voice capabilities. All these commands require you have a conversation with `speak_reply` active (Set to `True`)
+Commands that relate to managing voice. Some commands require you had, or still have a conversation with `speak_reply` active. (Set to `True`)
 
-1. ## /shutup
+1. ## leave
+   * This command has no arguments.
+   * Leaves the voice channel the bot is currently in.
+
+2. ## speed `speed`
+   * This command has 1 argument. (speed: decimal or round value. Anything between 1.0 and 4.0)
+   * This command changes how fast the bot can speak if enabled. I would personally not recommend anything higher 1.4
+
+3. ## volume `volume`
+   * This command has 1 argument. (volume: decimal or round value. Recommend anything between 0.0 and 1.0)
+   * Sets bots voice volume.
+
+# Media (/media)
+
+Commands that relate to voice capabilities. All these commands require you have a conversation with `speak_reply` active. (Set to `True`)
+
+1. ## skip
    * This command has no arguments.
    * This command will stop DeveloperJoe from talking if what it is saying takes to long, or you recieve a response that is not favourable.
   
-2. ## /pause
+2. ## pause
    * This command has no arguments.
    * This command will pause DeveloperJoe from speaking. You can undo this with `/resume`
 
-3. ## /resume
+3. ## resume
    * This command has no arguments.
    * This command will resume DeveloperJoe from a paused state invoked with `/pause`
 

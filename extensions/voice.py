@@ -17,7 +17,10 @@ class Voice(Cog):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
     
-    @discord.app_commands.command(name="speed", description="Set your bots voice speed multiplier for the server.")
+    voice_group = discord.app_commands.Group(name="voice", description="Command group for voice commands.")
+    media_group = discord.app_commands.Group(name="media", description="Command group for managing media.")
+    
+    @voice_group.command(name="speed", description="Set your bots voice speed multiplier for the server.")
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def set_speed(self, interaction: discord.Interaction, speed: float | None=None):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
@@ -29,7 +32,7 @@ class Voice(Cog):
             else:
                 await interaction.response.send_message("You cannot set the bots speaking speed below 1.0 or more than 4.0.")
     
-    @discord.app_commands.command(name="volume", description="Sets bots voice volume. Use values between 0.0 - 1.0")
+    @voice_group.command(name="volume", description="Sets bots voice volume. Use values between 0.0 - 1.0")
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def set_volume(self, interaction: discord.Interaction, volume: float | None=None):
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
@@ -38,7 +41,7 @@ class Voice(Cog):
                 return await interaction.response.send_message(f"Changed voice volume to {volume}.")
             await interaction.response.send_message(f"Voice volume is {confighandler.get_guild_config_attribute(guild, 'voice-volume')}.")
             
-    @discord.app_commands.command(name="shutup", description=f"If you have a {confighandler.get_config('bot_name')} voice chat and you want it to stop talking a reply, execute this command.")
+    @media_group.command(name="skip", description="If talking, this will stop me from talking. Unlike /media pause, this is not reversible.")
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)
@@ -50,7 +53,7 @@ class Voice(Cog):
         else:
             raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
 
-    @discord.app_commands.command(name="pause", description="Paused the bots voice reply.")
+    @media_group.command(name="pause", description="Paused the bots voice reply.")
     async def pause_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)
@@ -63,7 +66,7 @@ class Voice(Cog):
         else:
             raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
     
-    @discord.app_commands.command(name="resume", description="Resues the bots voice reply.")
+    @media_group.command(name="resume", description="Resues the bots voice reply.")
     async def resume_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)
@@ -76,7 +79,7 @@ class Voice(Cog):
         else:
             raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
     
-    @discord.app_commands.command(name="leave", description="Leaves the voice channel the bot is currently in.")
+    @voice_group.command(name="leave", description="Leaves the voice channel the bot is currently in.")
     async def leave_vc(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         bot_voice: discord.VoiceClient | None = discord.utils.get(self.client.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`

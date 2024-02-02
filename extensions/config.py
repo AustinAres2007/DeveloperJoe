@@ -42,7 +42,7 @@ class Configuration(_Cog):
                 return await interaction.response.send_message(f"Changed bots timezone to {timezone}.")
             await interaction.response.send_message(f"Unknown timezone: {timezone}")
         
-    @discord.app_commands.command(name="voice", description=f"Configure if users can have spoken {confighandler.get_config('bot_name')} chats.")
+    @discord.app_commands.command(name="voice-enabled", description=f"Configure if users can have spoken {confighandler.get_config('bot_name')} chats.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def config_voice(self, interaction: discord.Interaction, allow_voice: bool | None=None):

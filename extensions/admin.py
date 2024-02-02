@@ -20,7 +20,8 @@ class Administration(_Cog):
     def __init__(self, _client: DeveloperJoe):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
-        
+    
+    
     owner_group = _discord.app_commands.Group(name="owner", description="Commands for managing the bot. Only usable by the bot owner.")
     admin_group = _discord.app_commands.Group(name="admin", description="Commands for managing the bot. Only usable by server administrators.")
         

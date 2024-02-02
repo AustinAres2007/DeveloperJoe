@@ -52,36 +52,12 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 * If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.4.3
-
-### Changes
-
-#### 1. Quick summary
-
-- New Voice command: `/disconnect`
-- Bug Fixes (Private thread listener fixes, `/inquire` fixes)
-
-#### 2. Changelog
-
-- `/disconnect` -> Disconnects bot from voice channel it is in, if any.
-- Can now generate images by @ing the bot. Usage: `@DeveloperJoe image: {image prompt}`
-- Removed listening capabilities due to a multiude of bugs associated with it.
-
-#### 3. Bug Fixes
-
-- Fixed bug with thread listening. If you had a chat that was ended, the bot would still continue the chat if in a thread.
-- Fixed `/end` and `/stop` command. Actually all user chats with appropiate protocols. (Related to thread listening bug)
-- Removed resolution parameter in `/image` due to internal changes.
-- Bot capabilities now listed in `/models`.
-- Removed references to bot tokens due to internal consistency changes.
-- `/disconnect` -> Disconnects bot from voice channel.
-- @ing bot to generate images -> Uses default model specified with the `/default-model` command. (Dall-E 2 by default)
+## Release Notes 1.4.4
 
 
 
 ## Todo 1.4.4
 
-- Remove listening support (too buggy, too many dependencies for too little reward that does not even work correctly)
 - Add comments to functions
 - Add `/server` -> Displays publically avalible configuration about the server
 - Still have to fix that stdin error.
