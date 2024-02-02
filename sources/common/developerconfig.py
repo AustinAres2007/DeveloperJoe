@@ -28,6 +28,7 @@ DATABASE_VERSION = "1.0.2"
 DATABASE_EXTENSION = "db"
 DATABASE_FILENAME = "dg_database"
 DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}.{DATABASE_EXTENSION}" # Where the SQLite3 Database file is located. (Reletive)
+DEVELOPERJOE_THUMBNAIL_URL = "https://i.imgur.com/SgdL99Y.png"
 
 TOKEN_FILE = "dependencies/api-keys.yaml" # Where the API keys for Discord and OpenAI are located. (Reletive)
 WELCOME_FILE = "dependencies/tutorial.md" # Where the introduction / welcome text is located. (Reletive)
@@ -65,7 +66,7 @@ default_config_keys = {
     "status_scrolling_change_interval": 10,
     "enable_status_scrolling": False,
     "status_scrolling_options": {"/help and different peoples!": 2, "/help and documentries.": 3, "/help and math tournaments!": 5, "/help and monoply :(": 0},
-    "default_gpt_model": "gpt-3.5-turbo",
+    "default_ai_model": "gpt-3.5-turbo",
     "voice_speedup_multiplier": 1.3,
     "voice_volume": 1.0,
     "allow_voice": True,

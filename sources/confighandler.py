@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import discord, json, yaml
-from typing import Any
+from typing import Any, TYPE_CHECKING, Self
 
 from . import (
     database, 
@@ -12,6 +14,11 @@ from .common import (
     commands_utils,
     types
 )
+
+if TYPE_CHECKING:
+    from . import (
+        models
+    )
 # XXX: Must make DGGuildModelSession (For init())
 
 __all__ = [
@@ -29,7 +36,7 @@ def generate_config_key():
         "voice-enabled": True,
         "voice-speed": get_config("voice_speedup_multiplier"),
         "voice-volume": get_config("voice_volume"),
-        "default-ai-model": get_config("default_gpt_model")
+        "default-ai-model": get_config("default_ai_model")
     }
 
 class GuildData:    
@@ -116,7 +123,25 @@ class DGGuildDatabaseConfigHandler(database.DGDatabaseSession):
     
     def add_guild(self):
         self._exec_db_command("INSERT INTO guild_configs VALUES(?, ?, ?)", (self.guild.id, self.guild.owner_id, json.dumps(generate_config_key()),))
-        
+
+class GuildConfigAttributes:
+
+    @staticmethod
+    def get_guild_model(guild: discord.Guild) -> models.AIModelType:
+        return commands_utils.get_modeltype_from_name(get_guild_config_attribute(guild, "default-ai-model"))
+    
+    @staticmethod
+    def get_voice_status(guild: discord.Guild) -> bool:
+        return bool(get_guild_config_attribute(guild, "voice-enabled"))
+    
+    @staticmethod
+    def get_voice_volume(guild: discord.Guild) -> float:
+        return float(get_guild_config_attribute(guild, "voice-volume"))
+    
+    @staticmethod
+    def get_voice_speed(guild: discord.Guild) -> float:
+        return float(get_guild_config_attribute(guild, "voice-speed"))
+    
 def get_guild_config(guild: discord.Guild) -> GuildData:
     """Returns a guilds full developerconfig.
 

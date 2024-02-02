@@ -319,15 +319,21 @@ class DeveloperJoe(commands.Bot):
                 common.warn_for_error("Bug report channel ID is invalid or it does not exist. (Error 0)")
                 
         async def send(text: str):
-            if interaction.response.is_done():
-                return await interaction.followup.send(text)
-            return await interaction.response.send_message(text)
-        
+            try:
+                if interaction.response.is_done():
+                    return await interaction.followup.send(text)
+                return await interaction.response.send_message(text)
+            except discord.NotFound:
+                common.warn_for_error("Invalid Interaction. Check log file.")
+                
         async def send_with_file(text: str, file: discord.File):
-            if interaction.response.is_done():
-                return await interaction.followup.send(text, file=file)
-            return await interaction.response.send_message(text, file=file)
-        
+            try:
+                if interaction.response.is_done():
+                    return await interaction.followup.send(text, file=file)
+                return await interaction.response.send_message(text, file=file)
+            except discord.NotFound:
+                common.warn_for_error("Invalid Interaction. Check log file.")
+                
         exception: str = traceback.format_exc()
         
         # If it is a DGException or derives from it

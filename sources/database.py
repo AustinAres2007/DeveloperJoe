@@ -328,6 +328,6 @@ def generate_config_key():
         "voice-enabled": True,
         "voice-speed": get_config("voice_speedup_multiplier"),
         "voice-volume": get_config("voice_volume"),
-        "default-ai-model": get_config("default_gpt_model")
+        "default-ai-model": get_config("default_ai_model")
     }
     

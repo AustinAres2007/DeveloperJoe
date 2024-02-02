@@ -148,7 +148,7 @@ class Listeners(commands.Cog):
                 async def _manage_bot_disconnect(convo: chat.DGVoiceChat):
                     if bot_voice:
                         try: 
-                            await convo.cleanup_voice()
+                            convo.cleanup_voice()
                         except exceptions.VoiceError:
                             pass
                         finally:

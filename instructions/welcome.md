@@ -22,7 +22,7 @@ Using this bots voice capabilities will use a lot of data and a lot of resources
 
 # Commands
 
-I shall state most importants first
+I shall state the most important commands first;
 
 1. ## /help
    * This command has no arguments.
@@ -41,12 +41,12 @@ I shall state most importants first
 
 These commands are used to change the configuration values viewed with `/config`
 
-1. ## /voice-enabled `enable_voice`
+1. ## /admin voice-enabled `enable_voice`
    * This command has 1 argument. (enable_voice: True or False value)
    * This command can only be used by the servers administrators.
    * This command disabled voice usage within the server the command was sent in. 
 
-2. ## /timezone `timezone`
+2. ## /admin set-timezone `timezone`
    * This command has 1 argument. (timezone: This value has to be a valid timezone. You can view them with `/times`)
    * This command can only be used by the servers administrators.
    * This command changes the timezone that is used at the footer of some commands (Bottom of the command)

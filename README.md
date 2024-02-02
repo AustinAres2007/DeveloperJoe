@@ -1,4 +1,4 @@
-![alt text](https://cdn.discordapp.com/attachments/1117948406011269140/1131694810454040646/Untitled_Artwork.jpg)
+![DeveloperJoe](https://i.imgur.com/SgdL99Y.png)
 
 # **Information**
 
@@ -58,6 +58,6 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Todo 1.4.4
 
-- Add comments to functions
-- Add `/server` -> Displays publically avalible configuration about the server
+- ~~Add comments to functions~~ Cancelled. Not urgent can do it whenever.
+- ~~Add `/server` -> Displays publically avalible configuration about the server~~
 - Still have to fix that stdin error.

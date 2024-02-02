@@ -1,3 +1,4 @@
+from click import command
 import discord
 
 from discord.ext.commands import Cog as _Cog
@@ -7,7 +8,8 @@ from sources import (
     confighandler
 )
 from sources.common import (
-    commands_utils
+    commands_utils,
+    developerconfig
 )
 
 class General(_Cog):
@@ -54,7 +56,24 @@ class General(_Cog):
     
     @discord.app_commands.command(name="server", description="Lists general information about the server and the servers settings.")
     async def list_server(self, interaction: discord.Interaction):
-        ...
+        guild = commands_utils.assure_class_is_value(interaction.guild, discord.Guild)
+        embed = discord.Embed(title=interaction.guild, color=discord.Color.from_rgb(20, 31, 17))
+        default_embed_fields = {"inline": False}
+        
+        embed_fields = [
+            {"name": f"{guild.name} Member Count :1234:", "value": str(guild.member_count), **default_embed_fields},
+            {"name": f"{guild.name} Server ID :wrench:", "value": str(guild.id), **default_embed_fields},
+            {"name": f"{guild.name} Owner :gun:", "value": str(guild.owner), **default_embed_fields},
+            {"name": f"{guild.name} Prefered Language :om_symbol:", "value": str(guild.preferred_locale), **default_embed_fields},
+            {"name": f"{guild.name} Default AI Model :robot:", "value": confighandler.GuildConfigAttributes.get_guild_model(guild).display_name, **default_embed_fields},
+            {"name": f"{guild.name} Voice Enabled :question:", "value": confighandler.GuildConfigAttributes.get_voice_status(guild), **default_embed_fields},
+            {"name": f"{guild.name} Voice Volume :speaker:", "value": str(confighandler.GuildConfigAttributes.get_voice_volume(guild)), **default_embed_fields},
+            {"name": f"{guild.name} Voice Speed :speaking_head:", "value": str(confighandler.GuildConfigAttributes.get_voice_speed(guild)), **default_embed_fields}
+        ]
+        embed.set_thumbnail(url=getattr(guild.icon, "url", developerconfig.DEVELOPERJOE_THUMBNAIL_URL))
+        embed._fields = embed_fields
+        
+        await interaction.response.send_message(embed=embed)
         
 async def setup(client):
     await client.add_cog(General(client))

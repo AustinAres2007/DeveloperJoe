@@ -1,6 +1,5 @@
 from sqlite3 import DatabaseError
-from click import command
-import discord as _discord
+import discord
 from discord.ext.commands import Cog as _Cog
 
 from joe import DeveloperJoe
@@ -22,12 +21,12 @@ class Administration(_Cog):
         print(f"{self.__cog_name__} Loaded")
     
     
-    owner_group = _discord.app_commands.Group(name="owner", description="Commands for managing the bot. Only usable by the bot owner.")
-    admin_group = _discord.app_commands.Group(name="admin", description="Commands for managing the bot. Only usable by server administrators.")
+    owner_group = discord.app_commands.Group(name="owner", description="Commands for managing the bot. Only usable by the bot owner.")
+    admin_group = discord.app_commands.Group(name="admin", description="Commands for managing the bot. Only usable by server administrators.")
         
     @owner_group.command(name="exit", description="Shuts down bot client.")
-    @_discord.app_commands.checks.has_permissions(administrator=True)
-    async def halt(self, interaction: _discord.Interaction):
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    async def halt(self, interaction: discord.Interaction):
         if await self.client.is_owner(interaction.user):
             await interaction.response.send_message("Shutting Down")
             await self.client.close()
@@ -36,8 +35,8 @@ class Administration(_Cog):
         raise exceptions.DGException(errors.GenericErrors.USER_MISSING_PERMISSIONS)
         
     @owner_group.command(name="backup", description="Backs up the database file.")
-    @_discord.app_commands.checks.has_permissions(administrator=True)
-    async def backup_database(self, interaction: _discord.Interaction):
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    async def backup_database(self, interaction: discord.Interaction):
         if await self.client.is_owner(interaction.user):
             with database.DGDatabaseSession() as new_database:
                 location = new_database.backup_database()
@@ -45,8 +44,8 @@ class Administration(_Cog):
         raise exceptions.DGException(errors.GenericErrors.USER_MISSING_PERMISSIONS)
     
     @owner_group.command(name="load", description="Loads backup made with /backup")
-    @_discord.app_commands.checks.has_permissions(administrator=True)
-    async def load_database(self, interaction: _discord.Interaction):
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    async def load_database(self, interaction: discord.Interaction):
         if await self.client.is_owner(interaction.user):
             with database.DGDatabaseSession(reset_if_failed_check=False) as old_database:
                 try:
@@ -58,33 +57,33 @@ class Administration(_Cog):
         raise exceptions.DGException(errors.GenericErrors.USER_MISSING_PERMISSIONS)
 
     @admin_group.command(name="lock", description="Locks a select AI Model behind a role or permission.")
-    @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    @_discord.app_commands.describe(ai_model="The AI model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
-    @_discord.app_commands.check(commands_utils.in_correct_channel)
-    async def lock_role(self, interaction: _discord.Interaction, ai_model: str, role: _discord.Role):
+    @discord.app_commands.checks.has_permissions(manage_channels=True)
+    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.describe(ai_model="The AI model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def lock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             _gpt_model = commands_utils.get_modeltype_from_name(ai_model)
             rules.upload_guild_model(_gpt_model, role)
             await interaction.response.send_message(f"Added {ai_model} behind role {role.mention}.")
 
     @admin_group.command(name="unlock", description="Unlocks a previously locked AI Model.")
-    @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    @_discord.app_commands.describe(ai_model="The AI model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
-    @_discord.app_commands.check(commands_utils.in_correct_channel)
-    async def unlock_role(self, interaction: _discord.Interaction, ai_model: str, role: _discord.Role):
+    @discord.app_commands.checks.has_permissions(manage_channels=True)
+    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.describe(ai_model="The AI model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def unlock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             model = commands_utils.get_modeltype_from_name(ai_model)
             new_rules = rules.remove_guild_model(model, role)
             await interaction.response.send_message(f"Removed requirement role {role.mention} from {ai_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
 
     @admin_group.command(name="locks", description="View all models and which roles may utilise them.")
-    @_discord.app_commands.checks.has_permissions(manage_channels=True)
-    @_discord.app_commands.check(commands_utils.in_correct_channel)
-    async def view_locks(self, interaction: _discord.Interaction):    
+    @discord.app_commands.checks.has_permissions(manage_channels=True)
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def view_locks(self, interaction: discord.Interaction):    
         
-        if guild := commands_utils.assure_class_is_value(interaction.guild, _discord.Guild):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             def _get_valid_role_mention(role_id: int) -> str:
                 role = guild.get_role(role_id)
                 return role.mention if role else "Deleted role."
@@ -107,17 +106,64 @@ class Administration(_Cog):
                 await interaction.response.send_message(text)
     
     @admin_group.command(name="default-model", description="Changes the default model that will be used in certain circumstances.")
-    @_discord.app_commands.checks.has_permissions(administrator=True)
-    @_discord.app_commands.check(commands_utils.in_correct_channel)
-    @_discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    async def change_default_model_for_server(self, interaction: _discord.Interaction, ai_model: str | None=None):
-        if guild := commands_utils.assure_class_is_value(interaction.guild, _discord.Guild):
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    async def change_default_model_for_server(self, interaction: discord.Interaction, ai_model: str | None=None):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             if ai_model == None:
                 current_model_object = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(guild, 'default-ai-model'))
                 return await interaction.response.send_message(f"Current default AI Model is {current_model_object.display_name}. {current_model_object.description}")
             model_object = commands_utils.get_modeltype_from_name(ai_model)
             confighandler.edit_guild_config(guild, "default-ai-model", ai_model)
             await interaction.response.send_message(f"Changed default AI Model to {model_object.display_name}.")
+    
+    @admin_group.command(name="set-timezone", description="Changes the bots timezone in this server.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def change_tz(self, interaction: discord.Interaction, timezone: str | None=None):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
+            if timezone == None:
+                return await interaction.response.send_message(f"Current timezone is {confighandler.get_guild_config_attribute(guild, 'timezone')}")
+            elif timezone in self.client.__tzs__:
+                confighandler.edit_guild_config(guild, "timezone", timezone)
+                return await interaction.response.send_message(f"Changed bots timezone to {timezone}.")
+            await interaction.response.send_message(f"Unknown timezone: {timezone}")\
+    
+    @admin_group.command(name="voice-enabled", description=f"Configure if users can have spoken {confighandler.get_config('bot_name')} chats.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def config_voice(self, interaction: discord.Interaction, allow_voice: bool | None=None):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
+            if allow_voice == None:
+                return await interaction.response.send_message(f"Users {'cannot' if confighandler.get_guild_config_attribute(guild, 'voice-enabled') == False else 'can'} use voice.")
+            confighandler.edit_guild_config(guild, "voice-enabled", allow_voice)
+            return await interaction.response.send_message(f"Users {'cannot' if allow_voice == False else 'can'} use voice.")
+    
+    @admin_group.command(name="reset", description=f"Reset this servers configuration back to default.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    @discord.app_commands.check(commands_utils.in_correct_channel)
+    async def reset_config(self, interaction: discord.Interaction):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             
+            confirm = await self.client.get_input(interaction, f"Are you sure you want to reset this servers configuration? This cannot be undone unless you remember the current configuration. (Type: {developerconfig.QUERY_CONFIRMATION})")
+            if not confirm or confirm.content != developerconfig.QUERY_CONFIRMATION:
+                return await interaction.followup.send("Cancelled action.", ephemeral=False)
+                
+            confighandler.reset_guild_config(guild)
+            return await interaction.followup.send("The servers configuration options have been reset. You may view them with /config.")
+    
+    @admin_group.command(name="config", description="View this discord servers configuration.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    async def guild_config(self, interaction: discord.Interaction):
+        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
+            
+            _config = confighandler.get_guild_config(guild)
+            embed = self.client.get_embed(f"{guild} Configuration Settings")
+            
+            for c_entry in _config.raw_config_data.items():
+                embed.add_field(name=f'Config Option: "{c_entry[0]}"', value=c_entry[1], inline=False)
+            
+            await interaction.response.send_message(embed=embed) 
 async def setup(client):
     await client.add_cog(Administration(client))

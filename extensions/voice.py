@@ -1,3 +1,4 @@
+from signal import default_int_handler
 import discord
 from discord.ext.commands import Cog
 
@@ -45,9 +46,13 @@ class Voice(Cog):
     async def shutup_reply(self, interaction: discord.Interaction):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         default_chat = self.client.get_default_conversation(member)
+        
         if default_chat and isinstance(default_chat, chat.DGVoiceChat):
-            await default_chat.stop_speaking()
-            return await interaction.response.send_message(f"I have shut up.")
+            try:
+                await default_chat.stop_speaking()
+                return await interaction.response.send_message(f"I have shut up.")
+            except:
+                pass
         elif default_chat:
             raise exceptions.VoiceError(errors.VoiceConversationErrors.TEXT_ONLY_CHAT)
         else:
@@ -90,7 +95,7 @@ class Voice(Cog):
             
             for convo in member_convos:
                 try:
-                    await convo.cleanup_voice()
+                    convo.cleanup_voice()
                 except exceptions.VoiceError:
                     continue
                 

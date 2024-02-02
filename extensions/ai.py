@@ -37,7 +37,7 @@ class Communication(commands.Cog):
                                    
     )
     @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str=confighandler.get_config('default_gpt_model'), in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
@@ -46,6 +46,7 @@ class Communication(commands.Cog):
         chats = self.client.get_all_user_conversations(member)
         name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
         chat_thread: discord.Thread | None = None
+        ai_model = ai_model if isinstance(ai_model, str) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
         
         # Error Checking
 
@@ -192,9 +193,10 @@ class Communication(commands.Cog):
     @chat_group.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
     @discord.app_commands.describe(query="The question you wish to pose.")
     @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
-    async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str=confighandler.get_config('default_gpt_model')):
+    async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str | None):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        actual_model = commands_utils.get_modeltype_from_name(ai_model)
+        model_string = ai_model if isinstance(ai_model, str) else confighandler.get_guild_config_attribute(member.guild, "default-ai-model")
+        actual_model = commands_utils.get_modeltype_from_name(model_string)
         
         async with actual_model(member) as model:
             asked = await model.ask_model(query)

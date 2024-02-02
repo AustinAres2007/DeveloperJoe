@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as _datetime, discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
+import aiohttp
 
 from typing import (
     Union as _Union, 
@@ -74,7 +75,7 @@ class DGChat:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -88,7 +89,7 @@ class DGChat:
             name (str): _description_
             stream (bool): _description_
             display_name (str): _description_
-            model (models.AIModelType, optional): _description_. Defaults to default_gpt_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
+            model (models.AIModelType, optional): _description_. Defaults to default_ai_model. If the config changes while the bot is active, this default will not change as it is defined at runtime.
             associated_thread (_Union[discord.Thread, None], optional): _description_. Defaults to None.
             is_private (bool, optional): _description_. Defaults to True.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): _description_. Defaults to None.
@@ -190,7 +191,7 @@ class DGTextChat(DGChat):
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True 
         ):
@@ -301,9 +302,9 @@ class DGTextChat(DGChat):
                     else:
                         await msg[-1].edit(content=sendable_portion)
             
-        except discord.NotFound:
+        except (discord.NotFound, aiohttp.ClientOSError):
             self.is_processing = False
-            raise exceptions.DGException("Stopped query since someone deleted the streaming message.")
+            raise exceptions.DGException("Stopped streaming query as the streamed message was deleted.")
         else:            
             self.context.add_conversation_entry(query, full_message)
             return message
@@ -427,7 +428,7 @@ class DGVoiceChat(DGTextChat):
             name: str,
             stream: bool,
             display_name: str, 
-            model: models.AIModelType | str=confighandler.get_config('default_gpt_model'), 
+            model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
             associated_thread: _Union[discord.Thread, None]=None, 
             is_private: bool=True,
             voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
@@ -472,10 +473,8 @@ class DGVoiceChat(DGTextChat):
         return True if self.voice else False
 
     
-    async def cleanup_voice(self):
+    def cleanup_voice(self):
         self.voice_tss_queue.clear()
-        await self.stop_speaking()
-
         
     async def manage_voice(self) -> discord.VoiceClient:
         
@@ -533,6 +532,7 @@ class DGVoiceChat(DGTextChat):
     @decorators.dg_is_speaking
     async def stop_speaking(self):
         """Stops the bots voice reply for a user. (Cannot be resumed)"""
+        self.client_voice.cleanup()
         self.client_voice.stop() # type: ignore checks in decorators
     
     @decorators.check_enabled
