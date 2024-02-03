@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import datetime as _datetime, discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
-from multiprocessing import Value
+import datetime as _datetime, discord, openai as _openai, random as _random, asyncio as _asyncio
 import logging
-from venv import logger
-import subprocess
 import aiohttp
 
 from typing import (
@@ -445,6 +442,7 @@ class StdinFFmpegPCMAudioFix(discord.FFmpegPCMAudio):
                 _log.info('ffmpeg process %s successfully terminated with return code of %s.', proc.pid, proc.returncode)
         except ValueError:
             pass
+        
 class DGVoiceChat(DGTextChat):
     
     """Represents a voice and text DG Chat."""

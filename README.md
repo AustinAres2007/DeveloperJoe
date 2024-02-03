@@ -60,6 +60,4 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 - ~~Add comments to functions~~ Cancelled. Not urgent can do it whenever.
 - ~~Add `/server` -> Displays publically avalible configuration about the server~~
-- Still have to fix that stdin error.
-
-The stdin bug is not due to my own code. I know this because I tested it on Windows and the bug does not appear.
+- ~~Still have to fix that stdin error.~~
