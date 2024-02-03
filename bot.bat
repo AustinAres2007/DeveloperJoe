@@ -1,10 +1,10 @@
-@echo off
+
 setlocal enabledelayedexpansion
 
 if not "%1"=="" (
     set "PYTHON_COMMAND=%1"
 ) else (
-    set "PYTHON_COMMAND=python"
+    set "PYTHON_COMMAND=py"
 )
 
 set "DIR=%~dp0"
@@ -33,8 +33,8 @@ if %ERRORLEVEL% EQU 0 (
             
             echo Installing... This may take some time.
             %PYTHON_COMMAND% -m venv %DIR% && call Scripts\activate
-            %PYTHON_COMMAND% -m pip install -q --upgrade pip
-            %PYTHON_COMMAND% -m pip install -q -r "dependencies\requirements.txt"
+            %PYTHON_COMMAND% -m pip install --upgrade pip
+            %PYTHON_COMMAND% -m pip install -r "dependencies\requirements.txt"
             %PYTHON_COMMAND% "%DIR%\sources\install\download_libs.py"
         )
         
@@ -45,11 +45,12 @@ if %ERRORLEVEL% EQU 0 (
             set /p discord_api_key=
             echo Please enter your OpenAI Token ^(API Key^) or leave it blank
             set /p openai_api_key=
-        )
+        ) 
         echo Performing bot startup..
         %PYTHON_COMMAND% main.py !discord_api_key! !openai_api_key!
         
     )   
 ) else (
     echo Python is not installed on this system, or is configured improperly. Given Python Executable: %PYTHON_COMMAND%
+    pause
 )
