@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import datetime as _datetime, discord, openai as _openai, random as _random, asyncio as _asyncio, io as _io, speech_recognition as _speech_recognition
+from multiprocessing import Value
+import logging
+from venv import logger
+import subprocess
 import aiohttp
 
 from typing import (
@@ -416,7 +420,31 @@ class DGTextChat(DGChat):
     def __str__(self) -> str:
         return self.display_name
 
+class StdinFFmpegPCMAudioFix(discord.FFmpegPCMAudio):
+    def _kill_process(self) -> None:
+        MISSING = discord.utils.MISSING
+        _log = logging.getLogger(__name__)
+        
+        proc = self._process
+        if proc is MISSING:
+            return
 
+        _log.debug('Preparing to terminate ffmpeg process %s.', proc.pid)
+
+        try:
+            proc.kill()
+        except Exception:
+            _log.exception('Ignoring error attempting to kill ffmpeg process %s', proc.pid)
+
+        try:
+            if proc.poll() is None:
+                _log.info('ffmpeg process %s has not terminated. Waiting to terminate...', proc.pid)            
+                proc.communicate()
+                _log.info('ffmpeg process %s should have terminated with a return code of %s.', proc.pid, proc.returncode)
+            else:
+                _log.info('ffmpeg process %s successfully terminated with return code of %s.', proc.pid, proc.returncode)
+        except ValueError:
+            pass
 class DGVoiceChat(DGTextChat):
     
     """Represents a voice and text DG Chat."""
@@ -506,7 +534,7 @@ class DGVoiceChat(DGTextChat):
                         speed: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-speed")
                         volume: int = confighandler.get_guild_config_attribute(new_voice.guild, "voice-volume")
                         
-                        ffmpeg_pcm = discord.FFmpegPCMAudio(source=ttsmodels.GTTSModel(self.member, self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
+                        ffmpeg_pcm = StdinFFmpegPCMAudioFix(source=ttsmodels.GTTSModel(self.member, self.voice_tss_queue[index]).process_text(speed), executable=developerconfig.FFMPEG, pipe=True)
                         volume_source = discord.PCMVolumeTransformer(ffmpeg_pcm)
                         volume_source.volume = volume
                         
