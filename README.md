@@ -62,4 +62,4 @@ I will add to this later, and try and make a more indepth and easy to understand
 - ~~Add `/server` -> Displays publically avalible configuration about the server~~
 - Still have to fix that stdin error.
 
-- Linux stdin testing (Perhaps an ffmpeg bug or python compile bug)
+The stdin bug is not due to my own code. I know this because I tested it on Windows and the bug does not appear.
