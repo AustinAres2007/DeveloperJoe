@@ -23,7 +23,7 @@ if not (v_info.major >= 3 and v_info.minor >= 12):
 
 try:
     # Not required here, just importing for integrity check.
-    import json, openai, openai_async, tiktoken, sqlite3, math, wave, array, pytz, yaml, colorama
+    import json, openai, openai_async, sqlite3, math, wave, array, pytz, yaml, colorama
 
     import discord, logging, asyncio, datetime, traceback, aiohttp
     from discord.ext import commands

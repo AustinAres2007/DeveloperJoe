@@ -1,5 +1,5 @@
 from httpx import ReadTimeout
-import tiktoken, json, tiktoken, openai, discord
+import json, openai, discord
 
 from typing import (
     Any,
@@ -406,15 +406,10 @@ class GPTModel(AIModel):
     
     def __init__(self, member: discord.Member) -> None:
         super().__init__(member)
-        self._tokeniser = tiktoken.encoding_for_model(self.model)
         self._gpt_context: GPTConversationContext | None = None
     
     def is_init(self):
         return isinstance(self._gpt_context, GPTConversationContext) and super().is_init()
-    
-    @property
-    def tokeniser(self) -> tiktoken.Encoding:
-        return self._tokeniser
     
     def clear_context(self) -> None:
         if self.is_init():
