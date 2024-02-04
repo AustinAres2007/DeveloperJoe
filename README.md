@@ -54,7 +54,17 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.4.4
 
+- New command `/server` shows avalible information about the server you are in (Server volume, members, default AI model, etc..)
 
+### Bug Fixes
+
+- Fixed stdin bug
+- Fixed install bug if on Python 3.12
+- Fixed other minor bugs. 
+
+### Other
+
+- Removed redundent code.
 
 ## Todo 1.4.4
 

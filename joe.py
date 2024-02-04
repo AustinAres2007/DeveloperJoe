@@ -13,7 +13,7 @@ from __future__ import annotations
 from asyncio import CancelledError
 import shutil
 import sys, os
-from typing import Any, Sequence
+from typing import Any
 
 v_info = sys.version_info
 
@@ -491,8 +491,6 @@ class DeveloperJoe(commands.Bot):
         
 
 # Driver Code
-global client
-
 client: DeveloperJoe | None = None
 
 async def _run_bot() -> DeveloperJoe | None:

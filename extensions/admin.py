@@ -75,8 +75,9 @@ class Administration(_Cog):
     async def unlock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             model = commands_utils.get_modeltype_from_name(ai_model)
-            new_rules = rules.remove_guild_model(model, role)
-            await interaction.response.send_message(f"Removed requirement role {role.mention} from {ai_model}." if new_rules != None else f"{role.mention} has not been added to unlock database.")
+            
+            rules.remove_guild_model(model, role)
+            await interaction.response.send_message(f"Removed requirement role {role.mention} from {ai_model}.")
 
     @admin_group.command(name="locks", description="View all models and which roles may utilise them.")
     @discord.app_commands.checks.has_permissions(manage_channels=True)

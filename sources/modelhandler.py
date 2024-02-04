@@ -157,7 +157,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         
         return True
 
-    def remove_guild_model(self, model: models.AIModelType, role: discord.Role):
+    def remove_guild_model(self, model: models.AIModelType, role: discord.Role) -> None:
         """Performs the opposite of `upload_guild_model` (Removes a role from the lock list)
 
         Args:
