@@ -91,7 +91,7 @@ class Communication(commands.Cog):
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
             conversation = self.client.manage_defaults(member, name)
             status = f'/help and "{message}"'
-
+            
             await interaction.response.send_message("Thinking..", ephemeral=conversation.private)
             
             self.client.add_status(status, 2) if not conversation.private else None

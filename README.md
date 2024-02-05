@@ -1,6 +1,6 @@
-![DeveloperJoe](https://i.imgur.com/SgdL99Y.png)
+# Information
 
-# **Information**
+![DeveloperJoe](https://i.imgur.com/SgdL99Y.png)
 
 DeveloperJoe is an AI discord bot that comes with GPT 3 / 4 by default and that is fully customisable if you have sufficient Python knowledge.
 
@@ -15,21 +15,25 @@ This bot is directed towards people who want customisation. Though, this is beca
 
 ## Setup
 
-1. ### Run the installation / run script 
-    * To start, run the installation / run script, labeled "bot" located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
+1. ### Run the installation / run script
 
-2. ### Obtain a Discord API Key from [Discord's Developer Website.](https://discord.com/developers/applications) 
-    * Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
+    - To start, run the installation / run script, labeled "bot" located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
 
-    * After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "discord_api_key: (key)"
+2. ### Obtain a Discord API Key from [Discord's Developer Website.](https://discord.com/developers/applications)
 
-3. ### Obtain an OpenAI API Key from [OpenAI's Website](https://platform.openai.com/account) 
-    * Navigate to the "API keys" tab and register one. And warning for beginnners, using this API costs money, and you will **NEED** to add a payment method if you do not have free credits, and depending on the model and how much you use it, it can get expensive.
+    - Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
 
-    * After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "openai_api_key: (key)"
+    - After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "discord_api_key: (key)"
 
-4. ### Congratulations, you have finished the instillation.
-    * Read further if you want to setup voice capabilities or instructions on how to run the bot.
+3. ### Obtain an OpenAI API Key from [OpenAI's Website](https://platform.openai.com/account)
+
+    - Navigate to the "API keys" tab and register one. And warning for beginnners, using this API costs money, and you will **NEED** to add a payment method if you do not have free credits, and depending on the model and how much you use it, it can get expensive.
+
+    - After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "openai_api_key: (key)"
+
+4. ### Congratulations, you have finished the instillation
+
+    - Read further if you want to setup voice capabilities or instructions on how to run the bot.
 
 ## Running DeveloperJoe
 
@@ -39,35 +43,19 @@ All you have to do is double click the file `bot` for all operating systems
 
 Voice support added by default if you downloaded a release from my GitHub, you do not need to do any setup at all. Just run the bot. If not, you will need to acquire the required libraries. You can download the respective files for your computer at [this repository.](https://github.com/AustinAres2007/developerjoe-downloads/releases) Simply drag and drop all 3 inside your respective ZIP folder files into the `voice` directory.
 
-**Other**
+## Other
 
 You can add your own voice support pretty easily if you have basic knowledge of what your Operating System is, the architechure (32 Bit, 64 Bit, ARM-64, ect..)
 I will add to this later, and try and make a more indepth and easy to understand tutorial.
 
 ## Optional
 
-* In the file `bot-config.yaml` you can change any variables to suit your needs. *Note; it is recommended to set `bot_name` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
+- In the file `bot-config.yaml` you can change any variables to suit your needs. *Note; it is recommended to set `bot_name` to the same name as is set in the [Discord's Developer Portal](https://discord.com/developers/applications), though, it will not cause any problems if not.*
 
 ## Errors
 
-* If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
+- If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.4.4
+## Release Notes 1.4.5
 
-- New command `/server` shows avalible information about the server you are in (Server volume, members, default AI model, etc..)
-
-### Bug Fixes
-
-- Fixed stdin bug
-- Fixed install bug if on Python 3.12
-- Fixed other minor bugs. 
-
-### Other
-
-- Removed redundent code.
-
-## Todo 1.4.4
-
-- ~~Add comments to functions~~ Cancelled. Not urgent can do it whenever.
-- ~~Add `/server` -> Displays publically avalible configuration about the server~~
-- ~~Still have to fix that stdin error.~~
+## Todo 1.4.5

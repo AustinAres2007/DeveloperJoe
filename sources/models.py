@@ -208,7 +208,7 @@ class GPTConversationContext:
         super().__init__()
         self._context = []
     
-    def add_conversation_entry(self, query: str, answer: str, user_type: str) -> list:
+    def add_conversation_entry(self, query: str, answer: str) -> list:
         data_query = {"role": "user", "content": query}
         data_reply = {"role": "assistant", "content": answer}
         context_entry = [data_query, data_reply]
@@ -267,7 +267,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
                 _handle_error(response)
             elif isinstance(response, AIQueryResponse):
                 if isinstance(context, GPTConversationContext):
-                    context.add_conversation_entry(query, str(response.response), "user")
+                    context.add_conversation_entry(query, str(response.response))
                     
                 return response
                 
@@ -365,12 +365,13 @@ class AIModel:
     def __init__(self, member: discord.Member) -> None:
         self._context: ReadableContext = ReadableContext()
         self.member = member
-        
-        if not self._check_user_permissions():
-            raise DGException(missing_perms)
+        # TODO: Add lock list attribute (What roles can currently use model)
     
     def is_init(self):
         return isinstance(self._context, ReadableContext)
+    
+    def get_lock_list(self) -> list[discord.Role | None]:
+        return [self.member.guild.get_role(r_id) for r_id in modelhandler.get_permitted_roles_for_model(self.member.guild, self)]
     
     @property
     def context(self) -> ReadableContext:
@@ -480,6 +481,7 @@ class GPT4(GPTModel):
         raise DGException(missing_perms)
     
 AIModelType = type(GPT3Turbo) | type(GPT4)
+GenericAIModel = GPT3Turbo | GPT4
 registered_models: dict[str, AIModelType] = {
     "gpt-4": GPT4,
     "gpt-3.5-turbo": GPT3Turbo

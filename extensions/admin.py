@@ -8,7 +8,8 @@ from sources import (
     exceptions,
     database,
     confighandler,
-    errors
+    errors,
+    models
 )
 from sources.common import (
     commands_utils,
@@ -19,7 +20,6 @@ class Administration(_Cog):
     def __init__(self, _client: DeveloperJoe):
         self.client = _client
         print(f"{self.__cog_name__} Loaded")
-    
     
     owner_group = discord.app_commands.Group(name="owner", description="Commands for managing the bot. Only usable by the bot owner.")
     admin_group = discord.app_commands.Group(name="admin", description="Commands for managing the bot. Only usable by server administrators.")
@@ -62,6 +62,10 @@ class Administration(_Cog):
     @discord.app_commands.describe(ai_model="The AI model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def lock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
+        
+        if confighandler.GuildConfigAttributes.get_guild_model(role.guild).model == ai_model:
+            return await interaction.response.send_message("You cannot lock this model as it currently is the this servers default AI model. You may change the default with `/admin default-model`")
+        
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             _gpt_model = commands_utils.get_modeltype_from_name(ai_model)
             rules.upload_guild_model(_gpt_model, role)
@@ -83,7 +87,7 @@ class Administration(_Cog):
     @discord.app_commands.checks.has_permissions(manage_channels=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def view_locks(self, interaction: discord.Interaction):    
-        
+
         if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
             def _get_valid_role_mention(role_id: int) -> str:
                 role = guild.get_role(role_id)
@@ -111,14 +115,18 @@ class Administration(_Cog):
     @discord.app_commands.check(commands_utils.in_correct_channel)
     @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
     async def change_default_model_for_server(self, interaction: discord.Interaction, ai_model: str | None=None):
-        if guild := commands_utils.assure_class_is_value(interaction.guild, discord.Guild):
-            if ai_model == None:
-                current_model_object = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(guild, 'default-ai-model'))
-                return await interaction.response.send_message(f"Current default AI Model is {current_model_object.display_name}. {current_model_object.description}")
-            model_object = commands_utils.get_modeltype_from_name(ai_model)
-            confighandler.edit_guild_config(guild, "default-ai-model", ai_model)
-            await interaction.response.send_message(f"Changed default AI Model to {model_object.display_name}.")
-    
+        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        model_object: models.GenericAIModel = commands_utils.get_modeltype_from_name(ai_model if isinstance(ai_model, str) else confighandler.get_guild_config_attribute(member.guild, 'default-ai-model'))(member)
+        
+        if ai_model == None: # Check if user checking what model
+            return await interaction.response.send_message(f"Current default AI Model is {model_object.display_name}. {model_object.description}")
+        
+        if model_object.get_lock_list() != []: # Make sure it is accessible (Not in lock list)
+            return await interaction.response.send_message(f"Cannot set {model_object.display_name} to the default model as it roles attached to it in the lock list. Undo with `/admin unlock`.")
+        
+        confighandler.edit_guild_config(member.guild, "default-ai-model", ai_model)
+        await interaction.response.send_message(f"Changed default AI Model to {model_object.display_name}.")
+
     @admin_group.command(name="set-timezone", description="Changes the bots timezone in this server.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
@@ -152,7 +160,7 @@ class Administration(_Cog):
                 return await interaction.followup.send("Cancelled action.", ephemeral=False)
                 
             confighandler.reset_guild_config(guild)
-            return await interaction.followup.send("The servers configuration options have been reset. You may view them with /config.")
+            return await interaction.followup.send("The servers configuration options have been reset. You may view them with /config or /server.")
     
     @admin_group.command(name="config", description="View this discord servers configuration.")
     @discord.app_commands.checks.has_permissions(administrator=True)
