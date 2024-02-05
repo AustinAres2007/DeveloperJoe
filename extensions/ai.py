@@ -85,7 +85,7 @@ class Communication(commands.Cog):
         
     @chat_group.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool | None=None):
+    async def ask_query(self, interaction: discord.Interaction, message: str, image_url: str | None=None, name: str="", stream: bool | None=None):
 
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
@@ -93,13 +93,13 @@ class Communication(commands.Cog):
             status = f'/help and "{message}"'
             
             await interaction.response.send_message("Thinking..", ephemeral=conversation.private)
-            
             self.client.add_status(status, 2) if not conversation.private else None
+            
             if stream == True or (conversation.stream == True and stream != False):
                 await conversation.ask_stream(message, channel)
             else:
-                await conversation.ask(message, channel)
-            
+                await conversation.ask(message, channel, image_url)
+                
             self.client.remove_status(status)
             return await interaction.delete_original_response()
             

@@ -154,7 +154,7 @@ class DGChat:
     def private(self, is_p: bool):
         self._private = is_p
     
-    async def ask(self, query: str, *_args, **_kwargs) -> str:
+    async def ask(self, query: str, channel: developerconfig.InteractableChannel, image_url: str | None=None) -> str:
         raise NotImplementedError
         
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
@@ -323,7 +323,7 @@ class DGTextChat(DGChat):
             raise exceptions.DGException(errors.AIErrors.AI_REQUEST_ERROR)
         
     @decorators.check_enabled
-    async def ask(self, query: str, channel: developerconfig.InteractableChannel):
+    async def ask(self, query: str, channel: developerconfig.InteractableChannel, image_url: str | None):
         if self.model.can_talk == False:
             raise exceptions.DGException(f"{self.model} cannot talk.")
         
@@ -333,7 +333,11 @@ class DGTextChat(DGChat):
             # Reply format: ({"content": "Reply content", "role": "assistent"})
             
             try:
-                response: models.AIQueryResponse = await self.model.ask_model(query)
+                if not image_url:
+                    response: models.AIQueryResponse = await self.model.ask_model(query)
+                else:
+                    response: models.AIQueryResponse = await self.model.read_image(query, image_url)
+                    
                 self.is_processing = False
 
                 return response
@@ -577,9 +581,9 @@ class DGVoiceChat(DGTextChat):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
         
-    async def ask(self, query: str, channel: developerconfig.InteractableChannel) -> str:
+    async def ask(self, query: str, channel: developerconfig.InteractableChannel, image_url: str | None=None) -> str:
         
-        text = await super().ask(query, channel)
+        text = await super().ask(query, channel, image_url)
         if isinstance(channel, developerconfig.InteractableChannel):
             await self.speak(str(text), channel)
         else:

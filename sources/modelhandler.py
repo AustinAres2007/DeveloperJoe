@@ -237,6 +237,6 @@ def user_has_model_permissions(member: discord.Member, model: models.AIModelType
     else:
         raise TypeError("member must be discord.Member, not {}".format(member.__class__))
 
-def get_permitted_roles_for_model(guild: discord.Guild, model: models.AIModelType):
+def get_permitted_roles_for_model(guild: discord.Guild, model: models.AIModelType) -> list[int]:
     with DGGuildDatabaseModelHandler(guild) as model_handler:
         return model_handler.get_guild_model(model) 

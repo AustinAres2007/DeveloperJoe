@@ -12,7 +12,8 @@ from .common import (
 from . import (
     confighandler,
     modelhandler,
-    errors
+    errors,
+    exceptions
 )
 
 from .exceptions import DGException
@@ -208,8 +209,19 @@ class GPTConversationContext:
         super().__init__()
         self._context = []
     
-    def add_conversation_entry(self, query: str, answer: str) -> list:
-        data_query = {"role": "user", "content": query}
+    def add_conversation_entry(self, query: str, answer: str, image_url: str | None=None) -> list:
+        
+        if not image_url:
+            data_query = {"role": "user", "content": query}
+        else:
+            data_query = {"role": "user", "content": [
+                {"type": "text", "text": query},
+                {
+                    "type": "image_url",
+                    "image_url": image_url
+                }
+                ] if isinstance(image_url, str) else query}
+            
         data_reply = {"role": "assistant", "content": answer}
         context_entry = [data_query, data_reply]
         
@@ -219,18 +231,70 @@ class GPTConversationContext:
     def clear(self) -> None:
         self._context.clear()
     
-    def get_temporary_context(self, query: str, user_type: str="user") -> list:
+    def get_temporary_context(self, query: str, image_url: str | None=None) -> list:
 
-        data = {"content": query, "role": user_type}
+        if not image_url:
+            data = {"content": query, "role": "user"}
+        else:
+            data = self.generate_empty_context(query, image_url)
+            
         _temp_context = self._context.copy()
         _temp_context.append(data)
         
         return _temp_context
     
+    @staticmethod
+    def generate_empty_context(query: str, image_url: str | None=None) -> list:
+        if not image_url:
+            empty = [{"role": "user", "content": query}]
+        else:
+            empty = [{"role": "user", "content": [
+            {"type": "text", "text": query},
+            {
+                "type": "image_url",
+                "image_url": None
+            }
+            ]}]
+        
+        return empty
+    
+"""class GPTReaderConversationContext(GPTConversationContext):
+    
+    def add_conversation_entry(self, query: str, answer: str, image_url: str | None) -> list:
+        data_query = {"role": "user", "content": [
+            {"type": "text", "text": query},
+            {
+                "type": "image_url",
+                "image_url": image_url
+            }
+        ] if isinstance(image_url, str) else query}
+        
+        data_reply = {"role": "assistant", "content": answer}
+        context_entry = [data_query, data_reply]
+        
+        self._context.extend(context_entry)
+        return context_entry
+    
+    @staticmethod
+    def generate_empty_context(query: str, image_url: str | None=None) -> list:
+        return [{"role": "user", "content": [
+            {"type": "text", "text": query},
+            {
+                "type": "image_url",
+                "image_url": image_url
+            }
+        ] if isinstance(image_url, str) else query}]
+    
+    
+    def get_temporary_context(self, query: str, image_url: str | None=None) -> list:
+        
+        data = self.generate_empty_context(query, image_url)[0]
+        _temp_context = self._context.copy()
+        _temp_context.append(data)
+        
+        return _temp_context
+        """
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
-
-def generate_empty_context(query: str) -> list:
-    return [{"role": "user", "content": query}]
 
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
     actual_data: dict = data if isinstance(data, dict) else json.loads(data)
@@ -253,7 +317,7 @@ def _handle_error(response: AIErrorResponse) -> None:
     raise DGException(response.error_message, response.error_code)
     
 async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: types.AIModels, api_key: str, **kwargs) -> AIQueryResponse:
-    temp_context: list = context.get_temporary_context(query, "user") if context else generate_empty_context(query)
+    temp_context: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
     
     if not isinstance(context, GPTConversationContext | None):
         raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(context)))
@@ -297,7 +361,7 @@ async def _gpt_ask_stream_base(
     Yields:
         _type_: FIXME: Add new description
     """
-    history: list = context.get_temporary_context(query, "user") if context else generate_empty_context(query)
+    history: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
 
     def _is_valid_chunk(chunk_data: str) -> bool:
         try:
@@ -351,6 +415,7 @@ class AIModel:
     can_talk = False
     can_stream = False
     can_generate_images = False
+    can_read_images = False
     
     async def __aenter__(self):
         self.start_chat()
@@ -371,8 +436,11 @@ class AIModel:
         return isinstance(self._context, ReadableContext)
     
     def get_lock_list(self) -> list[discord.Role | None]:
-        return [self.member.guild.get_role(r_id) for r_id in modelhandler.get_permitted_roles_for_model(self.member.guild, self)]
-    
+        try:
+            return [self.member.guild.get_role(r_id) for r_id in modelhandler.get_permitted_roles_for_model(self.member.guild, self)]
+        except exceptions.ModelError:
+            return []
+        
     @property
     def context(self) -> ReadableContext:
         return self._context
@@ -390,6 +458,9 @@ class AIModel:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def read_image(self, query: str, image_url: str) -> AIQueryResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
     async def end(self) -> None:
@@ -431,15 +502,15 @@ class GPTModel(AIModel):
     
 class GPT3Turbo(GPTModel):
     
-    model: types.AIModels = "gpt-3.5-turbo"
+    model: types.AIModels = "gpt-3.5-turbo-16k"
     description = "Cost effective, smart, image generation. Everything normal users need."
     display_name = "GPT 3.5 Turbo"
 
     can_talk = True
     can_stream = True
     can_generate_images = True
+    can_read_images = False
     
-    # TODO: Use _gpt_image_base and other respective functions for all methods below
     async def ask_model(self, query: str) -> AIQueryResponse:
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
@@ -455,16 +526,45 @@ class GPT3Turbo(GPTModel):
             return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
         raise DGException(missing_perms)
     
+    async def read_image(self, query: str, image_url: str) -> AIQueryResponse:
+        raise exceptions.ModelError("This model does not support image reading.")
+    
 class GPT4(GPTModel):
     
-    model = "gpt-4"
+    model = "gpt-4-vision-preview"
     description = "Slightly better at everything that GPT-3 does, costs more. For normal use, use GPT-3."
     display_name = "GPT 4"
     
     can_talk = True
     can_stream = True
     can_generate_images = True
+    can_read_images = True
+        
+    async def _gpt4_ask_base(self, query: str, image_url: str, _api_key: str):
+        temp_context: list = self._gpt_context.get_temporary_context(query, image_url) if self._gpt_context else GPTConversationContext.generate_empty_context(query, image_url)
     
+        if not isinstance(self._gpt_context, GPTConversationContext | None):
+            raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(self._gpt_context)))
+        
+        try:
+            async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
+                print(temp_context)
+                _reply = await async_openai_client.chat.completions.create(model=self.model, messages=temp_context, max_tokens=4096)
+                response = _response_factory(_reply.model_dump_json())
+                
+                if isinstance(response, AIErrorResponse):
+                    _handle_error(response)
+                elif isinstance(response, AIQueryResponse):
+                    if isinstance(self._gpt_context, GPTConversationContext):
+                        self._gpt_context.add_conversation_entry(query, image_url, str(response.response))
+                        
+                    return response
+                    
+        except (TimeoutError, ReadTimeout):
+            raise DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
+        
+        raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
+        
     async def ask_model(self, query: str) -> AIQueryResponse:
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
@@ -478,6 +578,14 @@ class GPT4(GPTModel):
     async def generate_image(self, image_prompt: str) -> AIImageResponse:
         if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
+        raise DGException(missing_perms)
+    
+    async def read_image(self, query: str, image_url: str) -> AIQueryResponse:
+        if self._check_user_permissions():
+            if not isinstance(image_url, str):
+                raise TypeError(f"`image_url` must be of type `str` not `{image_url.__class__.__name__}`")
+            
+            return await self._gpt4_ask_base(query, image_url, confighandler.get_api_key("openai_api_key"))
         raise DGException(missing_perms)
     
 AIModelType = type(GPT3Turbo) | type(GPT4)
