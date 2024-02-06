@@ -78,9 +78,6 @@ try:
 except FileNotFoundError:
     common.send_fatal_error_warning(f"Missing server join files. ({developerconfig.WELCOME_FILE} and {developerconfig.ADMIN_FILE})")
 
-class DJCommandsContext(commands.Context):
-    def a(self):
-        print("a")
 # Main Bot Class    
 class DeveloperJoe(commands.Bot):
 
@@ -102,11 +99,6 @@ class DeveloperJoe(commands.Bot):
         self.statuses[confighandler.get_config('status_text')] = confighandler.get_config('status_type')
         
         super().__init__(*args, **kwargs)
-        
-    async def get_context(self, origin: discord.Interaction, cls=DJCommandsContext) -> DJCommandsContext:
-        if isinstance(origin, discord.Message):
-            raise TypeError(f"{self.__class__.__name__} cannot take discord.Message as a context. Use discord.Interaction instead.")
-        return await super().get_context(origin, cls=cls)
     
     def add_status(self, text: str, activity_type: discord.ActivityType | int=discord.ActivityType.listening):
         self.statuses[text] = activity_type

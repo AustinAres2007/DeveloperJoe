@@ -58,7 +58,7 @@ class Administration(_Cog):
 
     @admin_group.command(name="lock", description="Locks a select AI Model behind a role or permission.")
     @discord.app_commands.checks.has_permissions(manage_channels=True)
-    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     @discord.app_commands.describe(ai_model="The AI model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def lock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
@@ -73,7 +73,7 @@ class Administration(_Cog):
 
     @admin_group.command(name="unlock", description="Unlocks a previously locked AI Model.")
     @discord.app_commands.checks.has_permissions(manage_channels=True)
-    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     @discord.app_commands.describe(ai_model="The AI model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
     @discord.app_commands.check(commands_utils.in_correct_channel)
     async def unlock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
@@ -113,7 +113,7 @@ class Administration(_Cog):
     @admin_group.command(name="default-model", description="Changes the default model that will be used in certain circumstances.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.check(commands_utils.in_correct_channel)
-    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     async def change_default_model_for_server(self, interaction: discord.Interaction, ai_model: str | None=None):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         model_object: models.GenericAIModel = commands_utils.get_modeltype_from_name(ai_model if isinstance(ai_model, str) else confighandler.get_guild_config_attribute(member.guild, 'default-ai-model'))(member)

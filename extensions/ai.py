@@ -12,7 +12,8 @@ from sources import (
     exceptions, 
     chat,
     errors,
-    confighandler
+    confighandler,
+    models
 )
 from sources.common import (
     commands_utils,
@@ -36,7 +37,7 @@ class Communication(commands.Cog):
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
                                    
     )
-    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
@@ -77,11 +78,10 @@ class Communication(commands.Cog):
         else:
             convo = chat.DGTextChat(*chat_args)
         
-        await interaction.response.defer(ephemeral=is_private, thinking=True)
         await convo.start()
             
         welcome = f"*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
-        await interaction.followup.send(welcome, ephemeral=is_private)
+        await interaction.response.send_message(welcome, ephemeral=is_private)
         
     @chat_group.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
@@ -97,13 +97,19 @@ class Communication(commands.Cog):
             
             # TODO: Change shitty handling of the bots response (Replies via DGChat, it is messy find another way) how it is now is temporary.
             
-            if stream == True or (conversation.stream == True and stream != False):
-                await conversation.ask_stream(message, channel)
-            else:
-                await conversation.ask(message, interaction, image_url)
+            async with channel.typing():
+                if stream == True or (conversation.stream == True and stream != False):
+                    await conversation.ask_stream(message, channel)
+                else:
+                    reply = await conversation.ask(message, [image_url] if image_url else None)
+                    if len(reply) > developerconfig.CHARACTER_LIMIT:
+                        file_reply: discord.File = commands_utils.to_file(reply, "reply.txt")
+                        await interaction.followup.send(file=file_reply)
+                    else:
+                        await interaction.followup.send(reply)
                 
-            self.client.remove_status(status)
-            
+                return self.client.remove_status(status)
+                
     @chat_group.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=False):
@@ -193,7 +199,7 @@ class Communication(commands.Cog):
             
     @chat_group.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
     @discord.app_commands.describe(query="The question you wish to pose.")
-    @discord.app_commands.choices(ai_model=developerconfig.MODEL_CHOICES)
+    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str | None):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         model_string = ai_model if isinstance(ai_model, str) else confighandler.get_guild_config_attribute(member.guild, "default-ai-model")

@@ -29,7 +29,8 @@ class History(commands.Cog):
             elif 'image' in entry[0]:
                 final += f"{entry[0]['image']}\n{entry[1]['image_return']}\n\n{'~' * 15}\n\n"   
             elif 'reader_content' in entry[0]:
-                final += f"{username}: {entry[0]['reader_content']} ({entry[0]["image_url"]})\n{model}: {entry[1]['reply']}\n\n{'~' * 15}\n\n"
+                urls = '\n'.join([f"Image {i + 1}: {url}" for i, url in enumerate(entry[0]["image_urls"])])
+                final += f"{username}: {entry[0]['reader_content']}\n\n{urls}\n\n{model}: {entry[1]['reply']}\n\n{'~' * 15}\n\n"
             else:
                 final += "Unknown data.\n\n"
                 

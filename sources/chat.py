@@ -101,7 +101,6 @@ class DGChat:
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + member.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
-        self.last_channel: developerconfig.InteractableChannel | None = None
 
         self.name = name
         self.display_name = display_name
@@ -154,7 +153,7 @@ class DGChat:
     def private(self, is_p: bool):
         self._private = is_p
     
-    async def ask(self, query: str, interaction: discord.Interaction, image_url: str | None):
+    async def ask(self, query: str, image_urls: list[str] | None=None):
         raise NotImplementedError
         
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
@@ -279,29 +278,27 @@ class DGTextChat(DGChat):
         sendable_portion = "<>"
         message = ""
         
-        try:
-            async with channel.typing():
+        try:                
+            async for t in reply:
                 
-                async for t in reply:
-                    
-                    i += 1
-                    full_message += t
-                    message += t
-                    sendable_portion = full_message[start_message_at * developerconfig.CHARACTER_LIMIT:((start_message_at + 1) * developerconfig.CHARACTER_LIMIT)]
-            
-                    if len(full_message) and len(full_message) >= (start_message_at + 1) * developerconfig.CHARACTER_LIMIT:
-                        await msg[-1].edit(content=sendable_portion)
-                        msg.append(await msg[-1].channel.send(developerconfig.STREAM_PLACEHOLDER))
+                i += 1
+                full_message += t
+                message += t
+                sendable_portion = full_message[start_message_at * developerconfig.CHARACTER_LIMIT:((start_message_at + 1) * developerconfig.CHARACTER_LIMIT)]
+        
+                if len(full_message) and len(full_message) >= (start_message_at + 1) * developerconfig.CHARACTER_LIMIT:
+                    await msg[-1].edit(content=sendable_portion)
+                    msg.append(await msg[-1].channel.send(developerconfig.STREAM_PLACEHOLDER))
 
-                    start_message_at = len(full_message) // developerconfig.CHARACTER_LIMIT
-                    if i and i % developerconfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
-                        await msg[-1].edit(content=sendable_portion)
+                start_message_at = len(full_message) // developerconfig.CHARACTER_LIMIT
+                if i and i % developerconfig.STREAM_UPDATE_MESSAGE_FREQUENCY == 0:
+                    await msg[-1].edit(content=sendable_portion)
 
+            else:
+                if not msg:
+                    await og_message.edit(content=sendable_portion)
                 else:
-                    if not msg:
-                        await og_message.edit(content=sendable_portion)
-                    else:
-                        await msg[-1].edit(content=sendable_portion)
+                    await msg[-1].edit(content=sendable_portion)
             
         except (discord.NotFound, aiohttp.ClientOSError):
             self.is_processing = False
@@ -323,23 +320,23 @@ class DGTextChat(DGChat):
             raise exceptions.DGException(errors.AIErrors.AI_REQUEST_ERROR)
         
     @decorators.check_enabled
-    async def ask(self, query: str, interaction: discord.Interaction, image_url: str | None):
-        interaction_channel = commands_utils.assure_class_is_value(interaction.channel, discord.TextChannel)
+    async def ask(self, query: str, image_urls: list[str] | None=None):
         
         if self.model.can_talk == False:
             raise exceptions.ModelError(f"{self.model} cannot talk.")
         
-        if image_url and not self.model.can_read_images:
+        if image_urls and not self.model.can_read_images:
             raise exceptions.ModelError(f"{self.model} cannot read images.")
 
+        # TODO: Remove _send_query as it is pretty useless.
         async def _send_query():
             self.is_processing = True
             
             try:
-                if not image_url:
+                if not image_urls:
                     response: models.AIQueryResponse = await self.model.ask_model(query)
                 else:
-                    response: models.AIQueryResponse = await self.model.read_image(query, image_url)
+                    response: models.AIQueryResponse = await self.model.read_image(query, image_urls)
                     
                 self.is_processing = False
 
@@ -350,21 +347,16 @@ class DGTextChat(DGChat):
             except TimeoutError:
                 raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
             
-        async with interaction_channel.typing():
-            reply = await _send_query()
-            final_user_reply = f"## {self.header}\n\n{reply.response}"
-            
-            if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
-                file_reply: discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
-                await interaction.followup.send(file=file_reply)
-            else:
-                await interaction.followup.send(final_user_reply)
         
-        if image_url:
-            self.context.add_reader_entry(query, image_url, reply.response)
+        reply = await _send_query()
+        final_user_reply = f"## {self.header}\n\n{reply.response}"
+        
+        if image_urls:
+            self.context.add_reader_entry(query, image_urls, reply.response) # FIXME
         else:
             self.context.add_conversation_entry(query, reply.response)        
-        return reply
+            
+        return final_user_reply
             
     async def start(self) -> None:
         """Sends a start query to GPT.
@@ -529,9 +521,8 @@ class DGVoiceChat(DGTextChat):
         return voice
     
     @decorators.has_voice
-    async def speak(self, text: str, channel: developerconfig.InteractableChannel): 
+    async def speak(self, text: str): 
         try:
-            self.last_channel = channel
             self.voice_tss_queue.append(text)
             new_voice = await self.manage_voice()
             
@@ -586,21 +577,18 @@ class DGVoiceChat(DGTextChat):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
         
-    async def ask(self, query: str, interaction: discord.Interaction, image_url: str | None):
+    async def ask(self, query: str, image_urls: list[str] | None=None):
         
-        text = await super().ask(query, interaction, image_url)
-        if isinstance(interaction, developerconfig.InteractableChannel):
-            await self.speak(str(text), interaction)
-        else:
-            raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(interaction.channel.__class__.__name__))
+        text = str(await super().ask(query, image_urls))
+        await self.speak(text)
         
-        return str(text)
+        return text
 
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> str:
 
         text = await super().ask_stream(query, channel)
         if isinstance(channel, developerconfig.InteractableChannel):
-            await self.speak(text, channel)
+            await self.speak(text)
         else:
             raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
 

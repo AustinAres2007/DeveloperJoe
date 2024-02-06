@@ -53,57 +53,63 @@ class Listeners(commands.Cog):
         """
         convo = None
         try:
-            
-            
             async def respond_to_mention(member: discord.Member):
                 model: models.AIModelType = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
                 lowered_text = message.clean_content.lower()
                 
                 async with model(member) as ai_model:
-                    async with message.channel.typing():
-                        if not "image:" in lowered_text:
-                                ai_reply = await ai_model.ask_model(message.clean_content)
+                    if not "image:" in lowered_text:
+                            ai_reply = await ai_model.ask_model(message.clean_content)
+                        
+                            if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                                return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                            return await message.channel.send(reply)
+                    else:
+                        try:
+                            start_index = lowered_text.find("image:") + len("image:")
+                            prompt = lowered_text[start_index:].lstrip()
                             
-                                if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
-                                    return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
-                                return await message.channel.send(reply)
-                        else:
-                            try:
-                                start_index = lowered_text.find("image:") + len("image:")
-                                prompt = lowered_text[start_index:].lstrip()
-                                
-                                reply = await ai_model.generate_image(prompt)
-                                
-                                return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
-                            except openai.BadRequestError:
-                                return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
+                            reply = await ai_model.generate_image(prompt)
+                            
+                            return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
+                        except openai.BadRequestError:
+                            return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
                             
             # TODO: Fix > 2000 characters bug non-streaming
+            
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
-                
-                member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
-                
-                if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
-                    if isinstance(channel := message.channel, discord.Thread):
+                async with message.channel.typing():
+                    member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
+                    
+                    if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
+                        if isinstance(channel := message.channel, discord.Thread):
 
-                        thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
-                        content: str = message.content
-                        has_private_thread = thread and thread.is_private()
-                        
-                        if has_private_thread and convo.is_processing != True:
-                            if convo.stream == True:
-                                await convo.ask_stream(content, channel)
-                            else:
-                                await convo.ask(content, channel)
+                            thread: Union[discord.Thread, None] = discord.utils.get(message.guild.threads, id=message.channel.id) 
+                            content: str = message.content
+                            has_private_thread = thread and thread.is_private()
                             
-                        elif has_private_thread and convo.is_processing == True:
-                            raise exceptions.DGException(f"{confighandler.get_config('bot_name')} is still processing your last request.")
-                        
+                            if has_private_thread and convo.is_processing != True:
+                                if convo.stream == True:
+                                    await convo.ask_stream(content, channel)
+                                else:
+                                    attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
+                                    reply = await convo.ask(content, attachment_urls)
+                                    
+                                    if len(reply) > developerconfig.CHARACTER_LIMIT:
+                                        file_reply: discord.File = commands_utils.to_file(reply, "reply.txt")
+                                        await channel.send(file=file_reply)
+                                    else:
+                                        await channel.send(reply)
+                                
+                                
+                            elif has_private_thread and convo.is_processing == True:
+                                raise exceptions.DGException(f"{confighandler.get_config('bot_name')} is still processing your last request.")
+                            
+                        elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
+                            await respond_to_mention(member)
+                            
                     elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                         await respond_to_mention(member)
-                        
-                elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
-                    await respond_to_mention(member)
 
         except (exceptions.DGException, exceptions.ConversationError) as error:
             await message.channel.send(error.message)
