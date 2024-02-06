@@ -58,7 +58,10 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.4.5
 
+### Resolved Bugs
+
 ## Todo 1.4.5
 
 - Check for GPT 4 permission
 - Image reading
+- Clear chat context. Infrastucture is there, just gotta implement.

@@ -359,7 +359,14 @@ class DGTextChat(DGChat):
             self.context.add_conversation_entry(query, reply.response)        
             
         return final_user_reply
-            
+    
+    async def read_image(self, query: str, image_urls: list[str]) -> models.AIQueryResponse:
+        if self.model.can_read_images == False:
+            raise exceptions.ModelError(f"{self.model} does not support image reading.")
+        
+        image_query_reply: models.AIQueryResponse = self.model.read_image(query, image_urls)
+        return image_query_reply
+    
     async def start(self) -> None:
         """Sends a start query to GPT.
 

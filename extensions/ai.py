@@ -1,4 +1,3 @@
-from email.mime import image
 import discord, datetime
 
 from discord.ext import commands
@@ -213,5 +212,11 @@ class Communication(commands.Cog):
                 return await interaction.response.send_message(file=commands_utils.to_file(reply, "reply.txt"))
             return await interaction.response.send_message(reply)
     
+    @chat_group.command(name="analyse", description="Ask the bot to analyse a given image. Use /followup to ask more about the image.")
+    @discord.app_commands.describe(query="The question you wish to pose about an image.", image_url="URL of the image you want to interact with.", ai_model="The AI model you want to examine the image.")
+    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
+    async def analyse_image(self, interaction: discord.Interaction, query: str="What is this image?", image_url: str | None=None):
+        ...
+        
 async def setup(client):
     await client.add_cog(Communication(client))

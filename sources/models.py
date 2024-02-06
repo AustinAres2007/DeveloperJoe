@@ -253,24 +253,35 @@ class GPTConversationContext:
 class ReaderContext:
     def __init__(self) -> None:
         self._reader_context = []
+        self._images = []
     
-    def add_reader_context(self, query: str, image_urls: list[str], reply: str) -> None:
-        user_query = self.generate_empty_context(query, image_urls)
+    @staticmethod
+    def _url_to_gpt_readable(url: str) -> dict:
+        return {"type": "image_url", "image_url": {"url": url}}
+    
+    def add_images(self, image_urls: list[str]) -> None:
+        for url in image_urls:
+            self._images.append(self._url_to_gpt_readable(url)) 
+            
+    def add_reader_context(self, query: str, reply: str) -> None:
+        
+        # TODO: Fixed fucked up context system. (Use add_images to add images to context possibly)
+        user_query = self.generate_empty_context(query, self._images)
         ai_reply = {"role": "assistant", "content": reply}
         interaction = [user_query, ai_reply]
         
         return self._reader_context.extend(interaction)
     
-    @staticmethod
-    def generate_empty_context(query: str, image_urls: list[str]) -> dict:
+    def generate_empty_context(self, query: str, image_urls: list[str] | None) -> dict:
         user_reply = {"role": "user", "content": [
             {
                 "type": "text",
                 "text": query
             }
         ]}
-        for url in image_urls:
-            user_reply["content"].append({"type": "image_url", "image_url": {"url": url}})
+        
+        user_reply["content"].extend(self._images)
+        user_reply["content"].extend([self._url_to_gpt_readable(url) for url in image_urls or []])
             
         return user_reply
     
@@ -570,7 +581,11 @@ class GPT4Vision(GPT4):
         elif image_urls == [] and not self._last_images:
             raise exceptions.ModelError("No cached images.")
         
-        reader_context = self._image_reader_context.get_temporary_context(query, image_urls) if self._image_reader_context else [ReaderContext.generate_empty_context(query, image_urls)]
+        if self._image_reader_context:
+            reader_context = self._image_reader_context.get_temporary_context(query, image_urls)
+        else:
+            raise exceptions.ModelError("No image context defined. Was the chat started?")
+        
         if not isinstance(self._gpt_context, GPTConversationContext | None):
             raise TypeError("context should be of type GPTReaderConversationContext or None, not {}".format(type(self._gpt_context)))
         
@@ -583,7 +598,8 @@ class GPT4Vision(GPT4):
                     _handle_error(response)
                 elif isinstance(response, AIQueryResponse):
                     if isinstance(self._image_reader_context, ReaderContext):
-                        self._image_reader_context.add_reader_context(query, image_urls, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
+                        
+                        self._image_reader_context.add_reader_context(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
                         self._last_images = image_urls
                     
                     return response
@@ -593,15 +609,19 @@ class GPT4Vision(GPT4):
         
         raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     
-    # TODO: Make commands for reading images. /chat analyze to register an image, /chat followup to ask questions about the image registered (or just use /chat analyze again) and use /chat clear
-    async def read_image(self, query: str, image_urls: list[str]) -> AIQueryResponse:
-        if self._check_user_permissions():
+    # TODO: (Make commands for reading images. /chat analyze to register an image, /chat followup to ask questions about the image registered (or just use /chat analyze again) and use /chat clear
+    def add_image(self, image_urls: list[str]) -> None:
+        ...
+        
+    async def ask_image(self, query: str) -> AIQueryResponse:
+        """if self._check_user_permissions():
             if not isinstance(image_urls, list):
                 raise TypeError(f"`image_url` must be a `list` of `str` not `{image_urls.__class__.__name__}`")
             
             return await self._gpt4_read_image_base(query, image_urls, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
-    
+        """
+        ...
 AIModelType = type(GPT3Turbo) | type(GPT4) | type(GPT4Vision)
 GenericAIModel = GPT3Turbo | GPT4 | GPT4Vision
 
