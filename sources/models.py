@@ -198,9 +198,14 @@ class ReadableContext:
         return context_entry
     
     def add_image_entry(self, prompt: str, image_url: str) -> list:
-        interaction_data = [{'image': f'User asked GPT to compose the following image: "{prompt}"'}, {'image_return': image_url}]
+        interaction_data = [{'image': f'User asked AI to compose the following image: "{prompt}"'}, {'image_return': image_url}]
         self._display_context.append(interaction_data)
         return interaction_data
+
+    def add_reader_entry(self, query: str, image_url: str, answer: str) -> list:
+        reader_data = [{'reader_content': query, "image_url": image_url}, {"reply": answer}]
+        self._display_context.append(reader_data)
+        return reader_data
     
 # GPT Contexts
 
@@ -209,19 +214,9 @@ class GPTConversationContext:
         super().__init__()
         self._context = []
     
-    def add_conversation_entry(self, query: str, answer: str, image_url: str | None=None) -> list:
+    def add_conversation_entry(self, query: str, answer: str) -> list:
         
-        if not image_url:
-            data_query = {"role": "user", "content": query}
-        else:
-            data_query = {"role": "user", "content": [
-                {"type": "text", "text": query},
-                {
-                    "type": "image_url",
-                    "image_url": image_url
-                }
-                ] if isinstance(image_url, str) else query}
-            
+        data_query = {"role": "user", "content": query}    
         data_reply = {"role": "assistant", "content": answer}
         context_entry = [data_query, data_reply]
         
@@ -231,69 +226,29 @@ class GPTConversationContext:
     def clear(self) -> None:
         self._context.clear()
     
-    def get_temporary_context(self, query: str, image_url: str | None=None) -> list:
+    def get_temporary_context(self, query: str) -> list:
 
-        if not image_url:
-            data = {"content": query, "role": "user"}
-        else:
-            data = self.generate_empty_context(query, image_url)
-            
+        data = {"content": query, "role": "user"}    
         _temp_context = self._context.copy()
         _temp_context.append(data)
         
         return _temp_context
     
     @staticmethod
-    def generate_empty_context(query: str, image_url: str | None=None) -> list:
-        if not image_url:
-            empty = [{"role": "user", "content": query}]
-        else:
-            empty = [{"role": "user", "content": [
-            {"type": "text", "text": query},
-            {
-                "type": "image_url",
-                "image_url": None
-            }
-            ]}]
-        
-        return empty
-    
-"""class GPTReaderConversationContext(GPTConversationContext):
-    
-    def add_conversation_entry(self, query: str, answer: str, image_url: str | None) -> list:
-        data_query = {"role": "user", "content": [
+    def get_empty_image_context(query: str, image_url: str) -> list:
+        data_query = [{"role": "user", "content": [
             {"type": "text", "text": query},
             {
                 "type": "image_url",
                 "image_url": image_url
             }
-        ] if isinstance(image_url, str) else query}
+        ]}]
+        return data_query
         
-        data_reply = {"role": "assistant", "content": answer}
-        context_entry = [data_query, data_reply]
-        
-        self._context.extend(context_entry)
-        return context_entry
-    
     @staticmethod
-    def generate_empty_context(query: str, image_url: str | None=None) -> list:
-        return [{"role": "user", "content": [
-            {"type": "text", "text": query},
-            {
-                "type": "image_url",
-                "image_url": image_url
-            }
-        ] if isinstance(image_url, str) else query}]
-    
-    
-    def get_temporary_context(self, query: str, image_url: str | None=None) -> list:
-        
-        data = self.generate_empty_context(query, image_url)[0]
-        _temp_context = self._context.copy()
-        _temp_context.append(data)
-        
-        return _temp_context
-        """
+    def generate_empty_context(query: str) -> list:
+        return [{"role": "user", "content": query}]
+
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
 
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
@@ -430,7 +385,6 @@ class AIModel:
     def __init__(self, member: discord.Member) -> None:
         self._context: ReadableContext = ReadableContext()
         self.member = member
-        # TODO: Add lock list attribute (What roles can currently use model)
     
     def is_init(self):
         return isinstance(self._context, ReadableContext)
@@ -531,7 +485,7 @@ class GPT3Turbo(GPTModel):
     
 class GPT4(GPTModel):
     
-    model = "gpt-4-vision-preview"
+    model = "gpt-4"
     description = "Slightly better at everything that GPT-3 does, costs more. For normal use, use GPT-3."
     display_name = "GPT 4"
     
@@ -539,24 +493,26 @@ class GPT4(GPTModel):
     can_stream = True
     can_generate_images = True
     can_read_images = True
-        
-    async def _gpt4_ask_base(self, query: str, image_url: str, _api_key: str):
-        temp_context: list = self._gpt_context.get_temporary_context(query, image_url) if self._gpt_context else GPTConversationContext.generate_empty_context(query, image_url)
+    
+    # XXX: Bot cannot see image after it is sent. Perhaps keep the image URL in local memory and send it everytime so it can be refered too?
+    # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
+    
+    async def _gpt4_read_image_base(self, query: str, image_url: str, _api_key: str):
+        temp_context = GPTConversationContext.get_empty_image_context(query, image_url)
     
         if not isinstance(self._gpt_context, GPTConversationContext | None):
-            raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(self._gpt_context)))
+            raise TypeError("context should be of type GPTReaderConversationContext or None, not {}".format(type(self._gpt_context)))
         
         try:
             async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
-                print(temp_context)
-                _reply = await async_openai_client.chat.completions.create(model=self.model, messages=temp_context, max_tokens=4096)
+                _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=temp_context, max_tokens=4096)
                 response = _response_factory(_reply.model_dump_json())
                 
                 if isinstance(response, AIErrorResponse):
                     _handle_error(response)
                 elif isinstance(response, AIQueryResponse):
                     if isinstance(self._gpt_context, GPTConversationContext):
-                        self._gpt_context.add_conversation_entry(query, image_url, str(response.response))
+                        self._gpt_context.add_conversation_entry(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
                         
                     return response
                     
@@ -585,7 +541,7 @@ class GPT4(GPTModel):
             if not isinstance(image_url, str):
                 raise TypeError(f"`image_url` must be of type `str` not `{image_url.__class__.__name__}`")
             
-            return await self._gpt4_ask_base(query, image_url, confighandler.get_api_key("openai_api_key"))
+            return await self._gpt4_read_image_base(query, image_url, confighandler.get_api_key("openai_api_key"))
         raise DGException(missing_perms)
     
 AIModelType = type(GPT3Turbo) | type(GPT4)

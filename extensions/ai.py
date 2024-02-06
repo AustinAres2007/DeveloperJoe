@@ -92,16 +92,17 @@ class Communication(commands.Cog):
             conversation = self.client.manage_defaults(member, name)
             status = f'/help and "{message}"'
             
-            await interaction.response.send_message("Thinking..", ephemeral=conversation.private)
+            await interaction.response.defer(thinking=False)
             self.client.add_status(status, 2) if not conversation.private else None
+            
+            # TODO: Change shitty handling of the bots response (Replies via DGChat, it is messy find another way) how it is now is temporary.
             
             if stream == True or (conversation.stream == True and stream != False):
                 await conversation.ask_stream(message, channel)
             else:
-                await conversation.ask(message, channel, image_url)
+                await conversation.ask(message, interaction, image_url)
                 
             self.client.remove_status(status)
-            return await interaction.delete_original_response()
             
     @chat_group.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")

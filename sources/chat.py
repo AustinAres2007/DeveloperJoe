@@ -154,7 +154,7 @@ class DGChat:
     def private(self, is_p: bool):
         self._private = is_p
     
-    async def ask(self, query: str, channel: developerconfig.InteractableChannel, image_url: str | None=None) -> str:
+    async def ask(self, query: str, interaction: discord.Interaction, image_url: str | None):
         raise NotImplementedError
         
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
@@ -323,14 +323,17 @@ class DGTextChat(DGChat):
             raise exceptions.DGException(errors.AIErrors.AI_REQUEST_ERROR)
         
     @decorators.check_enabled
-    async def ask(self, query: str, channel: developerconfig.InteractableChannel, image_url: str | None):
-        if self.model.can_talk == False:
-            raise exceptions.DGException(f"{self.model} cannot talk.")
+    async def ask(self, query: str, interaction: discord.Interaction, image_url: str | None):
+        interaction_channel = commands_utils.assure_class_is_value(interaction.channel, discord.TextChannel)
         
+        if self.model.can_talk == False:
+            raise exceptions.ModelError(f"{self.model} cannot talk.")
+        
+        if image_url and not self.model.can_read_images:
+            raise exceptions.ModelError(f"{self.model} cannot read images.")
+
         async def _send_query():
             self.is_processing = True
-            # Put necessary variables here (Doesn't matter weather streaming or not)
-            # Reply format: ({"content": "Reply content", "role": "assistent"})
             
             try:
                 if not image_url:
@@ -347,18 +350,20 @@ class DGTextChat(DGChat):
             except TimeoutError:
                 raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
             
-        async with channel.typing():
+        async with interaction_channel.typing():
             reply = await _send_query()
             final_user_reply = f"## {self.header}\n\n{reply.response}"
-            private_channel = await self.get_personal_channel_or_current(channel)
             
             if len(final_user_reply) > developerconfig.CHARACTER_LIMIT:
                 file_reply: discord.File = commands_utils.to_file(final_user_reply, "reply.txt")
-                await private_channel.send(file=file_reply)
+                await interaction.followup.send(file=file_reply)
             else:
-                await private_channel.send(final_user_reply)
+                await interaction.followup.send(final_user_reply)
         
-        self.context.add_conversation_entry(query, reply.response)        
+        if image_url:
+            self.context.add_reader_entry(query, image_url, reply.response)
+        else:
+            self.context.add_conversation_entry(query, reply.response)        
         return reply
             
     async def start(self) -> None:
@@ -581,13 +586,13 @@ class DGVoiceChat(DGTextChat):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
         
-    async def ask(self, query: str, channel: developerconfig.InteractableChannel, image_url: str | None=None) -> str:
+    async def ask(self, query: str, interaction: discord.Interaction, image_url: str | None):
         
-        text = await super().ask(query, channel, image_url)
-        if isinstance(channel, developerconfig.InteractableChannel):
-            await self.speak(str(text), channel)
+        text = await super().ask(query, interaction, image_url)
+        if isinstance(interaction, developerconfig.InteractableChannel):
+            await self.speak(str(text), interaction)
         else:
-            raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
+            raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(interaction.channel.__class__.__name__))
         
         return str(text)
 

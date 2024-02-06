@@ -31,7 +31,7 @@ __all__ = [
     "get_correct_channel"
 ]
 
-true_to_yes = lambda text: str(text).replace("True", "Yes")
+true_to_yes = lambda text: str(text).replace("True", "Yes").replace("False", "No")
 
 def to_file_fp(fp: str) -> discord.File:
     """Get `File` object from a filepath.

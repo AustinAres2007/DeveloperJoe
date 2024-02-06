@@ -1,6 +1,6 @@
 """Module for anything ralating to conversation storage"""
-
-import json
+from __future__ import annotations
+import json, typing
 from . import (
     database, 
     exceptions,
@@ -11,6 +11,11 @@ __all__ = [
     "DGHistoryChat",
     "DGHistorySession"
 ]
+
+if typing.TYPE_CHECKING:
+    from . import (
+        chat
+    )
 
 class DGHistoryChat:
     
@@ -71,6 +76,6 @@ class DGHistorySession(database.DGDatabaseSession):
             return f"Deleted chat history with ID: {history_id}"
         raise exceptions.HistoryError(errors.HistoryErrors.HISTORY_DOESNT_EXIST)
     
-    def upload_chat_history(self, chat) -> list:
+    def upload_chat_history(self, chat: chat.DGChat) -> list:
         json_dump = json.dumps(chat.context._display_context)
         return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.member.id, chat.name, json_dump, int(chat.private)))
