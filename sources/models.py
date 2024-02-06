@@ -564,11 +564,6 @@ class GPT4Vision(GPT4):
         super().start_chat()
         self._image_reader_context = ReaderContext()
     
-    async def ask_model(self, query: str) -> AIQueryResponse:
-        if self._check_user_permissions():
-            return await self._gpt4_read_image_base(query, [], confighandler.get_api_key('openai_api_key'))
-        raise exceptions.DGException(missing_perms)
-    
     async def _gpt4_read_image_base(self, query: str, image_urls: list[str], _api_key: str) -> AIQueryResponse:
         if image_urls == [] and self._last_images:
             image_urls = self._last_images
@@ -598,6 +593,7 @@ class GPT4Vision(GPT4):
         
         raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     
+    # TODO: Make commands for reading images. /chat analyze to register an image, /chat followup to ask questions about the image registered (or just use /chat analyze again) and use /chat clear
     async def read_image(self, query: str, image_urls: list[str]) -> AIQueryResponse:
         if self._check_user_permissions():
             if not isinstance(image_urls, list):

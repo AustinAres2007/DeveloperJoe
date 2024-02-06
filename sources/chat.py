@@ -346,6 +346,8 @@ class DGTextChat(DGChat):
                 return await self.bot.close()
             except TimeoutError:
                 raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
+            finally:
+                self.is_processing = False
             
         
         reply = await _send_query()
