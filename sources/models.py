@@ -1,3 +1,4 @@
+from types import NoneType
 from httpx import ReadTimeout
 import json, openai, discord, pprint
 
@@ -26,7 +27,7 @@ __all__ = [
     "registered_models"
 ]       
 missing_perms = errors.ModelErrors.MODEL_LOCKED
-
+unknown_internal_context = "Undefined internal image context. Was `start_chat` called?"
 class AIResponse:
     """Generic base class for an AI response"""
     
@@ -250,19 +251,26 @@ class GPTConversationContext:
     def generate_empty_context(query: str) -> list:
         return [{"role": "user", "content": query}]
 
-class ReaderContext:
+class GPTReaderContext:
     def __init__(self) -> None:
         self._reader_context = []
         self._images = []
+    
+    @property
+    def images(self) -> list[str]:
+        return self._images
     
     @staticmethod
     def _url_to_gpt_readable(url: str) -> dict:
         return {"type": "image_url", "image_url": {"url": url}}
     
-    def add_images(self, image_urls: list[str]) -> None:
+    async def add_images(self, image_urls: list[str]) -> None:
         for url in image_urls:
             self._images.append(self._url_to_gpt_readable(url)) 
-            
+    
+    def clear(self) -> None:
+        self._images.clear()
+                
     def add_reader_context(self, query: str, reply: str) -> None:
         
         # TODO: Fixed fucked up context system. (Use add_images to add images to context possibly)
@@ -416,7 +424,7 @@ class AIModel:
     can_read_images = False
     
     async def __aenter__(self):
-        self.start_chat()
+        await self.start_chat()
         return self
     
     async def __aexit__(self, blah, _blah, __blah) -> None:
@@ -442,22 +450,31 @@ class AIModel:
     def context(self) -> ReadableContext:
         return self._context
     
-    def clear_context(self) -> None:
+    async def clear_context(self) -> None:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    def start_chat(self) -> None:
+    async def clear_chat_context(self) -> None:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def clear_image_context(self) -> None:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def start_chat(self) -> None:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
     async def ask_model(self, query: str) -> AIQueryResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
-    async def read_image(self, query: str, image_url: str) -> AIQueryResponse:
+    async def ask_image(self, query: str) -> AIQueryResponse:
+        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    
+    async def add_images(self, image_urls: list[str]) -> None:
         raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
     
     async def end(self) -> None:
@@ -480,18 +497,18 @@ class GPTModel(AIModel):
     def is_init(self):
         return isinstance(self._gpt_context, GPTConversationContext) and super().is_init()
     
-    def clear_context(self) -> None:
+    async def clear_context(self) -> None:
         if self.is_init():
             self._gpt_context.clear() # type: ignore shutup, that is what the check is for.
             self.context.clear()
-    
-    def start_chat(self) -> None:
+
+    async def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
     
     async def ask_model(self, query: str) -> AIQueryResponse:
         raise NotImplemented("Use a subclass of GPTModel.")
     
-    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
         raise NotImplemented("Use a subclass of GPTModel.")
     
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
@@ -513,7 +530,7 @@ class GPT3Turbo(GPTModel):
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
-    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
@@ -545,7 +562,7 @@ class GPT4(GPTModel):
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
-    def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
@@ -558,8 +575,8 @@ class GPT4(GPTModel):
 class GPT4Vision(GPT4):
     
     model = "gpt-4"
-    description = "GPT 4 Engine with added image reading support. Good for describing photos and translating."
-    display_name = "GPT 4 with Vision"
+    description = "GPT 4 Engine with added image reading support. Good for describing photos and translating latin-derived languages. Do keep note that this AI model is in preview, and may have usage limits."
+    display_name = "GPT 4 with Vision (Preview)"
     
     can_talk = True
     can_stream = True
@@ -568,60 +585,70 @@ class GPT4Vision(GPT4):
     
     def __init__(self, member: discord.Member) -> None:
         super().__init__(member)
-        self._image_reader_context: ReaderContext | None = None
-        self._last_images: list[str] = []
-        
-    def start_chat(self) -> None:
-        super().start_chat()
-        self._image_reader_context = ReaderContext()
+        self._image_reader_context: GPTReaderContext | None = None
     
-    async def _gpt4_read_image_base(self, query: str, image_urls: list[str], _api_key: str) -> AIQueryResponse:
-        if image_urls == [] and self._last_images:
-            image_urls = self._last_images
-        elif image_urls == [] and not self._last_images:
-            raise exceptions.ModelError("No cached images.")
+    async def clear_context(self) -> None:
+        await super().clear_context()
+        self._image_reader_context.clear() # type: ignore :|
+    
+    async def clear_image_context(self) -> None:
+        if self.is_init():
+            self._image_reader_context.clear() # type: ignore :|
+            
+    async def start_chat(self) -> None:
+        await super().start_chat()
+        self._image_reader_context = GPTReaderContext()
+    
+    async def _gpt4_read_image_base(self, query: str, _api_key: str) -> AIQueryResponse:
+
+        if not self._image_reader_context:
+            raise exceptions.DGException(unknown_internal_context)
         
-        if self._image_reader_context:
-            reader_context = self._image_reader_context.get_temporary_context(query, image_urls)
+        elif self._image_reader_context._images:
+            reader_context = self._image_reader_context.get_temporary_context(query, self._image_reader_context._images)
         else:
-            raise exceptions.ModelError("No image context defined. Was the chat started?")
+            raise exceptions.DGException("No images avalible to analyse.")
         
         if not isinstance(self._gpt_context, GPTConversationContext | None):
-            raise TypeError("context should be of type GPTReaderConversationContext or None, not {}".format(type(self._gpt_context)))
+            raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(self._gpt_context)))
         
         try:
             async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
+                print(reader_context)
                 _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=reader_context, max_tokens=4096) # type: ignore The message parameter is specified for GPT 4 and GPT 3 only, so the type annotation wasn't made for vision.
                 response = _response_factory(_reply.model_dump_json())
                 
                 if isinstance(response, AIErrorResponse):
                     _handle_error(response)
                 elif isinstance(response, AIQueryResponse):
-                    if isinstance(self._image_reader_context, ReaderContext):
+                    if isinstance(self._image_reader_context, GPTReaderContext):
                         
                         self._image_reader_context.add_reader_context(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
-                        self._last_images = image_urls
                     
                     return response
                     
         except (TimeoutError, ReadTimeout):
-            raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
+            raise exceptions.ModelError(errors.AIErrors.AI_TIMEOUT_ERROR)
+        except openai.RateLimitError as e:
+            raise exceptions.ModelError("You must wait before analysing again. This is a limitation of GPT 4 Vision and fault of OpenAI. Once again, this model is in preview.")
         
         raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     
     # TODO: (Make commands for reading images. /chat analyze to register an image, /chat followup to ask questions about the image registered (or just use /chat analyze again) and use /chat clear
-    def add_image(self, image_urls: list[str]) -> None:
-        ...
-        
+    async def add_images(self, image_urls: list[str]) -> None:
+        if isinstance(self._image_reader_context, GPTReaderContext):
+            for url in image_urls:
+                return self._image_reader_context._images.append(self._image_reader_context._url_to_gpt_readable(url))
+        raise exceptions.DGException(unknown_internal_context)
+    
     async def ask_image(self, query: str) -> AIQueryResponse:
-        """if self._check_user_permissions():
-            if not isinstance(image_urls, list):
-                raise TypeError(f"`image_url` must be a `list` of `str` not `{image_urls.__class__.__name__}`")
+        if self._check_user_permissions() and self._image_reader_context:
+            if isinstance(query, str):
+                return await self._gpt4_read_image_base(query, confighandler.get_api_key("openai_api_key"))    
+            raise TypeError(f"`query` must be of type {query.__class__.__name__}")
             
-            return await self._gpt4_read_image_base(query, image_urls, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
-        """
-        ...
+
 AIModelType = type(GPT3Turbo) | type(GPT4) | type(GPT4Vision)
 GenericAIModel = GPT3Turbo | GPT4 | GPT4Vision
 

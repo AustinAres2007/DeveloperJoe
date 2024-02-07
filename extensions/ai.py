@@ -84,7 +84,7 @@ class Communication(commands.Cog):
         
     @chat_group.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    async def ask_query(self, interaction: discord.Interaction, message: str, image_url: str | None=None, name: str="", stream: bool | None=None):
+    async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool | None=None):
 
             member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
@@ -100,7 +100,7 @@ class Communication(commands.Cog):
                 if stream == True or (conversation.stream == True and stream != False):
                     await conversation.ask_stream(message, channel)
                 else:
-                    reply = await conversation.ask(message, [image_url] if image_url else None)
+                    reply = await conversation.ask(message)
                     if len(reply) > developerconfig.CHARACTER_LIMIT:
                         file_reply: discord.File = commands_utils.to_file(reply, "reply.txt")
                         await interaction.followup.send(file=file_reply)
@@ -213,10 +213,27 @@ class Communication(commands.Cog):
             return await interaction.response.send_message(reply)
     
     @chat_group.command(name="analyse", description="Ask the bot to analyse a given image. Use /followup to ask more about the image.")
-    @discord.app_commands.describe(query="The question you wish to pose about an image.", image_url="URL of the image you want to interact with.", ai_model="The AI model you want to examine the image.")
-    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
-    async def analyse_image(self, interaction: discord.Interaction, query: str="What is this image?", image_url: str | None=None):
-        ...
+    @discord.app_commands.describe(query="The question you wish to pose about an image.", image_url="URL of the image you want to interact with.", chat_name="The name of the chat you want to use for this interaction.")
+    async def analyse_image(self, interaction: discord.Interaction, query: str | None=None, image_url: str | None=None, chat_name: str=""):
+        # TODO: Front end
+        
+        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        convo = self.client.manage_defaults(member, chat_name)
+        await interaction.response.defer()
+        
+        if image_url == None and query:
+            response = await convo.read_image(query)
+            await interaction.followup.send(response.response)
+        elif image_url and query == None:
+            await convo.add_images([image_url])
+            await interaction.followup.send(f"Added image to images list!")
+        elif image_url and query:
+            await convo.add_images([image_url])
+            response = await convo.read_image(query)
+            await interaction.followup.send(response.response)
+        else:
+            await interaction.followup.send(f"Please either add an image or inquire about an already existing one.")
+        
         
 async def setup(client):
     await client.add_cog(Communication(client))

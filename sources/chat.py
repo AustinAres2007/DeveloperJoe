@@ -161,11 +161,17 @@ class DGChat:
     
     async def generate_image(self, prompt: str, resolution: str="512x512") -> models.AIImageResponse:
         raise NotImplementedError
-        
+
+    async def read_image(self, query: str) -> models.AIQueryResponse:
+        raise NotImplementedError
+    
+    async def add_images(self, image_urls: list[str]) -> None:
+        raise NotImplementedError
+
     async def start(self) -> None:
         self.bot.add_conversation(self.member, self.display_name, self)
         self.bot.set_default_conversation(self.member, self.display_name)
-        self.model.start_chat()
+        await self.model.start_chat()
 
     def clear(self) -> None:
         raise NotImplementedError
@@ -252,7 +258,7 @@ class DGTextChat(DGChat):
         
         async def _stream_reply():
             try:
-                ai_reply: _AsyncGenerator[models.AIQueryResponseChunk | models.AIErrorResponse, None] = self.model.ask_model_stream(query)
+                ai_reply: _AsyncGenerator[models.AIQueryResponseChunk | models.AIErrorResponse, None] = await self.model.ask_model_stream(query)
                 async for chunk in ai_reply:
                     if isinstance(chunk, models.AIQueryResponseChunk):
                         yield chunk.response
@@ -267,7 +273,7 @@ class DGTextChat(DGChat):
                 raise e
             except AttributeError:
                 self.is_active = False
-                raise exceptions.DGException("This model does not support streaming.")
+                raise exceptions.DGException(f"{self.model} does not support streaming.")
             finally:
                 self.is_processing = False
                 
@@ -309,6 +315,7 @@ class DGTextChat(DGChat):
     
     @decorators.check_enabled
     async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
+        
         if self.model.can_generate_images == False:
             raise exceptions.DGException(f"{self.model} does not support image generation.")
         
@@ -320,24 +327,18 @@ class DGTextChat(DGChat):
             raise exceptions.DGException(errors.AIErrors.AI_REQUEST_ERROR)
         
     @decorators.check_enabled
-    async def ask(self, query: str, image_urls: list[str] | None=None):
+    async def ask(self, query: str):
         
         if self.model.can_talk == False:
             raise exceptions.ModelError(f"{self.model} cannot talk.")
-        
-        if image_urls and not self.model.can_read_images:
-            raise exceptions.ModelError(f"{self.model} cannot read images.")
 
         # TODO: Remove _send_query as it is pretty useless.
         async def _send_query():
             self.is_processing = True
             
             try:
-                if not image_urls:
-                    response: models.AIQueryResponse = await self.model.ask_model(query)
-                else:
-                    response: models.AIQueryResponse = await self.model.read_image(query, image_urls)
-                    
+
+                response: models.AIQueryResponse = await self.model.ask_model(query)    
                 self.is_processing = False
 
                 return response
@@ -352,20 +353,20 @@ class DGTextChat(DGChat):
         
         reply = await _send_query()
         final_user_reply = f"## {self.header}\n\n{reply.response}"
-        
-        if image_urls:
-            self.context.add_reader_entry(query, image_urls, reply.response) # FIXME
-        else:
-            self.context.add_conversation_entry(query, reply.response)        
+        self.context.add_conversation_entry(query, reply.response)        
             
         return final_user_reply
     
-    async def read_image(self, query: str, image_urls: list[str]) -> models.AIQueryResponse:
+    async def read_image(self, query: str) -> models.AIQueryResponse:
         if self.model.can_read_images == False:
             raise exceptions.ModelError(f"{self.model} does not support image reading.")
-        
-        image_query_reply: models.AIQueryResponse = self.model.read_image(query, image_urls)
+
+        image_query_reply: models.AIQueryResponse = await self.model.ask_image(query)
         return image_query_reply
+    
+    async def add_images(self, image_urls: list[str]) -> None:
+        if self.model.can_read_images:
+            return await self.model.add_images(image_urls)
     
     async def start(self) -> None:
         """Sends a start query to GPT.
@@ -375,11 +376,11 @@ class DGTextChat(DGChat):
         """
         await super().start()
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Clears the internal chat history."""
         # FIXME: Waiting to be transfered to new model system
 
-        self.model.clear_context()
+        await self.model.clear_context()
         self.context.clear()
     
     async def stop(self, interaction: discord.Interaction, save_history: bool) -> str:
@@ -586,9 +587,9 @@ class DGVoiceChat(DGTextChat):
         """Resumes the bots voice reply for a user."""
         self.client_voice.resume() # type: ignore Checks done with decorators.
         
-    async def ask(self, query: str, image_urls: list[str] | None=None):
+    async def ask(self, query: str):
         
-        text = str(await super().ask(query, image_urls))
+        text = str(await super().ask(query))
         await self.speak(text)
         
         return text
