@@ -281,7 +281,6 @@ class DeveloperJoe(commands.Bot):
             Union[str, None]: The name of the new chat, or None if the chat does not exist.
         """
         current_default = self.get_default_conversation(member)
-        print(current_default)
         if isinstance(name, str) and name:
             names_convo = self.get_user_conversation(member, name)
             name_is_chat = isinstance(names_convo, chat.DGChatType)

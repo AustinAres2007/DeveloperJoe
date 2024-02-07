@@ -614,7 +614,6 @@ class GPT4Vision(GPT4):
         
         try:
             async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
-                print(reader_context)
                 _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=reader_context, max_tokens=4096) # type: ignore The message parameter is specified for GPT 4 and GPT 3 only, so the type annotation wasn't made for vision.
                 response = _response_factory(_reply.model_dump_json())
                 
