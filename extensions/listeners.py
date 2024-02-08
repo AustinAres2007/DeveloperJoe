@@ -56,25 +56,30 @@ class Listeners(commands.Cog):
             async def respond_to_mention(member: discord.Member):
                 model: models.AIModelType = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
                 lowered_text = message.clean_content.lower()
+                command = lowered_text.split(" ")[1]
                 
                 async with model(member) as ai_model:
                     async with message.channel.typing():
-                        if not "image:" in lowered_text:
-                                ai_reply = await ai_model.ask_model(message.clean_content)
-                            
-                                if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
-                                    return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
-                                return await message.channel.send(reply)
-                        else:
+                        if command == "image":
                             try:
                                 start_index = lowered_text.find("image:") + len("image:")
                                 prompt = lowered_text[start_index:].lstrip()
-                                
                                 reply = await ai_model.generate_image(prompt)
                                 
                                 return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
                             except openai.BadRequestError:
                                 return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
+                        elif command == "analyse":
+                            try:
+                                ...
+                            except:
+                                ...
+                        else:
+                            ai_reply = await ai_model.ask_model(message.clean_content)
+                        
+                            if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                                return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                            return await message.channel.send(reply)
                                 
             # TODO: Fix > 2000 characters bug non-streaming
             
@@ -114,6 +119,8 @@ class Listeners(commands.Cog):
             await message.channel.send(error.message)
         except discord.Forbidden:
             raise exceptions.ConversationError(errors.ConversationErrors.CHANNEL_DOESNT_EXIST)
+        except IndexError:
+            pass
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):

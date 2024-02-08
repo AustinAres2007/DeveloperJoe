@@ -505,7 +505,7 @@ async def _run_bot() -> DeveloperJoe | None:
         print(f"\nTokens\n\nDiscord: {DISCORD_TOKEN[:6]}...{DISCORD_TOKEN[-3:]}\nOpenAI: {OPENAI_TOKEN[:6]}...{OPENAI_TOKEN[-3:]}\n")
             
         logging_handler = logging.FileHandler(developerconfig.LOG_FILE, mode="w+")
-        discord.utils.setup_logging(level=logging.ERROR, handler=logging_handler)
+        discord.utils.setup_logging(level=developerconfig.LOGGER_LEVEL, handler=logging_handler)
             
         async with DeveloperJoe(command_prefix="whatever", intents=DeveloperJoe.INTENTS) as client:
             await client.start(DISCORD_TOKEN)    

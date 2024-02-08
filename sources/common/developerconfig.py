@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 from discord import ChannelType, TextChannel, Thread, TextChannel
 from discord.app_commands import Choice
@@ -24,6 +25,7 @@ VERSION = "1.4.5-D"
 # If it is "ARC" that means it is a release-candidate. The "A" refering to the logic above and "RC" meaning release-candidate.
 # It's really cool to have your own custom version scheme isn't it? But to others it is probably very confusing and unnessersary.
 
+LOGGER_LEVEL = logging.DEBUG # Logger level. By default it is `logging.ERROR` during betas it might be `logging.DEBUG`
 DATABASE_VERSION = "1.0.2"
 DATABASE_EXTENSION = "db"
 DATABASE_FILENAME = "dg_database"

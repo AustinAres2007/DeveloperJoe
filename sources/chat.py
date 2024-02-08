@@ -107,13 +107,13 @@ class DGChat:
         self.stream = stream
 
         if isinstance(model, models.AIModelType):
-            self.model: models.AIModelType = model(member) # type: ignore shutup I did the check
+            self.model: models.GenericAIModel = model(member) # type: ignore shutup I did the check
         else:
-            self.model: models.AIModelType = commands_utils.get_modeltype_from_name(model)(member)
+            self.model: models.GenericAIModel = commands_utils.get_modeltype_from_name(model)(member)
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
-    
+        
         # Voice attributes
         
         self._voice = voice

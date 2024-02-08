@@ -1,11 +1,10 @@
-from types import NoneType
+import logging
 from httpx import ReadTimeout
-import json, openai, discord, pprint
+import json, openai, discord
 
 from typing import (
     Any,
-    AsyncGenerator,
-    Optional
+    AsyncGenerator
 )
 from .common import (
     developerconfig,
@@ -28,6 +27,8 @@ __all__ = [
 ]       
 missing_perms = errors.ModelErrors.MODEL_LOCKED
 unknown_internal_context = "Undefined internal image context. Was `start_chat` called?"
+logger = logging.getLogger(__name__)
+
 class AIResponse:
     """Generic base class for an AI response"""
     
@@ -262,7 +263,7 @@ class GPTReaderContext:
     
     @staticmethod
     def _url_to_gpt_readable(url: str) -> dict:
-        return {"type": "image_url", "image_url": {"url": url}}
+        return {"type": "image_url", "image_url": url}
     
     async def add_images(self, image_urls: list[str]) -> None:
         for url in image_urls:
@@ -274,13 +275,13 @@ class GPTReaderContext:
     def add_reader_context(self, query: str, reply: str) -> None:
         
         # TODO: Fixed fucked up context system. (Use add_images to add images to context possibly)
-        user_query = self.generate_empty_context(query, self._images)
+        user_query = self.generate_empty_context(query)
         ai_reply = {"role": "assistant", "content": reply}
         interaction = [user_query, ai_reply]
         
         return self._reader_context.extend(interaction)
     
-    def generate_empty_context(self, query: str, image_urls: list[str] | None) -> dict:
+    def generate_empty_context(self, query: str) -> dict:
         user_reply = {"role": "user", "content": [
             {
                 "type": "text",
@@ -289,17 +290,17 @@ class GPTReaderContext:
         ]}
         
         user_reply["content"].extend(self._images)
-        user_reply["content"].extend([self._url_to_gpt_readable(url) for url in image_urls or []])
-            
         return user_reply
     
-    def get_temporary_context(self, query: str, image_urls: list[str]) -> list:
-        user_query = self.generate_empty_context(query, image_urls)
+    def get_temporary_context(self, query: str, image_urls: list[str] | None=None) -> list:
+        user_query = self.generate_empty_context(query)
         _temp_context = self._reader_context.copy()
         _temp_context.append(user_query)
         
-        return _temp_context
+        print(_temp_context)
         
+        return _temp_context
+    
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
 
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
@@ -605,7 +606,7 @@ class GPT4Vision(GPT4):
             raise exceptions.DGException(unknown_internal_context)
         
         elif self._image_reader_context._images:
-            reader_context = self._image_reader_context.get_temporary_context(query, self._image_reader_context._images)
+            reader_context = self._image_reader_context.get_temporary_context(query)
         else:
             raise exceptions.DGException("No images avalible to analyse.")
         
@@ -613,22 +614,24 @@ class GPT4Vision(GPT4):
             raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(self._gpt_context)))
         
         try:
+            print("BEFORE: ",self._image_reader_context._reader_context)
             async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
-                _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=reader_context, max_tokens=4096) # type: ignore The message parameter is specified for GPT 4 and GPT 3 only, so the type annotation wasn't made for vision.
+                logger.debug(f"Image read raw request: {reader_context}")
+                _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=reader_context, max_tokens=4096)
                 response = _response_factory(_reply.model_dump_json())
                 
                 if isinstance(response, AIErrorResponse):
                     _handle_error(response)
                 elif isinstance(response, AIQueryResponse):
                     if isinstance(self._image_reader_context, GPTReaderContext):
-                        
                         self._image_reader_context.add_reader_context(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
-                    
+                        print("AFTER: ",self._image_reader_context._reader_context)
                     return response
                     
         except (TimeoutError, ReadTimeout):
             raise exceptions.ModelError(errors.AIErrors.AI_TIMEOUT_ERROR)
         except openai.RateLimitError as e:
+            logger.debug(e.response.read())
             raise exceptions.ModelError("You must wait before analysing again. This is a limitation of GPT 4 Vision and fault of OpenAI. Once again, this model is in preview.")
         
         raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
@@ -644,7 +647,7 @@ class GPT4Vision(GPT4):
         if self._check_user_permissions() and self._image_reader_context:
             if isinstance(query, str):
                 return await self._gpt4_read_image_base(query, confighandler.get_api_key("openai_api_key"))    
-            raise TypeError(f"`query` must be of type {query.__class__.__name__}")
+            raise TypeError(f"`query` must be of type `str` not {query.__class__.__name__}")
             
         raise exceptions.DGException(missing_perms)
 
