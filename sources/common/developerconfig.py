@@ -20,16 +20,15 @@ CHATS_LIMIT = 14 # How many chats a user can have at one time. This cannot be mo
 CHARACTER_LIMIT = 2000 # Do NOT put this anywhere over 2000. If you do, the bot will crash if a long message is sent.
 
 FINAL = False # This does nothing. Just indicates if the current version of the bot is the final revision. You may delete this.
-VERSION = "1.4.5-A" 
+VERSION = "1.4.5-D" 
 # Current bot version. ("A" at the end means near final release, as you go further down the alphabet, the further away from final release. Example; "Z" means it is very far from final release version. No letter means it is the final release)
 # If it is "ARC" that means it is a release-candidate. The "A" refering to the logic above and "RC" meaning release-candidate.
 # It's really cool to have your own custom version scheme isn't it? But to others it is probably very confusing and unnessersary.
 
 LOGGER_LEVEL = logging.DEBUG # Logger level. By default it is `logging.ERROR` during betas it might be `logging.DEBUG`
-
-DATABASE_VERSION = "1.0.2" # Database version. If higher than a users current database, it will be checked.
-DATABASE_EXTENSION = "db" # What file extension the database file should have. (Can also be sqlite3 I believe)
-DATABASE_FILENAME = "dg_database" # Name of the database file.
+DATABASE_VERSION = "1.0.2"
+DATABASE_EXTENSION = "db"
+DATABASE_FILENAME = "dg_database"
 DATABASE_FILE = f"dependencies/{DATABASE_FILENAME}.{DATABASE_EXTENSION}" # Where the SQLite3 Database file is located. (Reletive)
 DEVELOPERJOE_THUMBNAIL_URL = "https://i.imgur.com/SgdL99Y.png"
 

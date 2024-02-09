@@ -258,7 +258,7 @@ class GPTReaderContext:
         self._images = []
     
     @property
-    def images(self) -> list[dict]:
+    def images(self) -> list[str]:
         return self._images
     
     @staticmethod
@@ -267,20 +267,21 @@ class GPTReaderContext:
     
     async def add_images(self, image_urls: list[str]) -> None:
         for url in image_urls:
-            self._reader_context.extend(self._url_to_gpt_readable(url))
+            self._images.append(self._url_to_gpt_readable(url)) 
     
     def clear(self) -> None:
         self._images.clear()
                 
     def add_reader_context(self, query: str, reply: str) -> None:
         
-        user_query = self.generate_empty_context(query, False)
+        # TODO: Fixed fucked up context system. (Use add_images to add images to context possibly)
+        user_query = self.generate_empty_context(query)
         ai_reply = {"role": "assistant", "content": reply}
         interaction = [user_query, ai_reply]
         
         return self._reader_context.extend(interaction)
     
-    def generate_empty_context(self, query: str, add_images: bool) -> dict:
+    def generate_empty_context(self, query: str) -> dict:
         user_reply = {"role": "user", "content": [
             {
                 "type": "text",
@@ -288,16 +289,18 @@ class GPTReaderContext:
             }
         ]}
         
-        user_reply["content"].extend(self.images)
+        user_reply["content"].extend(self._images)
         return user_reply
     
-    def get_temporary_context(self, query: str) -> list:
-        user_query = self.generate_empty_context(query, True)
+    def get_temporary_context(self, query: str, image_urls: list[str] | None=None) -> list:
+        user_query = self.generate_empty_context(query)
         _temp_context = self._reader_context.copy()
         _temp_context.append(user_query)
         
-        return _temp_context
+        print(_temp_context)
         
+        return _temp_context
+    
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
 
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
@@ -611,6 +614,7 @@ class GPT4Vision(GPT4):
             raise TypeError("context should be of type GPTConversationContext or None, not {}".format(type(self._gpt_context)))
         
         try:
+            print("BEFORE: ",self._image_reader_context._reader_context)
             async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
                 logger.debug(f"Image read raw request: {reader_context}")
                 _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=reader_context, max_tokens=4096)
@@ -621,6 +625,7 @@ class GPT4Vision(GPT4):
                 elif isinstance(response, AIQueryResponse):
                     if isinstance(self._image_reader_context, GPTReaderContext):
                         self._image_reader_context.add_reader_context(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
+                        print("AFTER: ",self._image_reader_context._reader_context)
                     return response
                     
         except (TimeoutError, ReadTimeout):
