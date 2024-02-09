@@ -20,6 +20,7 @@ include/
 *.dll
 *.exe
 *.zip
+_*.*
 
 @eaDir
 .DS_Store

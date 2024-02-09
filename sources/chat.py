@@ -106,10 +106,10 @@ class DGChat:
         self.display_name = display_name
         self.stream = stream
 
-        if isinstance(model, models.AIModelType):
-            self.model: models.GenericAIModel = model(member) # type: ignore shutup I did the check
+        if isinstance(model, type(models.AIModelType)):
+            self.model: models.ActiveAIModel = model(member) # type: ignore shutup I did the check
         else:
-            self.model: models.GenericAIModel = commands_utils.get_modeltype_from_name(model)(member)
+            self.model: models.ActiveAIModel = commands_utils.get_modeltype_from_name(str(model))(member)
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
@@ -315,10 +315,6 @@ class DGTextChat(DGChat):
     
     @decorators.check_enabled
     async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
-        
-        if self.model.can_generate_images == False:
-            raise exceptions.DGException(f"{self.model} does not support image generation.")
-        
         try:
             image = await self.model.generate_image(prompt)
             self.context.add_image_entry(prompt, str(image.image_url))
