@@ -47,7 +47,6 @@ class Communication(commands.Cog):
         name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
         chat_thread: discord.Thread | None = None
         ai_model = ai_model if isinstance(ai_model, str) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
-        
         # Error Checking
 
         if len(actual_name) > 39:
@@ -60,10 +59,12 @@ class Communication(commands.Cog):
         # Actual Code
         
         if in_thread and type(channel) == discord.TextChannel:
-            chat_thread = await channel.create_thread(name=name, message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
+            chat_thread = await channel.create_thread(name=f"{name}-thread", message=None, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason=f"{member.id} created a private DeveloperJoe Thread.", invitable=True, slowmode_delay=None)
             await chat_thread.add_user(member)
-            await chat_thread.send(f"{member.mention} Here I am! Feel free to chat privately with me here.")
-                
+            await chat_thread.send(f"{member.mention} Here I am! Feel free to chat with me here.")
+        elif in_thread and type(channel) != discord.TextChannel:
+            raise exceptions.ConversationError("Cannot create chat thread as we are not in a context where a thread can be created. Please try again in a server text channel.")
+        
         chat_args = (member, self.client, actual_name, stream_conversation, name, ai_model, chat_thread, is_private)
         
         if speak_reply == False:
@@ -78,8 +79,8 @@ class Communication(commands.Cog):
             convo = chat.DGTextChat(*chat_args)
         
         await convo.start()
-            
-        welcome = f"*Conversation Name — {name} | Model — {convo.model.display_name} | Thread — {chat_thread.name if chat_thread else 'No thread made either because the user denied it, or this chat was started in a thread.'} | Voice — {'Yes' if speak_reply == True else 'No'} | Private - {'Yes' if is_private == True else 'No'}*"
+        
+        welcome = f"**> Conversation Name — {name}\n> AI Model — {convo.model.display_name}\n> Thread — {chat_thread.mention if chat_thread else "No"}\n> Voice — {'Yes' if speak_reply == True else 'No'}\n> Private — {'Yes' if is_private == True else 'No'}**"
         await interaction.response.send_message(welcome, ephemeral=is_private)
         
     @chat_group.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")

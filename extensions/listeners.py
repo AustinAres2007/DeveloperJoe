@@ -1,3 +1,4 @@
+from code import interact
 import discord, random
 
 from discord.ext import commands, tasks
@@ -55,24 +56,35 @@ class Listeners(commands.Cog):
         try:
             async def respond_to_mention(member: discord.Member):
                 model: models.AIModelType = commands_utils.get_modeltype_from_name(confighandler.get_guild_config_attribute(member.guild, "default-ai-model"))
-                lowered_text = message.clean_content.lower()
-                command = lowered_text.split(" ")[1]
+                lowered_text = message.clean_content.lower().split(" ")
+                command = lowered_text[1]
+                text_content = ' '.join(lowered_text[2:])
                 
                 async with model(member) as ai_model:
+                    ai_model: models.GenericAIModel
+                    
                     async with message.channel.typing():
                         if command == "image":
                             try:
-                                start_index = lowered_text.find("image:") + len("image:")
-                                prompt = lowered_text[start_index:].lstrip()
-                                reply = await ai_model.generate_image(prompt)
-                                
-                                return await message.channel.send(f'"{prompt}"\n\n{reply.image_url}') 
+                                reply = await ai_model.generate_image(text_content)
+                                return await message.channel.send(f'"{text_content}"\n\n{reply.image_url}') 
                             except openai.BadRequestError:
                                 return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
                         elif command == "analyse":
                             try:
-                                ...
-                            except:
+                                attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
+
+                                if attachment_urls == []:
+                                    raise exceptions.ConversationError("Please provide some images to analyse in the form of attachments.")
+                                
+                                if text_content == "":
+                                    raise exceptions.ConversationError("Please provide a question to ask.")
+                                
+                                await ai_model.add_images(attachment_urls, False)
+                                response = await ai_model.ask_image(text_content)
+                                
+                                return await message.channel.send(response.response)
+                            except openai.PermissionDeniedError: # Put random ass class here for now
                                 ...
                         else:
                             ai_reply = await ai_model.ask_model(message.clean_content)
@@ -94,10 +106,15 @@ class Listeners(commands.Cog):
                             has_private_thread = thread and thread.is_private()
                             
                             if has_private_thread and convo.is_processing != True:
+                                attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
+                                
+                                if attachment_urls:
+                                    await convo.add_images(attachment_urls)
+                                    await channel.send(f"Added {len(attachment_urls)} image{'s' if len(attachment_urls) > 1 else ''} to the analyse list!")
+                                    
                                 if convo.stream == True:
                                     await convo.ask_stream(content, channel)
                                 else:
-                                    attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)] # Will use
                                     reply = await convo.ask(content)
                                     
                                     if len(reply) > developerconfig.CHARACTER_LIMIT:
@@ -114,7 +131,7 @@ class Listeners(commands.Cog):
                         
                 elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                     await respond_to_mention(member)
-
+                    
         except (exceptions.DGException, exceptions.ConversationError) as error:
             await message.channel.send(error.message)
         except discord.Forbidden:

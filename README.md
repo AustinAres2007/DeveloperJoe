@@ -63,5 +63,6 @@ I will add to this later, and try and make a more indepth and easy to understand
 ## Todo 1.4.5
 
 - Check for GPT 4 permission
-- Image reading
+- Image reading (Important: ~~valid URL checking~~, ~~check for profanity~~)
 - Clear chat context. Infrastucture is there, just gotta implement.
+- Add OpenAI exceptions to error handler

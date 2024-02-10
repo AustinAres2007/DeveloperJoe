@@ -1,11 +1,14 @@
 import logging
+from tabnanny import check
 from httpx import ReadTimeout
-import json, openai, discord, typing
+import json, openai, discord, typing, requests
 
 from typing import (
     Any,
     AsyncGenerator,
-    Dict
+    Awaitable,
+    Callable,
+    Dict,
 )
 from .common import (
     developerconfig,
@@ -262,26 +265,42 @@ class GPTReaderContext:
     def images(self) -> list[dict]:
         return self._images
     
+    @property
+    def context(self) -> list:
+        return self._reader_context
+    
     @staticmethod
     def _url_to_gpt_readable(url: str) -> dict:
         return {"type": "image_url", "image_url": url}
     
-    async def add_images(self, image_urls: list[str]) -> None:
+    async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
+        def _is_image(url: str) -> bool:
+            if check_if_valid == False:
+                return True
+            
+            image_formats = ("image/png", "image/jpeg", "image/jpg")
+            req_header = requests.head(url).headers
+            
+            return True if req_header["content-type"] in image_formats else False
+        
         for url in image_urls:
-            self._reader_context.extend(self._url_to_gpt_readable(url))
-    
+            if _is_image(url):
+                self._images.extend([self._url_to_gpt_readable(url)])
+            else:
+                raise exceptions.DGException(f"Image url `{url}` is invalid. Please make sure the image URL is accessible without logging into anything or things of the sort.")
+            
     def clear(self) -> None:
         self._images.clear()
                 
     def add_reader_context(self, query: str, reply: str) -> None:
         
-        user_query = self.generate_empty_context(query, False)
+        user_query = self.generate_empty_context(query)
         ai_reply = {"role": "assistant", "content": reply}
         interaction = [user_query, ai_reply]
         
         return self._reader_context.extend(interaction)
     
-    def generate_empty_context(self, query: str, add_images: bool) -> dict:
+    def generate_empty_context(self, query: str) -> dict:
         user_reply = {"role": "user", "content": [
             {
                 "type": "text",
@@ -293,7 +312,7 @@ class GPTReaderContext:
         return user_reply
     
     def get_temporary_context(self, query: str) -> list:
-        user_query = self.generate_empty_context(query, True)
+        user_query = self.generate_empty_context(query)
         _temp_context = self._reader_context.copy()
         _temp_context.append(user_query)
         
@@ -409,7 +428,35 @@ async def _gpt_image_base(prompt: str, image_engine: types.ImageEngine, api_key:
             return response
     
     raise TypeError("Expected AIImageResponse or AIErrorResponse, got {}".format(type(response)))
-    
+
+def check_can_talk(func: Callable[..., Awaitable[Any]]):
+    async def _inner(self, *args, **kwargs):
+        if self.can_talk:
+            return await func(self, *args, **kwargs)
+        raise exceptions.ModelError(f"{self.display_name} does not support text generation.")
+    return _inner
+
+def check_can_stream(func: Callable[..., Awaitable[Any]]):
+    async def _inner(self, *args, **kwargs):
+        if self.can_stream:
+            return await func(self, *args, **kwargs)
+        raise exceptions.ModelError(f"{self.display_name} does not support streaming text.")
+    return _inner
+
+def check_can_generate_images(func: Callable[..., Awaitable[Any]]):
+    async def _inner(self, *args, **kwargs):
+        if self.can_generate_images:
+            return await func(self, *args, **kwargs)
+        raise exceptions.ModelError(f"{self.display_name} does not support image generation.")
+    return _inner
+
+def check_can_read(func: Callable[..., Awaitable[Any]]):
+    async def _inner(self, *args, **kwargs):
+        if self.can_read_images:
+            return await func(self, *args, **kwargs)
+        raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
+    return _inner
+
 class AIModel:
     """Generic base class for all AIModels and blueprints for how they should be defined. Use a subclass of this."""
     
@@ -450,31 +497,31 @@ class AIModel:
         return self._context
     
     async def clear_context(self) -> None:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        pass
     
     async def clear_chat_context(self) -> None:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        pass
     
     async def clear_image_context(self) -> None:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        pass
     
     async def start_chat(self) -> None:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        pass
     
     async def ask_model(self, query: str) -> AIQueryResponse:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        raise exceptions.ModelError(f"{self.display_name} does not support text generation.")
     
     async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        raise exceptions.ModelError(f"{self.display_name} does not support streaming text.")
     
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        raise exceptions.ModelError(f"{self.display_name} does not support image generation.")
     
     async def ask_image(self, query: str) -> AIQueryResponse:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+        raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
     
-    async def add_images(self, image_urls: list[str]) -> None:
-        raise NotImplemented(f"Use a subclass of {self.__class__.__name__}.")
+    async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
+        raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
     
     async def end(self) -> None:
         pass
@@ -524,23 +571,23 @@ class GPT3Turbo(GPTModel):
     can_generate_images = True
     can_read_images = False
     
+    @check_can_talk
     async def ask_model(self, query: str) -> AIQueryResponse:
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
+    @check_can_stream
     async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
+    @check_can_generate_images
     async def generate_image(self, image_prompt: str) -> AIImageResponse:
         if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
-    
-    async def read_image(self, query: str, image_url: str) -> AIQueryResponse:
-        raise exceptions.ModelError("This model does not support image reading.")
     
 class GPT4(GPTModel):
     
@@ -555,17 +602,20 @@ class GPT4(GPTModel):
     
     # XXX: Bot cannot see image after it is sent. Perhaps keep the image URL in local memory and send it everytime so it can be refered too?
     # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
-        
+    
+    @check_can_talk
     async def ask_model(self, query: str) -> AIQueryResponse:
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
+    @check_can_stream
     async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
+    @check_can_generate_images
     async def generate_image(self, image_prompt: str) -> AIImageResponse:
         if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
@@ -603,7 +653,7 @@ class GPT4Vision(GPT4):
         if not self._image_reader_context:
             raise exceptions.DGException(unknown_internal_context)
         
-        elif self._image_reader_context._images:
+        if self._image_reader_context._images:
             reader_context = self._image_reader_context.get_temporary_context(query)
         else:
             raise exceptions.DGException("No images avalible to analyse.")
@@ -627,18 +677,21 @@ class GPT4Vision(GPT4):
         except (TimeoutError, ReadTimeout):
             raise exceptions.ModelError(errors.AIErrors.AI_TIMEOUT_ERROR)
         except openai.RateLimitError as e:
-            logger.debug(e.response.read())
             raise exceptions.ModelError("You must wait before analysing again. This is a limitation of GPT 4 Vision and fault of OpenAI. Once again, this model is in preview.")
+        except openai.BadRequestError:
+            raise exceptions.ModelError("An image was flagged as inappropriate. Please start another chat to continue using image features.")
         
         raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     
     # TODO: (Make commands for reading images. /chat analyze to register an image, /chat followup to ask questions about the image registered (or just use /chat analyze again) and use /chat clear
-    async def add_images(self, image_urls: list[str]) -> None:
+    
+    @check_can_read
+    async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
         if isinstance(self._image_reader_context, GPTReaderContext):
-            for url in image_urls:
-                return self._image_reader_context._images.append(self._image_reader_context._url_to_gpt_readable(url))
+            return await self._image_reader_context.add_images(image_urls, check_if_valid)
         raise exceptions.DGException(unknown_internal_context)
     
+    @check_can_read
     async def ask_image(self, query: str) -> AIQueryResponse:
         if self._check_user_permissions() and self._image_reader_context:
             if isinstance(query, str):
@@ -650,7 +703,6 @@ class GPT4Vision(GPT4):
 
 AIModelType = type(GPT3Turbo) | type(GPT4) | type(GPT4Vision)
 GenericAIModel = GPT3Turbo | GPT4 | GPT4Vision
-
 
 registered_models: Dict[str, typing.Type[AIModel]] = {
     "gpt-4": GPT4,

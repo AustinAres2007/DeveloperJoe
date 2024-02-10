@@ -33,7 +33,7 @@ def send_affirmative_text(text: str) -> None:
     Args:
         text (str): _description_ The text to print.
     """
-    print(colorama.Fore.GREEN + f"\n{text}\n" + colorama.Fore.WHITE)
+    print(colorama.Fore.GREEN + f"{text}" + colorama.Fore.WHITE)
 
 def send_info_text(text: str) -> None:
     """Prints light cyan text to the end client.
@@ -41,7 +41,7 @@ def send_info_text(text: str) -> None:
     Args:
         text (str): The text to print.
     """
-    print(colorama.Fore.LIGHTCYAN_EX + "Info:  " + colorama.Fore.CYAN + f"{text}\n" + colorama.Fore.WHITE)
+    print(colorama.Fore.LIGHTCYAN_EX + "Info:  " + colorama.Fore.CYAN + f"{text}" + colorama.Fore.WHITE)
 
 def get_posix():
     """Returns the posix timestamp according to the timezone specified in the config."""

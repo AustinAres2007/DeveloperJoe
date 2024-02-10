@@ -107,9 +107,9 @@ class DGChat:
         self.stream = stream
 
         if isinstance(model, type(models.AIModelType)):
-            self.model: models.ActiveAIModel = model(member) # type: ignore shutup I did the check
+            self.model: models.GenericAIModel = model(member) # type: ignore shutup I did the check
         else:
-            self.model: models.ActiveAIModel = commands_utils.get_modeltype_from_name(str(model))(member)
+            self.model: models.GenericAIModel = commands_utils.get_modeltype_from_name(str(model))(member)
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
@@ -165,7 +165,7 @@ class DGChat:
     async def read_image(self, query: str) -> models.AIQueryResponse:
         raise NotImplementedError
     
-    async def add_images(self, image_urls: list[str]) -> None:
+    async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
         raise NotImplementedError
 
     async def start(self) -> None:
@@ -360,9 +360,8 @@ class DGTextChat(DGChat):
         image_query_reply: models.AIQueryResponse = await self.model.ask_image(query)
         return image_query_reply
     
-    async def add_images(self, image_urls: list[str]) -> None:
-        if self.model.can_read_images:
-            return await self.model.add_images(image_urls)
+    async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
+        await self.model.add_images(image_urls, check_if_valid)
     
     async def start(self) -> None:
         """Sends a start query to GPT.
@@ -557,7 +556,14 @@ class DGVoiceChat(DGTextChat):
             pass
         except IndexError:
             self.voice_tss_queue.clear()
-            
+    
+    @decorators.has_config
+    async def speak_and_say(self, text: str, channel: developerconfig.InteractableChannel):
+        await self.speak(text)
+        if isinstance(channel, developerconfig.InteractableChannel):
+            return await channel.send()
+        raise TypeError(f"`channel` must be InteractableChannel, not {channel.__class__.__name__}")
+    
     @decorators.check_enabled
     @decorators.has_voice_with_error
     @decorators.dg_in_voice_channel
@@ -592,14 +598,21 @@ class DGVoiceChat(DGTextChat):
 
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> str:
 
-        text = await super().ask_stream(query, channel)
+        
         if isinstance(channel, developerconfig.InteractableChannel):
+            text = await super().ask_stream(query, channel)
             await self.speak(text)
         else:
-            raise TypeError("channel cannot be {}. utils.InteractableChannels only.".format(channel.__class__))
+            raise TypeError("channel cannot be {}. types.InteractableChannels only.".format(channel.__class__))
 
         return text
+
+    async def read_image(self, query: str) -> models.AIQueryResponse:
+        image_query = await super().read_image(query)
+        await self.speak(image_query.response)
+        return image_query
     
+            
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} type={self.type}, user={self.member}, voice={self.voice}, is_active={self.is_active}>"
     
