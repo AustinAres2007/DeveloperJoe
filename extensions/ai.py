@@ -37,7 +37,7 @@ class Communication(commands.Cog):
                                    
     )
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, pretext: str | None=None):
         
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
@@ -132,7 +132,7 @@ class Communication(commands.Cog):
         member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         
         if convos := self.client.get_all_user_conversations(member):
-            reply = await self.client.get_input(interaction, f'Are you sure you want to end all of your chats? Type "{developerconfig.QUERY_CONFIRMATION}" to confirm or anything else to cancel. Timeout is {developerconfig.QUERY_TIMEOUT} seconds.')
+            reply = await self.client.get_input(interaction, f'Are you sure you want to end all of your chats? Type "{developerconfig.QUERY_CONFIRMATION}" to confirm or anything else to cancel.')
             if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
                 return await interaction.followup.send("Cencelled action.", ephemeral=False)
             
@@ -234,6 +234,20 @@ class Communication(commands.Cog):
             await interaction.followup.send(response.response)
         else:
             await interaction.followup.send(f"Please either add an image or inquire about an already existing one.")
+        
+    @chat_group.command(name="clear", description="Clear the chats context.")
+    @discord.app_commands.describe(chat_name="Name of the chat which context will be cleared.")
+    async def clear_chat_context(self, interaction: discord.Interaction, chat_name: str=""):
+        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        convo = self.client.manage_defaults(member, chat_name)
+        confirm = await self.client.get_input(interaction, f"Are you sure you want to clear all chat context? *(E.G. The bot will not remember anything you have said. Type `{developerconfig.QUERY_CONFIRMATION}` to confirm)*")
+        
+        if not confirm or confirm.content != developerconfig.QUERY_CONFIRMATION:
+            return await interaction.followup.send("Cancelled action.")
+        await convo.clear()
+        
+        await interaction.followup.send("Cleared all chat context.")
+        
         
         
 async def setup(client):

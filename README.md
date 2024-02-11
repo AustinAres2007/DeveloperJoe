@@ -1,6 +1,6 @@
 # Information
 
-![DeveloperJoe](https://i.imgur.com/SgdL99Y.png)
+![DeveloperJoe Icon](https://i.imgur.com/SgdL99Y.png)
 
 DeveloperJoe is an AI discord bot that comes with GPT 3 / 4 by default and that is fully customisable if you have sufficient Python knowledge.
 
@@ -19,16 +19,16 @@ This bot is directed towards people who want customisation. Though, this is beca
 
     - To start, run the installation / run script, labeled "bot" located in the root of DeveloperJoe. It will give you a warning that your API key file (dependencies/api-keys.key) does not exist, this is normal. This error will not appear if the key file already exists.
 
-2. ### Obtain a Discord API Key from [Discord's Developer Website.](https://discord.com/developers/applications)
+2. ### Obtain a Discord API Key from Discord's Developer Website
 
+    - Go to [Discord's Developer Website.](https://discord.com/developers/applications)
     - Go to the "Bot" tab, and click "Reveal Token" Once you have revealed it, you may not reveal it again unless you regenerate it. I would recommend saving it somewhere secure. Do **NOT** give it to **ANYONE**. It will be detected as leaked if transmitted via Discord. You can give the Bot any name you like, the bot has been programmed to dynamically reference itself.
-
     - After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "discord_api_key: (key)"
 
-3. ### Obtain an OpenAI API Key from [OpenAI's Website](https://platform.openai.com/account)
+3. ### Obtain an OpenAI API Key from OpenAI's Website
 
+    - Go to [OpenAI's Website](https://platform.openai.com/account)
     - Navigate to the "API keys" tab and register one. And warning for beginnners, using this API costs money, and you will **NEED** to add a payment method if you do not have free credits, and depending on the model and how much you use it, it can get expensive.
-
     - After you have obtained an API Key, load the file `dependencies/api-keys.yaml` and paste it on the line where it says: "openai_api_key: (key)"
 
 4. ### Congratulations, you have finished the instillation
@@ -64,6 +64,5 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 - ~~Lacking GPT 4 permission~~ (Not really an issue as it is avalible for everyone who pays API fees)
 - ~~Image reading (Important: valid URL checking, check for profanity)~~ Just testing needed
-- Clear chat context. Infrastucture is there, just gotta implement.
+- ~~Clear chat context. Infrastucture is there, just gotta implement.~~
 - ~~Add error 4xx and 5xx OpenAI exceptions to error handler~~
-- Add argument option in /start of a system direction message. (For example, posing as the system, say: "Summerise messages in under 10 words." and then every message said in the chat will be under 10 words)

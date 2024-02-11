@@ -291,6 +291,7 @@ class GPTReaderContext:
             
     def clear(self) -> None:
         self._images.clear()
+        self._reader_context.clear()
                 
     def add_reader_context(self, query: str, reply: str) -> None:
         

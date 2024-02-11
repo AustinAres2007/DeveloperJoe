@@ -173,7 +173,7 @@ class DGChat:
         self.bot.set_default_conversation(self.member, self.display_name)
         await self.model.start_chat()
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         raise NotImplementedError
     
     async def stop(self, interaction: discord.Interaction, save_history: bool) -> str:
@@ -372,7 +372,7 @@ class DGTextChat(DGChat):
         await super().start()
 
     async def clear(self) -> None:
-        """Clears the internal chat history."""
+        """Clears all internal chat history."""
         # FIXME: Waiting to be transfered to new model system
 
         await self.model.clear_context()
