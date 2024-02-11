@@ -19,6 +19,8 @@ from discord.guild import Guild
 from discord.state import ConnectionState
 from discord.types.member import MemberWithUser as MemberWithUserPayload
 
+from sources.exceptions import DGException
+
 v_info = sys.version_info
 
 if not (v_info.major >= 3 and v_info.minor >= 12):
@@ -348,10 +350,25 @@ class DeveloperJoe(commands.Bot):
                 return await send(message) if getattr(error, "send_exception", False) == True else None
                 
         
-        if isinstance(error, discord.app_commands.CheckFailure):
+        if isinstance(error, DGException):
+            message = error.message
+            log = error.log_error
+            send_exc = error.send_exception
+            
+            logging.error(exception) if log == True else None
+            return await send(message) if send_exc == True else None
+        
+        elif isinstance(error, discord.app_commands.CheckFailure):
             return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
+        
         elif isinstance(error, discord.app_commands.CommandSignatureMismatch):
             return await send("Command mismatch. The bot must be restarted to fix this issue.")
+        
+        elif isinstance(error, openai.PermissionDeniedError):
+            return await send("Bot is missing permission to use GPT Model. You must gain permission via OpenAI.")
+        
+        elif isinstance(error, openai.APIStatusError):
+            return await send(error.message)
         
         logging.error(exception)
         error_text = f"From error handler: {str(error)}"

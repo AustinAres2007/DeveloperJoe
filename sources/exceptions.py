@@ -1,14 +1,16 @@
 from __future__ import annotations
+
+import openai
 from .common.developerconfig import ALLOW_TRACEBACK
 
 # Models
 
 class DGException(Exception):
     reply = None
-    def __init__(self, message: str, *args, log_error: bool | None=None, send_exceptions: bool=True, **kwargs):
+    def __init__(self, display_message: str, *args, log_error: bool | None=None, send_exceptions: bool=True, **kwargs):
         """Base exception for all DGE exceptions. (All DGE exceptions inherit from DGException, and must do if they want to be recognised by error handler)"""
 
-        self._message = message
+        self._message = display_message
         self._log_error = log_error if isinstance(log_error, bool) else ALLOW_TRACEBACK
         self._send_exception = send_exceptions
         
@@ -29,14 +31,14 @@ class DGException(Exception):
 # TODO: Change errors to more specific instead of just DGException (To HistoryError, or ConversationError, etc)
 
 class HistoryError(DGException):
-    ...
+    pass
 
 class ConversationError(DGException):
-    ...
+    pass
 
 class ModelError(DGException):
-    ...
+    pass
 
 class VoiceError(DGException):
-    ...
+    pass
     

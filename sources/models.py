@@ -1,7 +1,7 @@
 import logging
 from tabnanny import check
-from httpx import ReadTimeout
 import json, openai, discord, typing, requests
+import httpx
 
 from typing import (
     Any,
@@ -319,7 +319,7 @@ class GPTReaderContext:
         return _temp_context
         
 Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
-
+    
 def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
     actual_data: dict = data if isinstance(data, dict) else json.loads(data)
     
@@ -359,7 +359,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
                     
                 return response
                 
-    except (TimeoutError, ReadTimeout):
+    except (TimeoutError, httpx.ReadTimeout):
         raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
     
     raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
@@ -674,9 +674,9 @@ class GPT4Vision(GPT4):
                         self._image_reader_context.add_reader_context(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
                     return response
                     
-        except (TimeoutError, ReadTimeout):
+        except (TimeoutError, httpx.ReadTimeout):
             raise exceptions.ModelError(errors.AIErrors.AI_TIMEOUT_ERROR)
-        except openai.RateLimitError as e:
+        except openai.RateLimitError:
             raise exceptions.ModelError("You must wait before analysing again. This is a limitation of GPT 4 Vision and fault of OpenAI. Once again, this model is in preview.")
         except openai.BadRequestError:
             raise exceptions.ModelError("An image was flagged as inappropriate. Please start another chat to continue using image features.")

@@ -62,7 +62,8 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Todo 1.4.5
 
-- Check for GPT 4 permission
-- Image reading (Important: ~~valid URL checking~~, ~~check for profanity~~)
+- ~~Lacking GPT 4 permission~~ (Not really an issue as it is avalible for everyone who pays API fees)
+- ~~Image reading (Important: valid URL checking, check for profanity)~~ Just testing needed
 - Clear chat context. Infrastucture is there, just gotta implement.
-- Add OpenAI exceptions to error handler
+- ~~Add error 4xx and 5xx OpenAI exceptions to error handler~~
+- Add argument option in /start of a system direction message. (For example, posing as the system, say: "Summerise messages in under 10 words." and then every message said in the chat will be under 10 words)
