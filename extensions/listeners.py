@@ -110,7 +110,7 @@ class Listeners(commands.Cog):
                                 
                                 if attachment_urls:
                                     await convo.add_images(attachment_urls)
-                                    await channel.send(f"Added {len(attachment_urls)} image{'s' if len(attachment_urls) > 1 else ''} to the analyse list!")
+                                    return await channel.send(f"Added {len(attachment_urls)} image{'s' if len(attachment_urls) > 1 else ''} to the analyse list!")
                                     
                                 if convo.stream == True:
                                     await convo.ask_stream(content, channel)

@@ -78,7 +78,6 @@ def modeltype_is_in_models(name: str):
 def in_correct_channel(interaction: discord.Interaction) -> bool:
     return bool(interaction.channel) == True and bool(interaction.channel.guild if interaction.channel else False)
 
-
 def get_correct_channel(channel: typing.Any | None) -> developerconfig.InteractableChannel:
     if channel and isinstance(channel, developerconfig.InteractableChannel):
         return channel

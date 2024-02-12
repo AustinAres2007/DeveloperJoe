@@ -169,9 +169,12 @@ class Communication(commands.Cog):
             {"name": "Chat Length", "value": str(len(convo.context.context)), "inline": False},
             {"name": "Chat History ID", "value": str(convo.hid), "inline": False},
             {"name": "Chat ID", "value": str(convo.display_name), "inline": False},
-            {"name": "Is Active", "value": str(convo.is_active), "inline": False},
             {"name": "AI Model", "value": str(convo.model.display_name), "inline": False},
-            {"name": "Is Voice", "value": f"Yes" if isinstance(convo, chat.DGVoiceChat) else "No", "inline": False},
+            {"name": "Is Voice", "value": commands_utils.true_to_yes(isinstance(convo, chat.DGVoiceChat)), "inline": False},
+            {"name": "Is Streaming", "value": commands_utils.true_to_yes(convo.stream), "inline": False},
+            {"name": "Image Generation", "value": commands_utils.true_to_yes(convo.model.can_generate_images), "inline": False},
+            {"name": "Image Reading", "value": commands_utils.true_to_yes(convo.model.can_read_images), "inline": False},
+            {"name": "Is Active", "value": str(convo.is_active), "inline": False},
             {"name": f"{self.client.application.name} Version", "value": developerconfig.VERSION, "inline": False}, # type: ignore Client will be logged in by the time this is executed.
             {"name": f"{self.client.application.name} Uptime", "value": f"{uptime_delta.days} Days ({uptime_delta})", "inline": False} # type: ignore Client will be logged in by the time this is executed. 
         )
@@ -192,6 +195,7 @@ class Communication(commands.Cog):
     async def list_user_chats(self, interaction: discord.Interaction):
         member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         embed = self.client.get_embed(f"{member} Conversations")
+        
         for chat in self.client.get_all_user_conversations(member).values():
             embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private} | Voice - {True if chat.type == types.DGChatTypesEnum.VOICE else False}", inline=False)
              
@@ -247,8 +251,6 @@ class Communication(commands.Cog):
         await convo.clear()
         
         await interaction.followup.send("Cleared all chat context.")
-        
-        
         
 async def setup(client):
     await client.add_cog(Communication(client))

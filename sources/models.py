@@ -483,6 +483,9 @@ class AIModel:
     def __init__(self, member: discord.Member) -> None:
         self._context: ReadableContext = ReadableContext()
         self.member = member
+        
+        if not self._check_user_permissions():
+            raise exceptions.ModelError(missing_perms)
     
     def is_init(self):
         return isinstance(self._context, ReadableContext)
@@ -689,6 +692,8 @@ class GPT4Vision(GPT4):
     @check_can_read
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
         if isinstance(self._image_reader_context, GPTReaderContext):
+            if len(image_urls) + len(self._image_reader_context.images) > 10: # This is arbituary. I have heard it is up to 48 but some say that is wrong. 10 to be safe and should all one person needs.
+                raise exceptions.ModelError(f"{self.display_name} cannot have more than 10 images registered.")
             return await self._image_reader_context.add_images(image_urls, check_if_valid)
         raise exceptions.DGException(unknown_internal_context)
     
@@ -714,4 +719,4 @@ MODEL_CHOICES: list[Choice] = [
     Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     Choice(name="GPT 4", value="gpt-4"),
     Choice(name="GPT 4 with Vision", value="gpt-4v")
-] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return fo    rmat of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
+] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
