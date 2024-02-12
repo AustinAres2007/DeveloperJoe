@@ -3,8 +3,8 @@
 Thank you to:
     - Fabian Kuzbiel (Tester, Support, Survey)
     - Bradley King (Tester)
-    - Emie (Testing in early stages, Survey)
-    
+    - "Emie" an Alias. (Testing in early stages, Survey)
+    - "Malin Nier" Alias? (Testing image capabilities with GPT 4 and General listener tests)
     - The Developers of Opus.
     - The Developers of FFmpeg.
 """
@@ -14,10 +14,6 @@ from asyncio import CancelledError
 import shutil
 import sys, os
 from typing import Any
-
-from discord.guild import Guild
-from discord.state import ConnectionState
-from discord.types.member import MemberWithUser as MemberWithUserPayload
 
 from sources.exceptions import DGException
 

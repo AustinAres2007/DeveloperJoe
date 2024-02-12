@@ -680,7 +680,7 @@ class GPT4Vision(GPT4):
         except openai.RateLimitError:
             raise exceptions.ModelError("You must wait before analysing again. This is a limitation of GPT 4 Vision and fault of OpenAI. Once again, this model is in preview.")
         except openai.BadRequestError:
-            raise exceptions.ModelError("An image was flagged as inappropriate. Please start another chat to continue using image features.")
+            raise exceptions.ModelError("An image was flagged as inappropriate. Please retry. If this persists, please start chat to continue using image features.")
         
         raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
     

@@ -58,7 +58,11 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.4.5
 
+todo
+
 ### Resolved Bugs
+
+todo
 
 ## Todo 1.4.5
 
@@ -66,3 +70,8 @@ I will add to this later, and try and make a more indepth and easy to understand
 - ~~Image reading (Important: valid URL checking, check for profanity)~~ Just testing needed
 - ~~Clear chat context. Infrastucture is there, just gotta implement.~~
 - ~~Add error 4xx and 5xx OpenAI exceptions to error handler~~
+
+## Todo 1.4.6
+
+- Add /analyse to threads (Using same syntax of @DeveloperJoe analyse, but use current chat context. If none, use temp)
+- Add history support to /analyse
