@@ -76,7 +76,7 @@ class DGChat:
                 name: str,
                 stream: bool,
                 display_name: str, 
-                model: models.AIModelType | str=confighandler.get_config('default_ai_model'), 
+                model: models.AIModelType | str=confighandler.get_config('default_ai_model'),
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
                 voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None

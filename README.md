@@ -58,18 +58,18 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.4.5
 
-todo
+- /analyse -> Analyse given images. (For example, ask the AI to describe the images)
+- /clear -> Clears a chats context. (Like deleting a chat then starting it again with no context)
+
+### Changes
+
+- /info displays more information
+- /start has a redesigned response.
 
 ### Resolved Bugs
 
-todo
-
-## Todo 1.4.5
-
-- ~~Lacking GPT 4 permission~~ (Not really an issue as it is avalible for everyone who pays API fees)
-- ~~Image reading (Important: valid URL checking, check for profanity)~~ Just testing needed
-- ~~Clear chat context. Infrastucture is there, just gotta implement.~~
-- ~~Add error 4xx and 5xx OpenAI exceptions to error handler~~
+- Better bug handlers for OpenAI Errors.
+- Fixed bug with /start, where it would not check a users permissions.
 
 ## Todo 1.4.6
 
