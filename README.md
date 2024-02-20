@@ -58,9 +58,20 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 ## Release Notes 1.4.6
 
-todo
+- No new features. Bug fixes only.
 
-## Todo 1.4.6
+## Bug Fixes
 
-- Add /analyse to threads (Using same syntax of @DeveloperJoe analyse, but use current chat context. If none, use temp)
-- Add history support to /analyse
+- Fixed bug with /start picking a default chat name
+
+## Changes
+
+- Wording changes
+- Added Thread commands to the welcome.md file.
+- Added analyse history to /export and history system.
+- Changed query confirmation keyword.
+
+## Todo 1.4.7
+
+Nothing. This is likely the final update unless I have new ideas or need to update code because of deprications.
+Thank you. Despite that this is a personal project and no one will care or see this, I have learned a lot of from this. Thank you, Danke schön!

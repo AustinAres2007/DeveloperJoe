@@ -213,6 +213,20 @@ class ReadableContext:
         reader_data = [{'reader_content': query, "image_urls": image_urls}, {"reply": answer}]
         self._display_context.append(reader_data)
         return reader_data
+
+class ReaderContext:
+    
+    def __init__(self) -> None:
+        self._reader_context = []
+        self._images = []
+        self._image_urls = []
+        
+    def __len__(self):
+        return len(self.image_urls)
+    
+    @property
+    def image_urls(self) -> list[str]:
+        return self._image_urls
     
 # GPT Contexts
 
@@ -256,11 +270,7 @@ class GPTConversationContext:
     def generate_empty_context(query: str) -> list:
         return [{"role": "user", "content": query}]
 
-class GPTReaderContext:
-    def __init__(self) -> None:
-        self._reader_context = []
-        self._images = []
-    
+class GPTReaderContext(ReaderContext):
     @property
     def images(self) -> list[dict]:
         return self._images
@@ -286,6 +296,7 @@ class GPTReaderContext:
         for url in image_urls:
             if _is_image(url):
                 self._images.extend([self._url_to_gpt_readable(url)])
+                self._image_urls.append(url)
             else:
                 raise exceptions.DGException(f"Image url `{url}` is invalid. Please make sure the image URL is accessible without logging into anything or things of the sort.")
             
@@ -482,6 +493,7 @@ class AIModel:
     
     def __init__(self, member: discord.Member) -> None:
         self._context: ReadableContext = ReadableContext()
+        self._image_reader_context: ReaderContext | None = None
         self.member = member
         
         if not self._check_user_permissions():
@@ -642,7 +654,7 @@ class GPT4Vision(GPT4):
     
     async def clear_context(self) -> None:
         await super().clear_context()
-        self._image_reader_context.clear() # type: ignore :|
+        await self.clear_image_context()
     
     async def clear_image_context(self) -> None:
         if self.is_init():

@@ -75,7 +75,7 @@ class Listeners(commands.Cog):
                                 attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
 
                                 if attachment_urls == []:
-                                    raise exceptions.ConversationError("Please provide some images to analyse in the form of attachments.")
+                                    raise exceptions.ConversationError("Please provide some image(s) to analyse in the form of attachments.")
                                 
                                 if text_content == "":
                                     raise exceptions.ConversationError("Please provide a question to ask.")

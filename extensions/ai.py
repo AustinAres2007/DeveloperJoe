@@ -47,12 +47,21 @@ class Communication(commands.Cog):
         name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
         chat_thread: discord.Thread | None = None
         ai_model = ai_model if isinstance(ai_model, str) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
+        
         # Error Checking
+        
+        def _get_new_default_name(n: int) -> str:
+            if f"{member.name}-{n}" in list(chats):
+                return _get_new_default_name(n + 1)
+            return f"{member.name}-{n}"
 
         if len(actual_name) > 39:
             raise exceptions.ConversationError("The name of your chat must be less than 40 characters.", len(actual_name))
         elif isinstance(chats, dict) and name in list(chats):
-            raise exceptions.ConversationError(errors.ConversationErrors.HAS_CONVO)
+            if chat_name == None:
+                name = _get_new_default_name(0)
+            else:
+                raise exceptions.ConversationError(errors.ConversationErrors.HAS_CONVO)
         elif isinstance(chats, dict) and len(chats) > developerconfig.CHATS_LIMIT:
             raise exceptions.ConversationError(errors.ConversationErrors.CONVO_LIMIT)
         

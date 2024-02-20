@@ -354,10 +354,11 @@ class DGTextChat(DGChat):
         return final_user_reply
     
     async def read_image(self, query: str) -> models.AIQueryResponse:
-        if self.model.can_read_images == False:
+        if self.model.can_read_images == False or self.model._image_reader_context == None:
             raise exceptions.ModelError(f"{self.model} does not support image reading.")
-
+        
         image_query_reply: models.AIQueryResponse = await self.model.ask_image(query)
+        self.context.add_reader_entry(query, self.model._image_reader_context.image_urls, image_query_reply.response)
         return image_query_reply
     
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
