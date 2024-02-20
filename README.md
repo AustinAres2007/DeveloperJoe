@@ -56,20 +56,9 @@ I will add to this later, and try and make a more indepth and easy to understand
 
 - If there are any errors, check the file `misc/bot_log.log`, contact me, and give me the contents of the file. I will then resolve your issue. You may try and resolve the problem yourself if you have sufficient Python programming knowledge.
 
-## Release Notes 1.4.5
+## Release Notes 1.4.6
 
-- /analyse -> Analyse given images. (For example, ask the AI to describe the images)
-- /clear -> Clears a chats context. (Like deleting a chat then starting it again with no context)
-
-### Changes
-
-- /info displays more information
-- /start has a redesigned response.
-
-### Resolved Bugs
-
-- Better bug handlers for OpenAI Errors.
-- Fixed bug with /start, where it would not check a users permissions.
+todo
 
 ## Todo 1.4.6
 
