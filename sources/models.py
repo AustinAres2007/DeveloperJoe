@@ -1,7 +1,6 @@
-from ast import Call
 import logging
-from tabnanny import check
 import json, openai, discord, typing, requests
+from anyio import start_blocking_portal
 import httpx
 
 from typing import (
@@ -22,6 +21,7 @@ from . import (
     exceptions
 )
 from discord.app_commands import Choice
+import google.generativeai as google_ai
 
 __all__ = [
     "AIModel",
@@ -33,6 +33,9 @@ missing_perms = errors.ModelErrors.MODEL_LOCKED
 unknown_internal_context = "Undefined internal image context. Was `start_chat` called?"
 logger = logging.getLogger(__name__)
 
+if google_key := confighandler.has_api_key("google_api_key"):
+    google_ai.configure(api_key=confighandler.get_api_key("google_api_key"))
+    
 class AIResponse:
     """Generic base class for an AI response"""
     
@@ -352,7 +355,7 @@ def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
 def _handle_error(response: AIErrorResponse) -> None:
     raise exceptions.DGException(response.error_message, response.error_code)
     
-async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: types.AIModels, api_key: str, **kwargs) -> AIQueryResponse:
+async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, **kwargs) -> AIQueryResponse:
     temp_context: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
     
     if not isinstance(context, GPTConversationContext | None):
@@ -491,7 +494,7 @@ class AIModel:
     def is_enabled() -> bool:
         return False
     
-    model: types.AIModels = "AIModel"
+    model: str = "AIModel"
     display_name: str = "AI Model"
     description: str | None = None
 
@@ -677,7 +680,6 @@ class GPT4Vision(GPT4):
     
     def __init__(self, member: discord.Member) -> None:
         super().__init__(member)
-        self._image_reader_context: GPTReaderContext | None = None
     
     async def clear_context(self) -> None:
         await super().clear_context()
@@ -746,8 +748,22 @@ class GPT4Vision(GPT4):
         raise exceptions.DGException(missing_perms)
 
 class GoogleAI(AIModel):
-    ...
+    
+    @staticmethod
+    def is_enabled() -> bool:
+        return google_key
+    
+    model = "gemini-pro"
+    description = "Google Bard"
+    display_name = "Google PaLM"
 
+    can_talk = True
+    can_stream = False
+    can_generate_images = False
+    can_read_images = False
+    enabled = is_enabled()
+    
+    def 
 registered_models: Dict[str, typing.Type[AIModel]] = {
     "gpt-4": GPT4,
     "gpt-4v": GPT4Vision,
