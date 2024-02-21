@@ -1,0 +1,69 @@
+#!/bin/bash
+
+if [[ "$1" =~ python.* ]]
+then
+    PYTHON_COMMAND=$1
+else
+    PYTHON_COMMAND=python3
+fi
+
+echo Loading...
+DIR=$(cd "$(dirname "$0")"; pwd)
+cd $DIR
+
+if command -v $PYTHON_COMMAND &> /dev/null
+then
+    # Retrieve the version number
+    VERSION=$($PYTHON_COMMAND -c 'import platform; print(platform.python_version())')
+    IFS='.' read -ra VERSION_ARRAY <<< "$VERSION" # Split the version number into its components
+
+    MAJOR=${VERSION_ARRAY[0]}
+    MINOR=${VERSION_ARRAY[1]}
+    PATCH=${VERSION_ARRAY[2]}
+
+    if [ "$MAJOR" -lt 3 ] || ([ "$MAJOR" -eq 3 ] && [ "$MINOR" -lt 12 ]); then
+        echo "You cannot run this script. Python version is too old. (Python 3.12 and above, you have $VERSION) You can download Python 3.12 at https://python.org"
+        exit 1
+    else
+        . "$DIR/bin/activate" &> /dev/null
+        IN_VE=$(python3 -c 'import sys; print(sys.prefix != sys.base_prefix)')
+
+        if [ ! "$IN_VE" = "True" ]
+        then
+            echo Installing... You may need to enter your password, and take some time.
+            
+            if [ "$OSTYPE" = "linux-gnu" ]
+            then 
+                sudo apt install python3.12-venv
+                sudo apt-get -y install flac
+            fi
+
+            echo Creating enviroment. Please wait...
+            
+            PYTHON_PATH=$(which $PYTHON_COMMAND)
+            $PYTHON_PATH -m venv $DIR && . "$DIR/bin/activate"
+            $PYTHON_COMMAND -m pip install -q --upgrade pip
+            $PYTHON_COMMAND -m pip install -q -r "$DIR/dependencies/requirements.txt"
+            $PYTHON_COMMAND "$DIR/sources/install/download_libs.py"
+        fi
+
+        if [ ! -e "$DIR/dependencies/api-keys.yaml" ]
+        then
+            echo 'I do not detect a "dependencies/api-keys.yaml" file. 
+            You can enter the keys right now. Or leave both prompts blank and a blank key file will be made so you can fill it later.
+            
+            If you have any other files to insert (Voice Libraries) do it now. If not, you can do it later.
+            If you want to exit press "CTRL + C" to do so.'
+            
+            read -p 'Discord API Key (Most likely starting with "MT"): ' -r DISCORD_KEY
+            read -p 'OpenAI API Key (Starting with "sk-"): ' -r OPENAI_KEY
+        fi
+
+
+        echo Performing bot startup..
+        $PYTHON_COMMAND "$DIR/main.py" $DISCORD_KEY $OPENAI_KEY
+
+    fi
+else
+    echo "Python is not installed on this system, or is configured improperly. (Given Python Version: $PYTHON_COMMAND)"
+fi
