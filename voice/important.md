@@ -1,1 +1,0 @@
-This is where libraries for voice support and playback will be located. Do not edit any file names.
