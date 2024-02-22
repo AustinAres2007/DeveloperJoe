@@ -1,6 +1,5 @@
 import logging
 import json, openai, discord, typing, requests
-from anyio import start_blocking_portal
 import httpx
 
 from typing import (
@@ -18,7 +17,8 @@ from . import (
     confighandler,
     modelhandler,
     errors,
-    exceptions
+    exceptions,
+    responses
 )
 from discord.app_commands import Choice
 import google.generativeai as google_ai
@@ -27,6 +27,8 @@ __all__ = [
     "AIModel",
     "GPT3Turbo",
     "GPT4",
+    "GPT4Vision",
+    "GoogleAI",
     "registered_models"
 ]       
 missing_perms = errors.ModelErrors.MODEL_LOCKED
@@ -35,152 +37,6 @@ logger = logging.getLogger(__name__)
 
 if google_key := confighandler.has_api_key("google_api_key"):
     google_ai.configure(api_key=confighandler.get_api_key("google_api_key"))
-    
-class AIResponse:
-    """Generic base class for an AI response"""
-    
-    def __init__(self, data: str | dict[Any, Any]={}) -> None:
-        if not isinstance(data, str | dict):
-            raise TypeError("data should be of type dict or str, not {}".format(type(data)))
-        
-        self._data: dict = self._to_dict(data)
-    
-    def _to_dict(self, json_string: str | dict) -> dict:
-        if isinstance(json_string, str):
-            return json.loads(json_string)
-        return json_string
-    
-    @property
-    def raw(self) -> dict:
-        return self._data
-    
-    @raw.setter
-    def raw(self, new_data: dict) -> None:
-        self._data = self._to_dict(new_data)
-    
-    @property
-    def is_empty(self) -> bool:
-        return True
-        
-class AIQueryResponse(AIResponse):
-    
-    def __init__(self, data: str | dict[Any, Any] = {}) -> None:
-        super().__init__(data)
-        
-        if not self.raw.get("id", None):
-            raise ValueError("Incorrect data response.")
-    
-    def __str__(self) -> str:
-        return self.response
-        
-    @property
-    def response_id(self) -> str | None:
-        return self._data.get("id", None)
-    
-    @property
-    def timestamp(self) -> int:
-        return self._data.get("created", 0)
-    
-    @property
-    def completion_tokens(self) -> int:
-        return dict(self._data.get("usage", {})).get("completion_tokens", 0)
-    
-    @property
-    def prompt_tokens(self) -> int:
-        return dict(self._data.get("usage", {})).get("prompt_tokens", 0)
-    
-    @property
-    def total_tokens(self) -> int:
-        return self.completion_tokens + self.prompt_tokens
-    
-    @property
-    def response(self) -> str:
-        return self.raw["choices"][0]["message"]["content"]
-        
-    @property
-    def finish_reason(self) -> str:
-        return self.raw["choices"][0]["finish_reason"]
-
-class AIErrorResponse(AIResponse):
-    def __init__(self, data: str | dict[Any, Any] = {}) -> None:
-        super().__init__(data)
-        
-        if not self.raw.get("error", None):
-            raise ValueError("Incorrect data response.")
-    
-    @property
-    def error_message(self) -> str:
-        return self.raw["error"]["message"]
-    
-    @property
-    def error_type(self) -> str:
-        return self.raw["error"]["type"]
-    
-    @property
-    def error_param(self) -> str:
-        
-        return self.raw["error"]["param"]
-    
-    @property
-    def error_code(self) -> str:
-        return self.raw["error"]["code"]
-    
-class AIImageResponse(AIResponse):
-    
-    def __init__(self, data: str | dict[Any, Any] = {}) -> None:
-        super().__init__(data)
-        
-        if not self.raw.get("data", None):
-            raise ValueError("Incorrect data response.")
-    
-    @property
-    def timestamp(self) -> int:
-        return self._data.get("created", 0)
-    
-    @property
-    def is_image(self) -> bool:
-        return bool(self.raw.get("data", False))
-    
-    @property
-    def image_url(self) -> str | None:
-        if self.is_image:
-            return self.raw["data"][0]["url"]
-
-class AIQueryResponseChunk(AIResponse):
-    
-    def __init__(self, data: str | dict[Any, Any] = {}) -> None:
-        super().__init__(data)
-        
-        if self.raw.get("object", None) != "chat.completion.chunk":
-            raise ValueError("Incorrect chunk data response.")
-        
-    @property
-    def response_id(self) -> str | None:
-        return self._data.get("id", None)
-    
-    @property
-    def timestamp(self) -> int:
-        return self._data.get("created", 0)
-    
-    @property
-    def response(self) -> str:
-        return self.raw["choices"][0]["delta"]["content"]
-        
-    @property
-    def finish_reason(self) -> str:
-        return self.raw["choices"][0]["finish_reason"]
-
-class AIEmptyResponseChunk(AIQueryResponseChunk):
-    
-    @property
-    def response(self) -> str:
-        return ""
-    
-    def __bool__(self):
-        return False
-    
-    def __len__(self):
-        return 0
     
 # Contexts
 
@@ -332,26 +188,7 @@ class GPTReaderContext(ReaderContext):
         _temp_context.append(user_query)
         
         return _temp_context
-        
-Response = AIResponse | AIQueryResponse | AIErrorResponse | AIImageResponse
     
-def _response_factory(data: str | dict[Any, Any] = {}) -> Response:
-    actual_data: dict = data if isinstance(data, dict) else json.loads(data)
-    
-    if actual_data.get("error", False): # If the response is an error
-        return AIErrorResponse(data)
-    elif actual_data.get("data", False): # If the response is an image
-        return AIImageResponse(data)
-    elif actual_data.get("object", False) == "chat.completion.chunk":
-        if actual_data["choices"][0]["delta"] != {}:
-            return AIQueryResponseChunk(data)
-        return AIEmptyResponseChunk(data)
-    
-    elif actual_data.get("id", False): # If the response is a query
-        return AIQueryResponse(data)
-    else:
-        return AIResponse(data)
-
 def _handle_error(response: AIErrorResponse) -> None:
     raise exceptions.DGException(response.error_message, response.error_code)
     
@@ -680,6 +517,7 @@ class GPT4Vision(GPT4):
     
     def __init__(self, member: discord.Member) -> None:
         super().__init__(member)
+        self._image_reader_context: GPTReaderContext | None = None
     
     async def clear_context(self) -> None:
         await super().clear_context()
@@ -736,7 +574,7 @@ class GPT4Vision(GPT4):
             if len(image_urls) + len(self._image_reader_context.images) > 10: # This is arbituary. I have heard it is up to 48 but some say that is wrong. 10 to be safe and should all one person needs.
                 raise exceptions.ModelError(f"{self.display_name} cannot have more than 10 images registered.")
             return await self._image_reader_context.add_images(image_urls, check_if_valid)
-        raise exceptions.DGException(unknown_internal_context)
+        raise exceptions.ModelError(unknown_internal_context)
     
     @check_can_read
     async def ask_image(self, query: str) -> AIQueryResponse:
@@ -763,7 +601,23 @@ class GoogleAI(AIModel):
     can_read_images = False
     enabled = is_enabled()
     
-    def 
+    def __init__(self, member: discord.Member) -> None:
+        super().__init__(member)
+        self._ai_model_obj: google_ai.GenerativeModel | None = None
+        self._chat: google_ai.ChatSession | None = None
+        
+    async def start_chat(self) -> None:
+        await super().start_chat()
+        self._ai_model_obj = google_ai.GenerativeModel(self.model)
+        self._chat = self._ai_model_obj.start_chat(history=[])
+        
+    @check_can_talk
+    async def ask_model(self, query: str) -> AIQueryResponse:
+        if isinstance(self._ai_model_obj, google_ai.GenerativeModel) == True and isinstance(self._chat, google_ai.ChatSession):
+            query = await self._chat.send_message_async(query)
+            
+        raise exceptions.ModelError(unknown_internal_context)
+    
 registered_models: Dict[str, typing.Type[AIModel]] = {
     "gpt-4": GPT4,
     "gpt-4v": GPT4Vision,
