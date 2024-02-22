@@ -51,7 +51,7 @@ class General(_Cog):
         embed = self.client.get_embed("AI Models")
         model_values = models.registered_models.values()
 
-        [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description} Stream Text? {model.can_stream} | Art Generation? {model.can_generate_images} | Read Images? {model.can_read_images}"), inline=False) for model in model_values]
+        [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description}\nEnabled? {model.enabled}\nStream Text? {model.can_stream}\nArt Generation? {model.can_generate_images}\nRead Images? {model.can_read_images}"), inline=False) for model in model_values]
         await interaction.response.send_message(embed=embed)
     
     @discord.app_commands.command(name="server", description="Lists general information about the server and the servers settings.")

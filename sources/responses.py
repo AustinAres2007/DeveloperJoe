@@ -3,7 +3,11 @@ import time
 from typing import Any
 import json
 
-class AIResponse(ABC):
+# XXX: Listen to type checker
+
+"""Base Query Responses"""
+
+class BaseAIResponse(ABC):
     """Generic base class for an AI response"""
     
     def __init__(self, data: str | dict[Any, Any]={}) -> None:
@@ -25,48 +29,59 @@ class AIResponse(ABC):
     def raw(self, new_data: dict) -> None:
         self._data = self._to_dict(new_data)
     
+    @property
     def is_empty(self) -> bool:
         return self.raw == {}
     
+    @property
     def timestamp(self) -> int:
         return int(time.time())
 
-class BaseAIQueryResponse(AIResponse, ABC):
+class BaseAIQueryResponse(BaseAIResponse, ABC):
     
+    @property
     @abstractmethod
     def response(self) -> str:
         pass
 
-class BaseAIImageResponse(AIResponse, ABC):
+class BaseAIImageResponse(BaseAIResponse, ABC):
     
+    @property
     @abstractmethod
     def image_url(self) -> str:
         pass
 
-class BaseAIErrorResponse(AIResponse, ABC):
+class BaseAIErrorResponse(BaseAIResponse, ABC):
     
+    @property
     @abstractmethod
     def error_message(self) -> str:
         pass
     
+    @property
     @abstractmethod
     def error_code(self) -> int:
         pass
     
+    @property
     @abstractmethod
     def gateway_code(self) -> int:
         pass
     
+    @property
     @abstractmethod
     def other_data(self) -> Any | None:
         pass
 
-class BaseAIQueryResponseChunk(AIResponse, ABC):
+class BaseAIQueryResponseChunk(BaseAIResponse, ABC):
     
+    @property
     @abstractmethod
     def response(self) -> str:
         pass
-    
+
+"""OpenAI Response Classes"""
+
 class OpenAIQueryResponse(BaseAIQueryResponse):
     
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
@@ -157,7 +172,18 @@ class OpenAIQueryResponseChunk(BaseAIQueryResponseChunk):
     def finish_reason(self) -> str:
         return self.raw["choices"][0]["finish_reason"]
 
-class AIEmptyResponseChunk(AIResponse):
+type OpenAIResponse = OpenAIErrorResponse | OpenAIImageResponse | OpenAIQueryResponse | OpenAIQueryResponseChunk
+
+"""Google AI Response Classes"""
+
+class GoogleAIQueryResponse(BaseAIResponse):
+    ...
+
+type GoogleAIResponse = GoogleAIQueryResponse
+
+"""Other Response Classes"""
+
+class AIEmptyResponseChunk(BaseAIResponse):
     
     @property
     def response(self) -> str:
@@ -169,13 +195,11 @@ class AIEmptyResponseChunk(AIResponse):
     def __len__(self):
         return 0
 
-class GoogleAIQueryResponse(AIResponse):
-    ...
+type EmptyResponse = AIEmptyResponseChunk
 
-Response = AIResponse
+"""Response factories"""
 
-# XXX: Listen to type checker
-def _gpt_response_factory(data: str | dict[Any, Any] = {}) -> Response:
+def _gpt_response_factory(data: str | dict[Any, Any] = {}) -> OpenAIResponse | EmptyResponse:
     actual_data: dict = data if isinstance(data, dict) else json.loads(data)
     
     if actual_data.get("error", False): # If the response is an error
@@ -190,7 +214,7 @@ def _gpt_response_factory(data: str | dict[Any, Any] = {}) -> Response:
     elif actual_data.get("id", False): # If the response is a query
         return OpenAIQueryResponse(data)
     else:
-        return AIResponse(data)
+        raise ValueError("Incorrect GPT response data.")
 
-def _google_response_factory(data: str | dict[Any, Any]) -> Response:
+def _google_response_factory(data: str | dict[Any, Any]) -> GoogleAIResponse | EmptyResponse:
     ...

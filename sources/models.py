@@ -190,7 +190,7 @@ class GPTReaderContext(ReaderContext):
         
         return _temp_context
     
-def _handle_error(response: responses.OpenAIErrorResponse) -> None:
+def _handle_error(response: responses.BaseAIErrorResponse) -> None:
     raise exceptions.DGException(response.error_message, response.error_code)
     
 async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, **kwargs) -> responses.OpenAIQueryResponse:
@@ -204,7 +204,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
             _reply = await async_openai_client.chat.completions.create(model=model, messages=temp_context, **kwargs)
             response = responses._gpt_response_factory(_reply.model_dump_json())
             
-            if isinstance(response, responses.OpenAIErrorResponse):
+            if isinstance(response, responses.BaseAIErrorResponse):
                 _handle_error(response)
             elif isinstance(response, responses.OpenAIQueryResponse):
                 if isinstance(context, GPTConversationContext):
@@ -624,7 +624,8 @@ class GoogleAI(AIModel):
     @check_can_talk
     async def ask_model(self, query: str) -> responses.GoogleAIQueryResponse: # Note: GoogleAIResponse classes not finished.
         if isinstance(self._ai_model_obj, google_ai.GenerativeModel) == True and isinstance(self._chat, google_ai.ChatSession):
-            query = await self._chat.send_message_async(query)
+            query_response = await self._chat.send_message_async(query)
+            print(query_response._result) # NOTE: Cannot continue because I am based in the UK. I cannot get an API key due to European laws.
             
         raise exceptions.ModelError(unknown_internal_context)
     

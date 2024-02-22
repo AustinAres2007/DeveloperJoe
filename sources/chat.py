@@ -7,6 +7,7 @@ import logging
 import aiohttp
 
 from typing import (
+    Generator,
     Type,
     Union as _Union, 
     Any as _Any, 
@@ -161,10 +162,10 @@ class DGChat:
     async def ask_stream(self, query: str, channel: developerconfig.InteractableChannel) -> _AsyncGenerator:
         raise NotImplementedError
     
-    async def generate_image(self, prompt: str, resolution: str="512x512") -> models.AIImageResponse:
+    async def generate_image(self, prompt: str, resolution: str="512x512") -> responses.BaseAIImageResponse:
         raise NotImplementedError
 
-    async def read_image(self, query: str) -> models.AIQueryResponse:
+    async def read_image(self, query: str) -> responses.BaseAIQueryResponse:
         raise NotImplementedError
     
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
@@ -258,19 +259,21 @@ class DGTextChat(DGChat):
         og_message = await private_channel.send(developerconfig.STREAM_PLACEHOLDER)
         self.is_processing = True
         
-        async def _stream_reply():
+        async def _stream_reply() -> _AsyncGenerator[str, _Any]:
             try:
-                ai_reply: _AsyncGenerator[models.AIQueryResponseChunk | models.AIErrorResponse, None] = await self.model.ask_model_stream(query)
+                ai_reply: _AsyncGenerator[responses.BaseAIQueryResponseChunk | responses.BaseAIErrorResponse | responses.AIEmptyResponseChunk, None] = await self.model.ask_model_stream(query)
                 async for chunk in ai_reply:
-                    if isinstance(chunk, models.AIQueryResponseChunk):
+                    if isinstance(chunk, responses.BaseAIQueryResponseChunk):
                         yield chunk.response
                     
-                    elif isinstance(chunk, models.AIErrorResponse):
+                    elif isinstance(chunk, responses.BaseAIErrorResponse):
                         models._handle_error(chunk)
                     
+                    else:
+                        yield ""
                     # TODO: Must sort out stop_reason (If is ResponseChunk)
                     
-            except discord.Forbidden as e: # XXX: old exception was GPTReachedLimit. Must conform to new model systems. New exception (Forbidden) is temp
+            except discord.Forbidden as e: 
                 self.is_active = False
                 raise e
             except AttributeError:
@@ -316,7 +319,7 @@ class DGTextChat(DGChat):
             return message
     
     @decorators.check_enabled
-    async def generate_image(self, prompt: str, resolution: str = "512x512") -> models.AIImageResponse:
+    async def generate_image(self, prompt: str, resolution: str = "512x512") -> responses.BaseAIImageResponse:
         try:
             image = await self.model.generate_image(prompt)
             self.context.add_image_entry(prompt, str(image.image_url))
@@ -336,7 +339,7 @@ class DGTextChat(DGChat):
             
             try:
 
-                response: models.AIQueryResponse = await self.model.ask_model(query)    
+                response: responses.BaseAIQueryResponse = await self.model.ask_model(query)    
                 self.is_processing = False
 
                 return response
@@ -355,11 +358,11 @@ class DGTextChat(DGChat):
             
         return final_user_reply
     
-    async def read_image(self, query: str) -> models.AIQueryResponse:
+    async def read_image(self, query: str) -> responses.BaseAIQueryResponse:
         if self.model.can_read_images == False or self.model._image_reader_context == None:
             raise exceptions.ModelError(f"{self.model} does not support image reading.")
         
-        image_query_reply: models.AIQueryResponse = await self.model.ask_image(query)
+        image_query_reply: responses.BaseAIQueryResponse = await self.model.ask_image(query)
         self.context.add_reader_entry(query, self.model._image_reader_context.image_urls, image_query_reply.response)
         return image_query_reply
     
@@ -610,7 +613,7 @@ class DGVoiceChat(DGTextChat):
 
         return text
 
-    async def read_image(self, query: str) -> models.AIQueryResponse:
+    async def read_image(self, query: str) -> responses.BaseAIQueryResponse:
         image_query = await super().read_image(query)
         await self.speak(image_query.response)
         return image_query
