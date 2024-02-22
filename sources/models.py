@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import logging
 import json, openai, discord, typing, requests
 import httpx
@@ -189,10 +190,10 @@ class GPTReaderContext(ReaderContext):
         
         return _temp_context
     
-def _handle_error(response: AIErrorResponse) -> None:
+def _handle_error(response: responses.OpenAIErrorResponse) -> None:
     raise exceptions.DGException(response.error_message, response.error_code)
     
-async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, **kwargs) -> AIQueryResponse:
+async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, **kwargs) -> responses.OpenAIQueryResponse:
     temp_context: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
     
     if not isinstance(context, GPTConversationContext | None):
@@ -201,11 +202,11 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
     try:
         async with openai.AsyncOpenAI(api_key=api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
             _reply = await async_openai_client.chat.completions.create(model=model, messages=temp_context, **kwargs)
-            response = _response_factory(_reply.model_dump_json())
+            response = responses._gpt_response_factory(_reply.model_dump_json())
             
-            if isinstance(response, AIErrorResponse):
+            if isinstance(response, responses.OpenAIErrorResponse):
                 _handle_error(response)
-            elif isinstance(response, AIQueryResponse):
+            elif isinstance(response, responses.OpenAIQueryResponse):
                 if isinstance(context, GPTConversationContext):
                     context.add_conversation_entry(query, str(response.response))
                     
@@ -221,7 +222,7 @@ async def _gpt_ask_stream_base(
     context: GPTConversationContext | None, 
     model: str, 
     api_key: str, 
-    **kwargs) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    **kwargs) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
     
     """Streams a response from the AI. This is not meant to be used directly.
 
@@ -258,9 +259,9 @@ async def _gpt_ask_stream_base(
                 readable_chunks = filter(_is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
                 
                 for chunk_text in readable_chunks:
-                    chunk = _response_factory(chunk_text)
+                    chunk = responses._gpt_response_factory(chunk_text)
 
-                    if isinstance(chunk, AIQueryResponseChunk | AIErrorResponse):
+                    if isinstance(chunk, responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse):
                         yield chunk
                     else:
                         raise TypeError(
@@ -269,14 +270,14 @@ async def _gpt_ask_stream_base(
     except openai.AuthenticationError:
         raise exceptions.DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
 
-async def _gpt_image_base(prompt: str, image_engine: types.ImageEngine, api_key: str) -> AIImageResponse:
+async def _gpt_image_base(prompt: str, image_engine: types.ImageEngine, api_key: str) -> responses.OpenAIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
         _image_reply = await async_openai_client.images.generate(prompt=prompt, model=image_engine)
-        response = _response_factory(_image_reply.model_dump_json())
+        response = responses._gpt_response_factory(_image_reply.model_dump_json())
         
-        if isinstance(response, AIErrorResponse):
+        if isinstance(response, responses.OpenAIErrorResponse):
             _handle_error(response)
-        elif isinstance(response, AIImageResponse):
+        elif isinstance(response, responses.OpenAIImageResponse):
             return response
     
     raise TypeError("Expected AIImageResponse or AIErrorResponse, got {}".format(type(response)))
@@ -384,21 +385,27 @@ class AIModel:
     async def start_chat(self) -> None:
         pass
     
-    async def ask_model(self, query: str) -> AIQueryResponse:
+    @abstractmethod
+    async def ask_model(self, query: str) -> responses.BaseAIQueryResponse:
         raise exceptions.ModelError(f"{self.display_name} does not support text generation.")
     
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
-        raise exceptions.ModelError(f"{self.display_name} does not support streaming text.")
+    @abstractmethod
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.BaseAIQueryResponseChunk | responses.BaseAIErrorResponse | responses.AIEmptyResponseChunk, None]:
+        pass
     
-    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
-        raise exceptions.ModelError(f"{self.display_name} does not support image generation.")
+    @abstractmethod
+    async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.BaseAIImageResponse:
+        pass
     
-    async def ask_image(self, query: str) -> AIQueryResponse:
-        raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
+    @abstractmethod
+    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse:
+        pass
     
+    @abstractmethod
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
-        raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
+        pass
     
+    @abstractmethod
     async def end(self) -> None:
         pass
         
@@ -410,7 +417,7 @@ class AIModel:
 
 # GPT AI Code
     
-class GPTModel(AIModel):
+class GPTModel(AIModel, ABC):
     
     @staticmethod
     def is_enabled() -> bool:
@@ -431,14 +438,17 @@ class GPTModel(AIModel):
     async def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
     
-    async def ask_model(self, query: str) -> AIQueryResponse:
-        raise NotImplemented("Use a subclass of GPTModel.")
+    @abstractmethod
+    async def ask_model(self, query: str) -> responses.BaseAIQueryResponse:
+        pass
     
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
-        raise NotImplemented("Use a subclass of GPTModel.")
+    @abstractmethod
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
+        pass
     
-    async def generate_image(self, image_prompt: str, *args, **kwargs) -> AIImageResponse:
-        raise NotImplemented("Use a subclass of GPTModel.")
+    @abstractmethod
+    async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.OpenAIImageResponse:
+        pass
     
 class GPT3Turbo(GPTModel):
     
@@ -453,19 +463,19 @@ class GPT3Turbo(GPTModel):
     enabled = GPTModel.is_enabled()
     
     @check_can_talk
-    async def ask_model(self, query: str) -> AIQueryResponse:
+    async def ask_model(self, query: str) -> responses.OpenAIQueryResponse:
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
     @check_can_stream
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
     @check_can_generate_images
-    async def generate_image(self, image_prompt: str) -> AIImageResponse:
+    async def generate_image(self, image_prompt: str) -> responses.OpenAIImageResponse:
         if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
@@ -486,19 +496,19 @@ class GPT4(GPTModel):
     # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
     
     @check_can_talk
-    async def ask_model(self, query: str) -> AIQueryResponse:
+    async def ask_model(self, query: str) -> responses.OpenAIQueryResponse:
         if self._check_user_permissions():
             return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
     @check_can_stream
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[AIQueryResponseChunk | AIErrorResponse | AIEmptyResponseChunk, None]:
+    async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
             return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
     @check_can_generate_images
-    async def generate_image(self, image_prompt: str) -> AIImageResponse:
+    async def generate_image(self, image_prompt: str) -> responses.OpenAIImageResponse:
         if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
@@ -531,7 +541,7 @@ class GPT4Vision(GPT4):
         await super().start_chat()
         self._image_reader_context = GPTReaderContext()
     
-    async def _gpt4_read_image_base(self, query: str, _api_key: str) -> AIQueryResponse:
+    async def _gpt4_read_image_base(self, query: str, _api_key: str) -> responses.OpenAIQueryResponse:
 
         if not self._image_reader_context:
             raise exceptions.DGException(unknown_internal_context)
@@ -548,11 +558,11 @@ class GPT4Vision(GPT4):
             async with openai.AsyncOpenAI(api_key=_api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
                 logger.debug(f"Image read raw request: {reader_context}")
                 _reply = await async_openai_client.chat.completions.create(model="gpt-4-vision-preview", messages=reader_context, max_tokens=4096)
-                response = _response_factory(_reply.model_dump_json())
+                response = responses._gpt_response_factory(_reply.model_dump_json())
                 
-                if isinstance(response, AIErrorResponse):
+                if isinstance(response, responses.OpenAIErrorResponse):
                     _handle_error(response)
-                elif isinstance(response, AIQueryResponse):
+                elif isinstance(response, responses.OpenAIQueryResponse):
                     if isinstance(self._image_reader_context, GPTReaderContext):
                         self._image_reader_context.add_reader_context(query, str(response.response)) # Note to self; this updates INTERNAL CONTEXT.. Not Readable
                     return response
@@ -577,7 +587,7 @@ class GPT4Vision(GPT4):
         raise exceptions.ModelError(unknown_internal_context)
     
     @check_can_read
-    async def ask_image(self, query: str) -> AIQueryResponse:
+    async def ask_image(self, query: str) -> responses.OpenAIQueryResponse:
         if self._check_user_permissions() and self._image_reader_context:
             if isinstance(query, str):
                 return await self._gpt4_read_image_base(query, confighandler.get_api_key("openai_api_key"))    
@@ -612,7 +622,7 @@ class GoogleAI(AIModel):
         self._chat = self._ai_model_obj.start_chat(history=[])
         
     @check_can_talk
-    async def ask_model(self, query: str) -> AIQueryResponse:
+    async def ask_model(self, query: str) -> responses.GoogleAIQueryResponse: # Note: GoogleAIResponse classes not finished.
         if isinstance(self._ai_model_obj, google_ai.GenerativeModel) == True and isinstance(self._chat, google_ai.ChatSession):
             query = await self._chat.send_message_async(query)
             

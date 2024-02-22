@@ -61,6 +61,12 @@ class BaseAIErrorResponse(AIResponse, ABC):
     def other_data(self) -> Any | None:
         pass
 
+class BaseAIQueryResponseChunk(AIResponse, ABC):
+    
+    @abstractmethod
+    def response(self) -> str:
+        pass
+    
 class OpenAIQueryResponse(BaseAIQueryResponse):
     
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
@@ -131,7 +137,7 @@ class OpenAIImageResponse(BaseAIImageResponse):
     def image_url(self) -> str | None:
         return self.raw["data"][0]["url"]
 
-class AIQueryResponseChunk(AIResponse):
+class OpenAIQueryResponseChunk(BaseAIQueryResponseChunk):
     
     def __init__(self, data: str | dict[Any, Any] = {}) -> None:
         super().__init__(data)
@@ -178,7 +184,7 @@ def _gpt_response_factory(data: str | dict[Any, Any] = {}) -> Response:
         return OpenAIImageResponse(data)
     elif actual_data.get("object", False) == "chat.completion.chunk":
         if actual_data["choices"][0]["delta"] != {}:
-            return AIQueryResponseChunk(data)
+            return OpenAIQueryResponseChunk(data)
         return AIEmptyResponseChunk(data)
     
     elif actual_data.get("id", False): # If the response is a query
