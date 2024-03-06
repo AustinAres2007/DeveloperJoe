@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 import logging
 import json, openai, discord, typing, requests
@@ -35,9 +37,6 @@ __all__ = [
 missing_perms = errors.ModelErrors.MODEL_LOCKED
 unknown_internal_context = "Undefined internal image context. Was `start_chat` called?"
 logger = logging.getLogger(__name__)
-
-if google_key := confighandler.has_api_key("google_api_key"):
-    google_ai.configure(api_key=confighandler.get_api_key("google_api_key"))
     
 # Contexts
 
@@ -325,7 +324,7 @@ def check_can_read(func: Callable[..., Awaitable[Any]]):
         raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
     return _inner
 
-class AIModel:
+class AIModel(ABC):
     """Generic base class for all AIModels and blueprints for how they should be defined. Use a subclass of this."""
     
     @staticmethod
@@ -373,35 +372,38 @@ class AIModel:
     def context(self) -> ReadableContext:
         return self._context
     
+    @abstractmethod
+    def fetch_raw(self) -> dict:
+        # Returns raw chat context
+        pass
+    
+    @abstractmethod
     async def clear_context(self) -> None:
         pass
     
+    @abstractmethod
     async def clear_chat_context(self) -> None:
         pass
     
+    @abstractmethod
     async def clear_image_context(self) -> None:
         pass
     
     async def start_chat(self) -> None:
         pass
     
-    @abstractmethod
     async def ask_model(self, query: str) -> responses.BaseAIQueryResponse:
         raise exceptions.ModelError(f"{self.display_name} does not support text generation.")
     
-    @abstractmethod
     async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.BaseAIQueryResponseChunk | responses.BaseAIErrorResponse | responses.AIEmptyResponseChunk, None]:
         pass
     
-    @abstractmethod
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.BaseAIImageResponse:
         pass
     
-    @abstractmethod
-    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse:
+    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse: # TODO regarding type errors: Make AIModelABC class?
         pass
     
-    @abstractmethod
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
         pass
     
@@ -417,7 +419,7 @@ class AIModel:
 
 # GPT AI Code
     
-class GPTModel(AIModel, ABC):
+class GPTModel(AIModel):
     
     @staticmethod
     def is_enabled() -> bool:
@@ -435,6 +437,9 @@ class GPTModel(AIModel, ABC):
             self._gpt_context.clear() # type: ignore shutup, that is what the check is for.
             self.context.clear()
 
+    def fetch_raw(self) -> Any:
+        return json.dumps(self._gpt_context._context, indent=3) if self._gpt_context else {}
+    
     async def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
     
@@ -448,6 +453,15 @@ class GPTModel(AIModel, ABC):
     
     @abstractmethod
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.OpenAIImageResponse:
+        pass
+    
+    async def end(self) -> None:
+        pass
+    
+    async def clear_chat_context(self) -> None:
+        pass
+    
+    async def clear_image_context(self) -> None:
         pass
     
 class GPT3Turbo(GPTModel):
@@ -599,7 +613,7 @@ class GoogleAI(AIModel):
     
     @staticmethod
     def is_enabled() -> bool:
-        return google_key
+        return False
     
     model = "gemini-pro"
     description = "Google Bard"
