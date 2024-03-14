@@ -67,8 +67,9 @@ class Listeners(commands.Cog):
                             try:
                                 reply = await ai_model.generate_image(text_content)
                                 return await message.channel.send(f'"{text_content}"\n\n{reply.image_url}') 
-                            except openai.BadRequestError:
-                                return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
+                            except openai.BadRequestError as e:
+                                print(e)
+                                return await message.channel.send(errors.AIErrors.AI_REQUEST_ERROR)
                         elif command == "analyse":
                             try:
                                 attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
