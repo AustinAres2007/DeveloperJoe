@@ -324,8 +324,7 @@ class DGTextChat(DGChat):
             image = await self.model.generate_image(prompt)
             self.context.add_image_entry(prompt, str(image.image_url))
             return image
-        except _openai.BadRequestError as e:
-            print(e)
+        except _openai.BadRequestError:
             raise exceptions.DGException(errors.AIErrors.AI_REQUEST_ERROR)
         
     @decorators.check_enabled

@@ -401,7 +401,7 @@ class AIModel(ABC):
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.BaseAIImageResponse:
         pass
     
-    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse: # TODO regarding type errors: Make AIModelABC class?git
+    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse: # TODO regarding type errors: Make AIModelABC class?
         pass
     
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
@@ -512,7 +512,7 @@ class GPT4(GPTModel):
 class GPT4Vision(GPT4):
     
     model = "gpt-4"
-    description = "GPT 4 Turbo Engine with added image reading support. Good for describing photos and translating latin-derived languages. Do keep note that this AI model is in preview, and may have usage limits."
+    description = "GPT 4 Engine with added image reading support. Good for describing photos and translating latin-derived languages. Do keep note that this AI model is in preview, and may have usage limits."
     display_name = "GPT 4 with Vision (Preview)"
     
     can_talk = True
@@ -591,17 +591,6 @@ class GPT4Vision(GPT4):
             
         raise exceptions.DGException(missing_perms)
 
-class GPT4Turbo(GPT4):
-    model = "gpt-4-turbo-preview"
-    description = "Better than GPT 4. Costs a lot more money. For normal use, use GPT-3."
-    display_name = "GPT 4 Turbo (Preview)"
-    
-    can_talk = True
-    can_stream = True
-    can_generate_images = True
-    can_read_images = False
-    enabled = GPTModel.is_enabled()
-    
 class GoogleAI(AIModel):
     
     @staticmethod
@@ -610,7 +599,7 @@ class GoogleAI(AIModel):
     
     model = "gemini-pro"
     description = "Google Bard"
-    display_name = "Google Bard / Gemini (Non-functional)"
+    display_name = "Google PaLM"
 
     can_talk = True
     can_stream = False
@@ -638,7 +627,6 @@ class GoogleAI(AIModel):
     
 registered_models: Dict[str, typing.Type[AIModel]] = {
     "gpt-4": GPT4,
-    "gpt-4-turbo": GPT4Turbo,
     "gpt-4v": GPT4Vision,
     "gpt-3.5-turbo": GPT3Turbo,
     "google-wip": GoogleAI
@@ -646,7 +634,6 @@ registered_models: Dict[str, typing.Type[AIModel]] = {
 MODEL_CHOICES: list[Choice] = [
     Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     Choice(name="GPT 4", value="gpt-4"),
-    Choice(name="GPT 4 Turbo (Preview)", value="gpt-4-turbo"),
-    Choice(name="GPT 4 with Vision (Preview)", value="gpt-4v"),
-    Choice(name="Google Bard / Gemini (Non-functional)", value="google-wip")
+    Choice(name="GPT 4 with Vision", value="gpt-4v"),
+    Choice(name="Google Bard / Gemini", value="google-wip")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
