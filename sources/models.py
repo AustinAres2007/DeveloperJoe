@@ -345,7 +345,7 @@ class AIModel(ABC):
         await self.start_chat()
         return self
     
-    async def __aexit__(self, blah, _blah, __blah) -> None:
+    async def __aexit__(self, blah, blah1, blah2) -> None:
         await self.end()
     
     def _check_user_permissions(self):
@@ -372,47 +372,42 @@ class AIModel(ABC):
     def context(self) -> ReadableContext:
         return self._context
     
-    @abstractmethod
     def fetch_raw(self) -> dict:
         # Returns raw chat context
-        pass
+        raise NotImplementedError
     
-    @abstractmethod
     async def clear_context(self) -> None:
-        pass
+        raise NotImplementedError
     
-    @abstractmethod
     async def clear_chat_context(self) -> None:
-        pass
+        raise NotImplementedError
     
-    @abstractmethod
     async def clear_image_context(self) -> None:
-        pass
+        raise NotImplementedError
     
     async def start_chat(self) -> None:
-        pass
+        raise NotImplementedError
     
     async def ask_model(self, query: str) -> responses.BaseAIQueryResponse:
-        raise exceptions.ModelError(f"{self.display_name} does not support text generation.")
+        raise NotImplementedError
     
     async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.BaseAIQueryResponseChunk | responses.BaseAIErrorResponse | responses.AIEmptyResponseChunk, None]:
-        pass
+        raise NotImplementedError
     
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.BaseAIImageResponse:
-        pass
+        raise NotImplementedError
     
     async def ask_image(self, query: str) -> responses.BaseAIQueryResponse: # TODO regarding type errors: Make AIModelABC class?
-        pass
+        raise NotImplementedError
     
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
-        pass
+        raise NotImplementedError
     
-    @abstractmethod
     async def end(self) -> None:
-        pass
+        raise NotImplementedError
         
     def __repr__(self):
-        return f"<{self.__name__} display_name={self.display_name}, model={self.model}>"
+        return f"<{self.__class__.__name__} display_name={self.display_name}, model={self.model}>"
     
     def __str__(self) -> str:
         return self.display_name
@@ -442,27 +437,6 @@ class GPTModel(AIModel):
     
     async def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
-    
-    @abstractmethod
-    async def ask_model(self, query: str) -> responses.BaseAIQueryResponse:
-        pass
-    
-    @abstractmethod
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
-        pass
-    
-    @abstractmethod
-    async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.OpenAIImageResponse:
-        pass
-    
-    async def end(self) -> None:
-        pass
-    
-    async def clear_chat_context(self) -> None:
-        pass
-    
-    async def clear_image_context(self) -> None:
-        pass
     
 class GPT3Turbo(GPTModel):
     
@@ -494,7 +468,7 @@ class GPT3Turbo(GPTModel):
             return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
     
-class GPT4(GPTModel):
+class GPT4(GPT3Turbo):
     
     model = "gpt-4"
     description = "Slightly better at everything that GPT-3 does, costs more. For normal use, use GPT-3."
@@ -509,6 +483,12 @@ class GPT4(GPTModel):
     # XXX: Bot cannot see image after it is sent. Perhaps keep the image URL in local memory and send it everytime so it can be refered too?
     # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
 
+class GPT4Turbo(GPT4):
+    
+    model = "gpt-4-turbo-preview"
+    description = "Best version of GPT currently. Very expensive. Again, stick to GPT 3.5 Turbo for most queries."
+    display_name = "GPT 4 Turbo (Preview)"
+    
 class GPT4Vision(GPT4):
     
     model = "gpt-4"
@@ -627,6 +607,7 @@ class GoogleAI(AIModel):
     
 registered_models: Dict[str, typing.Type[AIModel]] = {
     "gpt-4": GPT4,
+    "gpt-4-turbo": GPT4Turbo,
     "gpt-4v": GPT4Vision,
     "gpt-3.5-turbo": GPT3Turbo,
     "google-wip": GoogleAI
@@ -634,6 +615,7 @@ registered_models: Dict[str, typing.Type[AIModel]] = {
 MODEL_CHOICES: list[Choice] = [
     Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
     Choice(name="GPT 4", value="gpt-4"),
+    Choice(name="GPT 4 Turbo (Preview)", value="gpt-4-turbo"),
     Choice(name="GPT 4 with Vision", value="gpt-4v"),
     Choice(name="Google Bard / Gemini", value="google-wip")
 ] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.
