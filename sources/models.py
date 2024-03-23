@@ -508,24 +508,6 @@ class GPT4(GPTModel):
     
     # XXX: Bot cannot see image after it is sent. Perhaps keep the image URL in local memory and send it everytime so it can be refered too?
     # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
-    
-    @check_can_talk
-    async def ask_model(self, query: str) -> responses.OpenAIQueryResponse:
-        if self._check_user_permissions():
-            return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
-        raise exceptions.DGException(missing_perms)
-    
-    @check_can_stream
-    async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
-        if self._check_user_permissions():
-            return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
-        raise exceptions.DGException(missing_perms)
-    
-    @check_can_generate_images
-    async def generate_image(self, image_prompt: str) -> responses.OpenAIImageResponse:
-        if self._check_user_permissions():
-            return await _gpt_image_base(image_prompt, "dall-e-3", confighandler.get_api_key("openai_api_key"))
-        raise exceptions.DGException(missing_perms)
 
 class GPT4Vision(GPT4):
     
