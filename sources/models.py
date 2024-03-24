@@ -1,16 +1,16 @@
 from __future__ import annotations
-
-from abc import ABC, abstractmethod
 import logging
 import json, openai, discord, typing, requests
 import httpx
 
+from abc import ABC
 from typing import (
     Any,
     AsyncGenerator,
     Awaitable,
     Callable,
     Dict,
+    Type,
 )
 from .common import (
     developerconfig,
@@ -37,7 +37,10 @@ __all__ = [
 missing_perms = errors.ModelErrors.MODEL_LOCKED
 unknown_internal_context = "Undefined internal image context. Was `start_chat` called?"
 logger = logging.getLogger(__name__)
-    
+
+registered_models: Dict[str, typing.Type[AIModel]] = {}
+MODEL_CHOICES: list[Choice] = []
+
 # Contexts
 
 class ReadableContext:
@@ -82,6 +85,9 @@ class ReaderContext:
         
     def __len__(self):
         return len(self.image_urls)
+    
+    def __bool__(self):
+        return True
     
     @property
     def image_urls(self) -> list[str]:
@@ -324,6 +330,14 @@ def check_can_read(func: Callable[..., Awaitable[Any]]):
         raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
     return _inner
 
+def register_model(cls: Type[AIModel]) -> Any:
+    try:
+        registered_models[cls.model] = cls
+        MODEL_CHOICES.append(Choice(name=cls.display_name, value=cls.model))
+    except AttributeError:
+        raise exceptions.ModelError(f"Incorrectly configured model setup ({cls}) must atleast have cls.display_name and cls.model.")
+    return cls
+
 class AIModel(ABC):
     """Generic base class for all AIModels and blueprints for how they should be defined. Use a subclass of this."""
     
@@ -358,7 +372,8 @@ class AIModel(ABC):
         
         if not self._check_user_permissions():
             raise exceptions.ModelError(missing_perms)
-    
+
+        
     def is_init(self):
         return isinstance(self._context, ReadableContext)
     
@@ -373,7 +388,6 @@ class AIModel(ABC):
         return self._context
     
     def fetch_raw(self) -> dict:
-        # Returns raw chat context
         raise NotImplementedError
     
     async def clear_context(self) -> None:
@@ -386,7 +400,7 @@ class AIModel(ABC):
         raise NotImplementedError
     
     async def start_chat(self) -> None:
-        raise NotImplementedError
+        pass
     
     async def ask_model(self, query: str) -> responses.BaseAIQueryResponse:
         raise NotImplementedError
@@ -397,14 +411,14 @@ class AIModel(ABC):
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.BaseAIImageResponse:
         raise NotImplementedError
     
-    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse: # TODO regarding type errors: Make AIModelABC class?
+    async def ask_image(self, query: str) -> responses.BaseAIQueryResponse:
         raise NotImplementedError
     
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
         raise NotImplementedError
     
     async def end(self) -> None:
-        raise NotImplementedError
+        pass
         
     def __repr__(self):
         return f"<{self.__class__.__name__} display_name={self.display_name}, model={self.model}>"
@@ -437,7 +451,8 @@ class GPTModel(AIModel):
     
     async def start_chat(self) -> None:
         self._gpt_context = GPTConversationContext()
-    
+
+@register_model
 class GPT3Turbo(GPTModel):
     
     model: types.AIModels = "gpt-3.5-turbo-16k"
@@ -467,7 +482,8 @@ class GPT3Turbo(GPTModel):
         if self._check_user_permissions():
             return await _gpt_image_base(image_prompt, "dall-e-2", confighandler.get_api_key("openai_api_key"))
         raise exceptions.DGException(missing_perms)
-    
+
+@register_model
 class GPT4(GPT3Turbo):
     
     model = "gpt-4"
@@ -483,15 +499,17 @@ class GPT4(GPT3Turbo):
     # XXX: Bot cannot see image after it is sent. Perhaps keep the image URL in local memory and send it everytime so it can be refered too?
     # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
 
+@register_model
 class GPT4Turbo(GPT4):
     
     model = "gpt-4-turbo-preview"
     description = "Best version of GPT currently. Very expensive. Again, stick to GPT 3.5 Turbo for most queries."
     display_name = "GPT 4 Turbo (Preview)"
-    
+
+@register_model
 class GPT4Vision(GPT4):
     
-    model = "gpt-4"
+    model = "gpt-4-vision"
     description = "GPT 4 Engine with added image reading support. Good for describing photos and translating latin-derived languages. Do keep note that this AI model is in preview, and may have usage limits."
     display_name = "GPT 4 with Vision (Preview)"
     
@@ -564,12 +582,14 @@ class GPT4Vision(GPT4):
     
     @check_can_read
     async def ask_image(self, query: str) -> responses.OpenAIQueryResponse:
+        print("query_ak", bool(self._image_reader_context))
         if self._check_user_permissions() and self._image_reader_context:
             if isinstance(query, str):
                 return await self._gpt4_read_image_base(query, confighandler.get_api_key("openai_api_key"))    
             raise TypeError(f"`query` must be of type `str` not {query.__class__.__name__}")
-            
-        raise exceptions.DGException(missing_perms)
+        
+        else: 
+            raise exceptions.DGException(missing_perms)
 
 class GoogleAI(AIModel):
     
@@ -601,21 +621,6 @@ class GoogleAI(AIModel):
     async def ask_model(self, query: str) -> responses.GoogleAIQueryResponse: # Note: GoogleAIResponse classes not finished.
         if isinstance(self._ai_model_obj, google_ai.GenerativeModel) == True and isinstance(self._chat, google_ai.ChatSession):
             query_response = await self._chat.send_message_async(query)
-            print(query_response._result) # NOTE: Cannot continue because I am based in the UK. I cannot get an API key due to European laws.
+            print(query_response._result) # NOTE: Cannot continue because I am based in the UK. I cannot get an API key due unknown reason regarding Google. Fuck you Google.
             
         raise exceptions.ModelError(unknown_internal_context)
-    
-registered_models: Dict[str, typing.Type[AIModel]] = {
-    "gpt-4": GPT4,
-    "gpt-4-turbo": GPT4Turbo,
-    "gpt-4v": GPT4Vision,
-    "gpt-3.5-turbo": GPT3Turbo,
-    "google-wip": GoogleAI
-}
-MODEL_CHOICES: list[Choice] = [
-    Choice(name="GPT 3.5 - Turbo", value="gpt-3.5-turbo"),
-    Choice(name="GPT 4", value="gpt-4"),
-    Choice(name="GPT 4 Turbo (Preview)", value="gpt-4-turbo"),
-    Choice(name="GPT 4 with Vision", value="gpt-4v"),
-    Choice(name="Google Bard / Gemini", value="google-wip")
-] # What models of GPT are avalible to use, you can chose any that exist, but keep in mind that have to follow the return format of GPT 3 / 4. If not, the bot will crash immediately after a query is sent.

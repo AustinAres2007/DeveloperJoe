@@ -60,7 +60,7 @@ try:
         ttsmodels
     )
     
-    from sources.voice import pydub
+    from sources.voice import pydub # type: ignore
     
 except ImportError as err:
     print(f"Missing critical files. Please redownload DeveloperJoe and try again. (Actual Error: {err})")
@@ -308,6 +308,7 @@ class DeveloperJoe(commands.Bot):
         Returns:
             _type_: Any
         """
+        print(error)
         error = getattr(error, "original", error)
         async def send_to_debug_channel(**kwargs):
             if confighandler.get_config("bug_report_channel") == None:
@@ -480,8 +481,15 @@ class DeveloperJoe(commands.Bot):
                     Voice Enabled = {confighandler.get_config("allow_voice")}
                     Users Can Use Voice = {has_voice and confighandler.get_config("allow_voice")}
                     Status Scrolling = {confighandler.get_config("enable_status_scrolling")}
+                    Models = {len(models.registered_models)}
                     """)
 
+                    print("Models\n")
+                    for model in models.registered_models.values():
+                        print(model.display_name)
+                    else:
+                        print()
+                        
                     self.start_time = datetime.datetime.now(tz=self.__tz__)
                     await self.change_presence(activity=discord.Activity(type=confighandler.get_config("status_type"), name=confighandler.get_config("status_text")))
                     self.tree.on_error = self.handle_error # type: ignore It works fine. Get ignored

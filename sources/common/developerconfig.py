@@ -61,7 +61,7 @@ default_config_keys = {
     "status_scrolling_change_interval": 10,
     "enable_status_scrolling": False,
     "status_scrolling_options": {"/help and different peoples!": 2, "/help and documentries.": 3, "/help and math tournaments!": 5, "/help and monoply :(": 0},
-    "default_ai_model": "gpt-3.5-turbo",
+    "default_ai_model": "gpt-3.5-turbo-16k",
     "voice_speedup_multiplier": 1.3,
     "voice_volume": 1.0,
     "allow_voice": True,
