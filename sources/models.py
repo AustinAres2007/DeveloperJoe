@@ -495,9 +495,6 @@ class GPT4(GPT3Turbo):
     can_generate_images = True
     can_read_images = False
     enabled = GPTModel.is_enabled()
-    
-    # XXX: Bot cannot see image after it is sent. Perhaps keep the image URL in local memory and send it everytime so it can be refered too?
-    # XXX: If the image is overwritten, it will not be remembered and the bot can only be recall it via the text it has said regarding the old image.
 
 @register_model
 class GPT4Turbo(GPT4):
