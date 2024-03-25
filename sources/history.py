@@ -20,11 +20,11 @@ if typing.TYPE_CHECKING:
 class DGHistoryChat:
     
     def __init__(self, data: list):
-        self._id: str = data[0][0]
-        self._user: int = data[0][1]
-        self._name: str = data[0][2]
-        self._data: dict = json.loads(data[0][3])
-        self._private: bool = data[0][4]
+        self._id: str = data[0]
+        self._user: int = data[1]
+        self._name: str = data[2]
+        self._data: dict = json.loads(data[3])
+        self._private: bool = data[4]
         
     @property
     def history_id(self) -> str:
@@ -65,11 +65,24 @@ class DGHistorySession(database.DGDatabaseSession):
         """
         super().__init__()
     
-    def retrieve_chat_history(self, history_id: str) -> DGHistoryChat | None:
-        data = self._exec_db_command("SELECT * FROM history WHERE uid=?", (history_id,))
-        if data:
-            return DGHistoryChat(data)
+    def retrieve_chat_history(self, history_id: str | None=None, user_id: str | None=None) -> DGHistoryChat | None:
+        if history_id == None and user_id == None:
+            raise TypeError("At least either history_id or user_id must be a string, or stringlike.")
         
+        data = self._exec_db_command("SELECT * FROM history WHERE uid=? OR author_id=?", (str(history_id),str(user_id),))
+        if data:
+            return DGHistoryChat(data[0])
+    
+    def retrieve_user_histories(self, user_id: str) -> list[DGHistoryChat]:
+        if not isinstance(user_id, str):
+            raise TypeError("user_id must be a string or stringlike")
+        
+        data = self._exec_db_command("SELECT * FROM history WHERE author_id=?", (str(user_id),))
+        
+        if data:
+            return [DGHistoryChat(history_ent) for history_ent in data]
+        return []
+    
     def delete_chat_history(self, history_id: str) -> str:
         if self.retrieve_chat_history(history_id):
             self._exec_db_command("DELETE FROM history WHERE uid=?", (history_id,))
@@ -79,3 +92,4 @@ class DGHistorySession(database.DGDatabaseSession):
     def upload_chat_history(self, chat: chat.DGChat) -> list:
         json_dump = json.dumps(chat.context._display_context)
         return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.member.id, chat.name, json_dump, int(chat.private)))
+    

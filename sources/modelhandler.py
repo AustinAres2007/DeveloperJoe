@@ -235,9 +235,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
 def user_has_model_permissions(member: discord.Member, model: Type[models.AIModel]):
     if isinstance(member, discord.Member):
         with DGGuildDatabaseModelHandler(member.guild) as check_rules:
-            has_perm = bool(check_rules.user_has_model_permissions(member.roles[-1], model))
-            print(has_perm)
-            return has_perm
+            return bool(check_rules.user_has_model_permissions(member.roles[-1], model))
     else:
         raise TypeError("member must be discord.Member, not {}".format(member.__class__))
 

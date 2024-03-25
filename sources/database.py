@@ -330,4 +330,6 @@ def generate_config_key():
         "voice-volume": get_config("voice_volume"),
         "default-ai-model": get_config("default_ai_model")
     }
-    
+
+if __name__ == "__main__":
+    pass

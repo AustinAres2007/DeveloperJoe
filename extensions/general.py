@@ -5,7 +5,8 @@ from discord.ext.commands import Cog as _Cog
 
 from sources import (
     models,
-    confighandler
+    confighandler,
+    history
 )
 from sources.common import (
     commands_utils,
@@ -74,6 +75,6 @@ class General(_Cog):
         embed._fields = embed_fields
         
         await interaction.response.send_message(embed=embed)
-        
+            
 async def setup(client):
     await client.add_cog(General(client))
