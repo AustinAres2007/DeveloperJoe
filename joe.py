@@ -308,7 +308,6 @@ class DeveloperJoe(commands.Bot):
         Returns:
             _type_: Any
         """
-        print(error)
         error = getattr(error, "original", error)
         async def send_to_debug_channel(**kwargs):
             if confighandler.get_config("bug_report_channel") == None:

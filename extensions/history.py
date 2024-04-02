@@ -86,16 +86,14 @@ class History(commands.Cog):
         except ValueError:
             raise exceptions.HistoryError(errors.HistoryErrors.INVALID_HISTORY_ID)
     
-    @discord.app_commands.command(name="histories", description="beta")
+    @discord.app_commands.command(name="histories", description="Lists all histories a user has.")
     async def fetch_user_history(self, interaction: discord.Interaction):
-        try:
-            reply_string = ""
-            with history.DGHistorySession() as history_session:
-                histories = history_session.retrieve_user_histories(str(interaction.user.id))
-                reply_string = "No saved chats." if bool(histories) == False else '\n\n'.join([f"- {long_history.name}\nIs Private? {long_history.private}\nID: {long_history.history_id}\n\n" for long_history in histories])
-                await interaction.response.send_message(reply_string)
-        except Exception as e:
-            print(e)
-            
+        reply_string = ""
+        with history.DGHistorySession() as history_session:
+            commands_utils.true_to_yes
+            histories = history_session.retrieve_user_histories(str(interaction.user.id))
+            reply_string = "No saved chats." if bool(histories) == False else '\n\n'.join([commands_utils.true_to_yes(f"- {long_history.name}\nIs Private? **{bool(int(long_history.private))}**\nID: `{long_history.history_id}`") for long_history in histories])
+            await interaction.response.send_message(reply_string)
+        
 async def setup(client):
     await client.add_cog(History(client))

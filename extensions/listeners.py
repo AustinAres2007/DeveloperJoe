@@ -71,7 +71,6 @@ class Listeners(commands.Cog):
                                 return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
                         elif command == "analyse":
                             try:
-                                print("h")
                                 attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
 
                                 if attachment_urls == []:
@@ -97,8 +96,6 @@ class Listeners(commands.Cog):
             
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
-                print("workin", member, self.client.get_default_conversation(member), message.guild)
-                print(self.client.user, message.mentions, self.client.user.id, message.content)
                 
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if isinstance(channel := message.channel, discord.Thread):
@@ -130,11 +127,9 @@ class Listeners(commands.Cog):
                             raise exceptions.DGException(f"{confighandler.get_config('bot_name')} is still processing your last request.")
                         
                     elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
-                        print("lay2")
                         await respond_to_mention(member)
                         
                 elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
-                    print("lay1")
                     await respond_to_mention(member)
                     
         except (exceptions.DGException, exceptions.ConversationError) as error:
@@ -142,7 +137,7 @@ class Listeners(commands.Cog):
         except discord.Forbidden:
             raise exceptions.ConversationError(errors.ConversationErrors.CHANNEL_DOESNT_EXIST)
         except IndexError:
-            print("index")
+            pass
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):

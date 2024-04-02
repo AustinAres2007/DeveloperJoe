@@ -55,9 +55,9 @@ def is_voice_conversation(conversation: chat.DGChatType | None) -> chat.DGVoiceC
         return conversation
     raise exceptions.ConversationError(errors.ConversationErrors.NO_CONVO)
 
-def assure_class_is_value(object, __type: type):
+def assure_class_is_value(object, ob_type: type):
     """For internal use. Exact same as `isinstance` but raises `IncorrectInteractionSetting` if the result is `False`."""
-    if type(object) == __type:
+    if type(object) == ob_type:
         return object
     raise exceptions.ConversationError(errors.ConversationErrors.CONVO_CANNOT_TALK)
 
