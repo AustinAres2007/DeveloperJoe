@@ -62,15 +62,15 @@ class Listeners(commands.Cog):
                 async with model(member) as ai_model:
                     ai_model: models.AIModel
                     
-                    async with message.channel.typing():
-                        if command == "image":
-                            try:
-                                reply = await ai_model.generate_image(text_content)
-                                return await message.channel.send(f'"{text_content}"\n\n{reply.image_url}') 
-                            except openai.BadRequestError:
-                                return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
-                        elif command == "analyse":
-                            try:
+                    try:    
+                        async with message.channel.typing():
+                            if command == "image":
+                                try:
+                                    reply = await ai_model.generate_image(text_content)
+                                    return await message.channel.send(f'"{text_content}"\n\n{reply.image_url}') 
+                                except openai.BadRequestError:
+                                    return await message.channel.send("Error generating image. This could be because you used obscene language or illicit terminology.")
+                            elif command == "analyse":
                                 attachment_urls = [attachment.url for attachment in message.attachments if isinstance(attachment, discord.Attachment)]
 
                                 if attachment_urls == []:
@@ -83,17 +83,17 @@ class Listeners(commands.Cog):
                                 response = await ai_model.ask_image(text_content)
                                 
                                 return await message.channel.send(response.response)
-                            except openai.PermissionDeniedError: # Put random ass class here for now
-                                ...
-                        else:
-                            ai_reply = await ai_model.ask_model(message.clean_content)
+                            else:
+                                ai_reply = await ai_model.ask_model(message.clean_content)
+                            
+                                if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
+                                    return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
+                                return await message.channel.send(reply)
+                            
+                    except exceptions.ModelError:
+                        await message.channel.send(f"Server's default AI Model ({ai_model.display_name}) does not support `{command}`")
                         
-                            if len(reply := ai_reply.response + "\n\n*Notice: When you @ me, I do not remember anything you've said in the past*") >= 2000:
-                                return await message.channel.send(file=commands_utils.to_file(reply, "reply.txt"))
-                            return await message.channel.send(reply)
-                                
             # TODO: Fix > 2000 characters bug non-streaming
-            
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
                 member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
                 
@@ -131,7 +131,7 @@ class Listeners(commands.Cog):
                         
                 elif self.client.user and message.mentions and message.mentions[0].id == self.client.user.id:
                     await respond_to_mention(member)
-                    
+
         except (exceptions.DGException, exceptions.ConversationError) as error:
             await message.channel.send(error.message)
         except discord.Forbidden:

@@ -330,6 +330,7 @@ def check_can_read(func: Callable[..., Awaitable[Any]]):
         raise exceptions.ModelError(f"{self.display_name} does not support image reading.")
     return _inner
 
+
 def register_model(cls: Type[AIModel]) -> Any:
     try:
         registered_models[cls.model] = cls
@@ -408,12 +409,15 @@ class AIModel(ABC):
     async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.BaseAIQueryResponseChunk | responses.BaseAIErrorResponse | responses.AIEmptyResponseChunk, None]:
         raise NotImplementedError
     
+    @check_can_generate_images
     async def generate_image(self, image_prompt: str, *args, **kwargs) -> responses.BaseAIImageResponse:
         raise NotImplementedError
     
+    @check_can_read
     async def ask_image(self, query: str) -> responses.BaseAIQueryResponse:
         raise NotImplementedError
     
+    @check_can_read
     async def add_images(self, image_urls: list[str], check_if_valid: bool=True) -> None:
         raise NotImplementedError
     
@@ -506,9 +510,9 @@ class GPT4Turbo(GPT4):
 @register_model
 class GPT4Vision(GPT4):
     
-    model = "gpt-4-vision"
-    description = "GPT 4 Engine with added image reading support. Good for describing photos and translating latin-derived languages. Do keep note that this AI model is in preview, and may have usage limits."
-    display_name = "GPT 4 with Vision (Preview)"
+    model = "gpt-4-vision-preview"
+    description = "GPT 4 Turbo Engine with added image reading support. Good for describing photos and translating latin-derived languages. Do keep note that this AI model is in preview, and may have usage limits."
+    display_name = "GPT 4 Turbo with Vision (Preview)"
     
     can_talk = True
     can_stream = True
@@ -579,7 +583,6 @@ class GPT4Vision(GPT4):
     
     @check_can_read
     async def ask_image(self, query: str) -> responses.OpenAIQueryResponse:
-        print("query_ak", bool(self._image_reader_context))
         if self._check_user_permissions() and self._image_reader_context:
             if isinstance(query, str):
                 return await self._gpt4_read_image_base(query, confighandler.get_api_key("openai_api_key"))    
@@ -616,6 +619,8 @@ class GoogleAI(AIModel):
         
     @check_can_talk
     async def ask_model(self, query: str) -> responses.GoogleAIQueryResponse: # Note: GoogleAIResponse classes not finished.
+        raise exceptions.ModelError("Non-functioning model.")
+    
         if isinstance(self._ai_model_obj, google_ai.GenerativeModel) == True and isinstance(self._chat, google_ai.ChatSession):
             query_response = await self._chat.send_message_async(query)
             print(query_response._result) # NOTE: Cannot continue because I am based in the UK. I cannot get an API key due unknown reason regarding Google. Fuck you Google.

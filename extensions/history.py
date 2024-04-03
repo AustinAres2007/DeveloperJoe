@@ -64,8 +64,6 @@ class History(commands.Cog):
 
         await interaction.user.send(f"{convo.member.name}'s {confighandler.get_config('bot_name')} Transcript ({convo.display_name})", file=discord.File(file_like))
         await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
-    
-        
             
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
     async def get_chat_history(self, interaction: discord.Interaction, history_id: str):
@@ -88,9 +86,7 @@ class History(commands.Cog):
     
     @discord.app_commands.command(name="histories", description="Lists all histories a user has.")
     async def fetch_user_history(self, interaction: discord.Interaction):
-        reply_string = ""
         with history.DGHistorySession() as history_session:
-            commands_utils.true_to_yes
             histories = history_session.retrieve_user_histories(str(interaction.user.id))
             reply_string = "No saved chats." if bool(histories) == False else '\n\n'.join([commands_utils.true_to_yes(f"- {long_history.name}\nIs Private? **{bool(int(long_history.private))}**\nID: `{long_history.history_id}`") for long_history in histories])
             await interaction.response.send_message(reply_string)

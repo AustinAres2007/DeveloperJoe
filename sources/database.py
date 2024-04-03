@@ -151,11 +151,6 @@ class DGDatabaseSession:
         
         for table in self._required_tables:
             self._exec_db_command(f"DROP TABLE IF EXISTS {table}") # I know. Do not say it.
-            
-        #self._exec_db_command("DROP TABLE IF EXISTS database_file")
-        #self._exec_db_command("DROP TABLE IF EXISTS database_file")
-        #self._exec_db_command("DROP TABLE IF EXISTS model_rules")
-        #self._exec_db_command("DROP TABLE IF EXISTS guild_configs")
     
     def reset(self) -> None:
         """Resets the database contents to default (Zero items) This is shorthand for delete() then init()"""
