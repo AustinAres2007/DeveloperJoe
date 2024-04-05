@@ -147,7 +147,7 @@ class DGDatabaseSession:
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} database_file (version TEXT NOT NULL, creation_date INTEGER NOT NULL)")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} permissions (gid INTEGER NOT NULL UNIQUE, permission_json TEXT NOT NULL)")
-        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} custom_models (uid INTEGER NOT NULL, model_name VARCHAR(40) NOT NULL, model_json)")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} custom_models (uid INTEGER NOT NULL, based_from TEXT NOT NULL, model_name VARCHAR(40) NOT NULL, model_json TEXT NOT NULL)")
         
         self.set_version(developerconfig.DATABASE_VERSION)
         

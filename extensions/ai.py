@@ -267,12 +267,22 @@ class Communication(commands.Cog):
     """Model Customisation Commands"""
     
     @model_group.command(name="customise", description="Customise a model.")
-    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str):
-        pass
-    
+    @discord.app_commands.choices(configure_from=models.MODEL_CHOICES)
+    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: str | None=None, temprature: float=1.0, top_p: float=1.0, top_k: float=1.0):
+        with usermodelhandler.DGUserModelCustomisationHandler() as umh:
+            model_type = commands_utils.get_modeltype_from_name(str(configure_from))
+            umh.insert_user_model(interaction.user, model_type, custom_model_name, temprature=temprature, top_k=top_k, top_p=top_p)
+
+        await interaction.response.send_message(f"Made custom model with specified params.")
+        
     @model_group.command(name="destroy", description="Delete a customised model.")
     async def destroy_custom_model(self, interaction: discord.Interaction, custom_model_name: str):
         pass
     
+    @model_group.command(name="list", description="List all customised models you have.")
+    async def list_custom_models(self, interaction: discord.Interaction):
+        with usermodelhandler.DGUserModelCustomisationHandler() as _Test:
+            print(_Test.fetch_user_models(interaction.user))
+        
 async def setup(client):
     await client.add_cog(Communication(client))
