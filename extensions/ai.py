@@ -12,7 +12,8 @@ from sources import (
     chat,
     errors,
     confighandler,
-    models
+    models,
+    usermodelhandler
 )
 from sources.common import (
     commands_utils,
@@ -27,6 +28,8 @@ class Communication(commands.Cog):
         print(f"{self.__cog_name__} Loaded") 
 
     chat_group = discord.app_commands.Group(name="chat", description="Chat command group. All subcommands relate to starting or managing chats.")
+    model_group = discord.app_commands.Group(name="model", description="Model command group. All subcommands relate to model customisation.")
+    
     @chat_group.command(name="start", description=f"Start a {confighandler.get_config('bot_name')} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
                                    stream_conversation="Weather the user wants the chat to appear gradually. (Like ChatGPT)",
@@ -260,6 +263,16 @@ class Communication(commands.Cog):
         await convo.clear()
         
         await interaction.followup.send("Cleared all chat context.")
-        
+    
+    """Model Customisation Commands"""
+    
+    @model_group.command(name="customise", description="Customise a model.")
+    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str):
+        pass
+    
+    @model_group.command(name="destroy", description="Delete a customised model.")
+    async def destroy_custom_model(self, interaction: discord.Interaction, custom_model_name: str):
+        pass
+    
 async def setup(client):
     await client.add_cog(Communication(client))

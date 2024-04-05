@@ -41,7 +41,7 @@ class DGDatabaseSession:
         """
 
         self._context_manager_reset = reset_if_failed_check
-        self._required_tables = ["history", "model_rules", "guild_configs", "database_file", "permissions"]
+        self._required_tables = ["history", "model_rules", "guild_configs", "database_file", "permissions", "custom_models"]
         
         self.database_file = database
         self.database_file_backup = self.database_file.replace(os.path.splitext(self.database_file)[-1], ".sqlite3")
@@ -65,7 +65,7 @@ class DGDatabaseSession:
             version = self.get_version()
             if version != developerconfig.DATABASE_VERSION and warn_if_incompatible_versions == True:
                 common.warn_for_error(f"Database version is different than specified. (Needs: {developerconfig.DATABASE_VERSION} Has: {version})")
-                
+            
             for tb in self._required_tables:
                 if not self.table_exists(tb) and fix_if_broken:
                     common.warn_for_error(f'Table "{tb}" in database file "{self.database_file}" missing. Repairing..') if warn_if_fixable_corruption == True else None
@@ -99,6 +99,14 @@ class DGDatabaseSession:
 
         return fetched
     
+    def set_version(self, version_string: str) -> None:
+        
+        self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
+            version_string, 
+            common.get_posix()
+            )
+        )
+        
     def init(self, override: bool=False) -> None:
         """Creates tables required for normal bot operation."""
         
@@ -139,12 +147,9 @@ class DGDatabaseSession:
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} guild_configs (gid INTEGER NOT NULL UNIQUE, oid INTEGER NOT NULL, json TEXT NOT NULL)")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} database_file (version TEXT NOT NULL, creation_date INTEGER NOT NULL)")
         self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} permissions (gid INTEGER NOT NULL UNIQUE, permission_json TEXT NOT NULL)")
+        self._exec_db_command(f"CREATE TABLE {'IF NOT EXISTS' if override == False else ''} custom_models (uid INTEGER NOT NULL, model_name VARCHAR(40) NOT NULL, model_json)")
         
-        self._exec_db_command("INSERT INTO database_file VALUES(?, ?)", (
-            developerconfig.DATABASE_VERSION, 
-            common.get_posix()
-            )
-        )
+        self.set_version(developerconfig.DATABASE_VERSION)
         
     def delete(self) -> None:
         """Deletes tables that are needed. This should only be used if there is an error with the database. DGDatabaseSession.init() should be called right after this."""
@@ -160,7 +165,7 @@ class DGDatabaseSession:
     def get_version(self) -> str:
         """Gets database version."""
         try:
-            return str(self._exec_db_command("SELECT version FROM database_file")[0][0])
+            return str(self._exec_db_command("SELECT version FROM database_file")[-1][0])
         except (sqlite3.OperationalError, IndexError):
             self.init()
             return self.get_version()
