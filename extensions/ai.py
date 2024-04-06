@@ -281,8 +281,7 @@ class Communication(commands.Cog):
     
     @model_group.command(name="list", description="List all customised models you have.")
     async def list_custom_models(self, interaction: discord.Interaction):
-        with usermodelhandler.DGUserModelCustomisationHandler() as _Test:
-            print(_Test.fetch_user_models(interaction.user))
+        print(usermodelhandler.update_user_model(interaction.user, models.GPT4, "Hello", top_k=0, top_p=0))
         
 async def setup(client):
     await client.add_cog(Communication(client))

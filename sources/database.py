@@ -269,7 +269,7 @@ class DGDatabaseManager(DGDatabaseSession):
         self.create_config_schema(actual_guild_id)
         self.create_permissions_schema(actual_guild_id)
         
-        # XXX: Update database with all required tables (permissions and guild_configs)
+        # XXX:   database with all required tables (permissions and guild_configs)
 
 def check_and_get_yaml(yaml_file: str=developerconfig.CONFIG_FILE, check_against: dict=developerconfig.default_config_keys) -> dict[str, Any]:
     """Return the bot-config.yaml file as a dictionary.
