@@ -104,3 +104,7 @@ def update_user_model(user: discord.User | discord.Member, based_model: models.A
     with DGUserModelCustomisationHandler() as DGUmch:
         DGUmch.update_user_model(user, based_model, model_name, **new_kwargs)
     return get_user_model(user, model_name)
+
+def destroy_user_model(user: discord.User | discord.Member, model_name: str) -> None:
+    with DGUserModelCustomisationHandler() as DGUmch:
+        DGUmch.destroy_custom_model(user, model_name)

@@ -276,12 +276,21 @@ class Communication(commands.Cog):
         await interaction.response.send_message(f"Made custom model with specified params.")
         
     @model_group.command(name="destroy", description="Delete a customised model.")
-    async def destroy_custom_model(self, interaction: discord.Interaction, custom_model_name: str):
-        pass
-    
+    async def destroy_custom_model(self, interaction: discord.Interaction, model_name: str):
+        confirm = await self.client.get_input(interaction, f"Are you sure you want to delete this custom model configuration? Type `{developerconfig.QUERY_CONFIRMATION}` to confirm.")
+
+        if not confirm or confirm.content != developerconfig.QUERY_CONFIRMATION:
+            return await interaction.followup.send("Cancelled action.")
+        
+        usermodelhandler.destroy_user_model(interaction.user, model_name)
+        await interaction.followup.send(f"Deleted customized model `{model_name}`.")
+        
     @model_group.command(name="list", description="List all customised models you have.")
     async def list_custom_models(self, interaction: discord.Interaction):
-        print(usermodelhandler.update_user_model(interaction.user, models.GPT4, "Hello", top_k=0, top_p=0))
+        user_models = usermodelhandler.get_user_models(interaction.user)
+
+        reply_text = "\n\n".join([f"> **{model.model_name}**\n\nBased off of: *{commands_utils.get_modeltype_from_name(model.based_model).display_name}*\n{"\n".join([f"*{k}*: `{v}`" for k, v in model._model_json_obj.items()])}" for model in user_models])
+        await interaction.response.send_message(reply_text)
         
 async def setup(client):
     await client.add_cog(Communication(client))

@@ -14,6 +14,7 @@ from asyncio import CancelledError
 import shutil
 import sys, os
 from typing import Any, Type
+from uu import Error
 
 from sources.exceptions import DGException
 
@@ -511,8 +512,6 @@ class DeveloperJoe(commands.Bot):
         await super().setup_hook()
         
         print("Synced.")
-        
-        
 
 # Driver Code
 client: DeveloperJoe | None = None
@@ -550,6 +549,7 @@ async def _run_bot() -> DeveloperJoe | None:
     except discord.app_commands.errors.CommandSyncFailure:
         common.send_fatal_error_warning(f'There was an error with a command. This may occur because your bots name is too long within the "{developerconfig.CONFIG_FILE}" config file.')
         exit(1)
+        
         
 def main(keys: dict[str, str]):
     try:
