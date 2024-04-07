@@ -13,7 +13,8 @@ from sources import (
     errors,
     confighandler,
     models,
-    usermodelhandler
+    usermodelhandler,
+    transformers
 )
 from sources.common import (
     commands_utils,
