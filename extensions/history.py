@@ -55,7 +55,7 @@ class History(commands.Cog):
     @discord.app_commands.choices(export_format=[discord.app_commands.Choice(name="Readable", value="u"), discord.app_commands.Choice(name="Raw", value="r")])
     async def export_chat_history(self, interaction: discord.Interaction, name: str="", export_format: str | None=None):
 
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
         formatted_history_string = (self.format(convo.context._display_context, convo.member.display_name, convo.model.display_name) if convo.context._display_context else errors.HistoryErrors.HISTORY_EMPTY) if export_format in [None, "u"] else str(convo.model.fetch_raw())
         

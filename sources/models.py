@@ -1,8 +1,5 @@
 from __future__ import annotations
-import logging
-import json, openai, discord, typing, requests
-import httpx
-
+from discord.app_commands import Choice
 from abc import ABC
 from typing import (
     Any,
@@ -21,9 +18,13 @@ from . import (
     modelhandler,
     errors,
     exceptions,
-    responses
+    responses,
+    usermodelhandler
 )
-from discord.app_commands import Choice
+
+import logging
+import json, openai, discord, typing, requests
+import httpx
 import google.generativeai as google_ai
 
 __all__ = [
@@ -198,7 +199,7 @@ class GPTReaderContext(ReaderContext):
 def _handle_error(response: responses.BaseAIErrorResponse) -> None:
     raise exceptions.DGException(response.error_message, response.error_code)
     
-async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, **kwargs) -> responses.OpenAIQueryResponse:
+async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, model_configuration: usermodelhandler.CustomModel | None=None, **kwargs) -> responses.OpenAIQueryResponse:
     temp_context: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
     
     if not isinstance(context, GPTConversationContext | None):
@@ -206,7 +207,7 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
     
     try:
         async with openai.AsyncOpenAI(api_key=api_key, timeout=developerconfig.GPT_REQUEST_TIMEOUT) as async_openai_client:
-            _reply = await async_openai_client.chat.completions.create(model=model, messages=temp_context, **kwargs)
+            _reply = await async_openai_client.chat.completions.create(model=model, messages=temp_context, **kwargs | model_configuration._model_json_obj if model_configuration else {})
             response = responses._gpt_response_factory(_reply.model_dump_json())
             
             if isinstance(response, responses.BaseAIErrorResponse):
@@ -220,13 +221,17 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
     except (TimeoutError, httpx.ReadTimeout):
         raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
     
-    raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
+    except Exception as excp:
+        raise exceptions.ModelError(f"Incorrect with model configuration.\n\nError: {excp}")
     
+    raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
+        
 async def _gpt_ask_stream_base(
     query: str, 
     context: GPTConversationContext | None, 
     model: str, 
     api_key: str, 
+    model_configuration: usermodelhandler.CustomModel | None=None,
     **kwargs) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
     
     """Streams a response from the AI. This is not meant to be used directly.
@@ -243,38 +248,42 @@ async def _gpt_ask_stream_base(
     Yields:
         _type_: FIXME: Add new description
     """
-    history: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
-
-    def _is_valid_chunk(chunk_data: str) -> bool:
-        try:
-            # NOTE: json.loads can take byte array
-            if chunk_data not in ['', '[DONE]'] and bool(json.loads(chunk_data)):
-                return True
-            else:
-                return False
-        except:
-            return False
-
-
     try:
-        async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
-            _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True, **kwargs)
+        history: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
 
-            async for raw_chunk in _reply.response.aiter_text():
-                readable_chunks = filter(_is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
-                
-                for chunk_text in readable_chunks:
-                    chunk = responses._gpt_response_factory(chunk_text)
+        def _is_valid_chunk(chunk_data: str) -> bool:
+            try:
+                # NOTE: json.loads can take byte array
+                if chunk_data not in ['', '[DONE]'] and bool(json.loads(chunk_data)):
+                    return True
+                else:
+                    return False
+            except:
+                return False
 
-                    if isinstance(chunk, responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse):
-                        yield chunk
-                    else:
-                        raise TypeError(
-                            "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
-                        
-    except openai.AuthenticationError:
-        raise exceptions.DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
 
+        try:
+            async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
+                _reply = await async_openai_client.chat.completions.create(messages=history, model=model, stream=True, **kwargs | model_configuration._model_json_obj if model_configuration else {})
+
+                async for raw_chunk in _reply.response.aiter_text():
+                    readable_chunks = filter(_is_valid_chunk, raw_chunk.replace("data: ", "").split("\n\n"))
+                    
+                    for chunk_text in readable_chunks:
+                        chunk = responses._gpt_response_factory(chunk_text)
+
+                        if isinstance(chunk, responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse):
+                            yield chunk
+                        else:
+                            raise TypeError(
+                                "Expected AIErrorResponse or AIQueryResponseChunk, got {}".format(type(chunk)))
+                            
+        except openai.AuthenticationError:
+            raise exceptions.DGException("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
+    
+    except Exception as excp:
+        raise exceptions.ModelError(f"Incorrect with model configuration.\n\nError: {excp}")
+    
 async def _gpt_image_base(prompt: str, image_engine: types.ImageEngine, api_key: str) -> responses.OpenAIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
         _image_reply = await async_openai_client.images.generate(prompt=prompt, model=image_engine)
@@ -366,7 +375,9 @@ class AIModel(ABC):
     def _check_user_permissions(self):
         return modelhandler.user_has_model_permissions(self.member, type(self))
     
-    def __init__(self, member: discord.Member) -> None:
+    def __init__(self, member: discord.Member, custom_model_name: str | None=None) -> None:
+        
+        self._custom_args_set = usermodelhandler.get_user_model(member, custom_model_name) if custom_model_name else None
         self._context: ReadableContext = ReadableContext()
         self._image_reader_context: ReaderContext | None = None
         self.member = member
@@ -438,8 +449,8 @@ class GPTModel(AIModel):
     def is_enabled() -> bool:
         return confighandler.has_api_key("openai_api_key")
     
-    def __init__(self, member: discord.Member) -> None:
-        super().__init__(member)
+    def __init__(self, member: discord.Member, custom_model_name: str | None=None) -> None:
+        super().__init__(member, custom_model_name)
         self._gpt_context: GPTConversationContext | None = None
     
     def is_init(self):
@@ -472,13 +483,13 @@ class GPT3Turbo(GPTModel):
     @check_can_talk
     async def ask_model(self, query: str) -> responses.OpenAIQueryResponse:
         if self._check_user_permissions():
-            return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+            return await _gpt_ask_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"), self._custom_args_set)
         raise exceptions.DGException(missing_perms)
     
     @check_can_stream
     async def ask_model_stream(self, query: str) -> AsyncGenerator[responses.OpenAIQueryResponseChunk | responses.OpenAIErrorResponse | responses.AIEmptyResponseChunk, None]:
         if self._check_user_permissions():
-            return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"))
+            return _gpt_ask_stream_base(query, self._gpt_context, self.model, confighandler.get_api_key("openai_api_key"), self._custom_args_set)
         raise exceptions.DGException(missing_perms)
     
     @check_can_generate_images
@@ -520,8 +531,8 @@ class GPT4Vision(GPT4):
     can_read_images = True
     enabled = GPTModel.is_enabled()
     
-    def __init__(self, member: discord.Member) -> None:
-        super().__init__(member)
+    def __init__(self, member: discord.Member, custom_model_name: str | None=None) -> None:
+        super().__init__(member, custom_model_name)
         self._image_reader_context: GPTReaderContext | None = None
     
     async def clear_context(self) -> None:
@@ -607,8 +618,8 @@ class GoogleAI(AIModel):
     can_read_images = False
     enabled = is_enabled()
     
-    def __init__(self, member: discord.Member) -> None:
-        super().__init__(member)
+    def __init__(self, member: discord.Member, custom_model_name: str | None=None) -> None:
+        super().__init__(member, custom_model_name)
         self._ai_model_obj: google_ai.GenerativeModel | None = None
         self._chat: google_ai.ChatSession | None = None
         

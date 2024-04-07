@@ -1,11 +1,11 @@
+from __future__ import annotations
 from dataclasses import dataclass
 import json
-from typing import Any, Type
+from typing import TYPE_CHECKING, Any, Type
 
 from regex import D
 from . import (
     database,
-    models,
     exceptions
 )
 from .common import (
@@ -23,6 +23,11 @@ __all__ = (
     
 )
 
+if TYPE_CHECKING:
+    from . import (
+        models
+    )
+    
 @dataclass
 class CustomModel:
     owner_id: int

@@ -95,7 +95,7 @@ class Listeners(commands.Cog):
                         
             # TODO: Fix > 2000 characters bug non-streaming
             if self.client.application and message.author.id != self.client.application.id and message.content != developerconfig.QUERY_CONFIRMATION:
-                member: discord.Member = commands_utils.assure_class_is_value(message.author, discord.Member)
+                assert isinstance(member := message.author, discord.Member)
                 
                 if isinstance(convo := self.client.get_default_conversation(member), chat.DGChatType) and message.guild:
                     if isinstance(channel := message.channel, discord.Thread):

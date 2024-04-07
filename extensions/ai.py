@@ -40,23 +40,23 @@ class Communication(commands.Cog):
                                    
     )
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False):
+    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, custom_model_name: str | None=None):
         
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
-        channel: developerconfig.InteractableChannel = commands_utils.is_correct_channel(interaction.channel)
-    
-        actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{member.display_name}"
+        assert isinstance(member := interaction.user, discord.Member)
+        assert isinstance(channel := interaction.channel, developerconfig.InteractableChannel)
+        
+        actual_name = chat_name if chat_name else f"{datetime.datetime.now()}-{interaction.user.display_name}"
         chats = self.client.get_all_user_conversations(member)
-        name = chat_name if chat_name else f"{member.name}-{len(chats) if isinstance(chats, dict) else '0'}"
+        name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
         chat_thread: discord.Thread | None = None
         model = ai_model if isinstance(ai_model, str) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
         
         # Error Checking
         
         def _get_new_default_name(n: int) -> str:
-            if f"{member.name}-{n}" in list(chats):
+            if f"{interaction.user.name}-{n}" in list(chats):
                 return _get_new_default_name(n + 1)
-            return f"{member.name}-{n}"
+            return f"{interaction.user.name}-{n}"
 
         if len(actual_name) > 39:
             raise exceptions.ConversationError("The name of your chat must be less than 40 characters.", len(actual_name))
@@ -77,7 +77,7 @@ class Communication(commands.Cog):
         elif in_thread and type(channel) != discord.TextChannel:
             raise exceptions.ConversationError("Cannot create chat thread as we are not in a context where a thread can be created. Please try again in a server text channel.")
         
-        chat_args = (member, self.client, actual_name, stream_conversation, name, model, chat_thread, is_private)
+        chat_args = (member, self.client, actual_name, stream_conversation, name, model, chat_thread, is_private, custom_model_name)
         
         if speak_reply == False:
             convo = chat.DGTextChat(*chat_args)
@@ -99,7 +99,8 @@ class Communication(commands.Cog):
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
     async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool | None=None):
 
-            member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+            assert isinstance(member := interaction.user, discord.Member)
+            
             channel = commands_utils.get_correct_channel(interaction.channel) # Check if in right channel
             conversation = self.client.manage_defaults(member, name)
             status = f'/help and "{message}"'
@@ -125,9 +126,8 @@ class Communication(commands.Cog):
     @chat_group.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
     async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=False):
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         
-        # checks because app_commands cannot use normal ones.
+        assert isinstance(member := interaction.user, discord.Member)
         if convo := self.client.get_user_conversation(member, name):
             reply = await self.client.get_input(interaction, f'Are you sure you want to end {name}? (Send reply within {developerconfig.QUERY_TIMEOUT} seconds, and "{developerconfig.QUERY_CONFIRMATION}" to confirm, anything else to cancel.')
             if not reply or reply.content != developerconfig.QUERY_CONFIRMATION:
@@ -141,7 +141,8 @@ class Communication(commands.Cog):
 
     @chat_group.command(name="end-all", description=f"Stop all conversations you hold with {confighandler.get_config('bot_name')}. No conversation threads will be deleted.")
     async def stop_all(self, interaction: discord.Interaction):
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
         
         if convos := self.client.get_all_user_conversations(member):
             reply = await self.client.get_input(interaction, f'Are you sure you want to end all of your chats? Type "{developerconfig.QUERY_CONFIRMATION}" to confirm or anything else to cancel.')
@@ -158,7 +159,8 @@ class Communication(commands.Cog):
     @chat_group.command(name="image", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", save_to="What chat you want to save the image history too. (For exporting)") 
     async def image_generate(self, interaction: discord.Interaction, prompt: str, save_to: str=""):
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, save_to)
 
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -170,7 +172,8 @@ class Communication(commands.Cog):
     @chat_group.command(name="info", description=f"Displays information about your current {confighandler.get_config('bot_name')} Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
     async def get_info(self, interaction: discord.Interaction, name: str=""):
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
 
         uptime_delta = self.client.get_uptime()
@@ -199,13 +202,15 @@ class Communication(commands.Cog):
     @chat_group.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
     async def switch_default(self, interaction: discord.Interaction, name: str):
-        member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
         await interaction.response.send_message(f"Switched default chat to: {convo} (The name will not change or be set to default if the chat does not exist)" if convo else f"You do not have any {confighandler.get_config('bot_name')} conversations.")
 
     @chat_group.command(name="list", description="List all chats you currently have.")
     async def list_user_chats(self, interaction: discord.Interaction):
-        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
         embed = self.client.get_embed(f"{member} Conversations")
         
         for chat in self.client.get_all_user_conversations(member).values():
@@ -217,7 +222,9 @@ class Communication(commands.Cog):
     @discord.app_commands.describe(query="The question you wish to pose.")
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str | None):
-        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
+        
         model_string = ai_model if isinstance(ai_model, str) else confighandler.get_guild_config_attribute(member.guild, "default-ai-model")
         actual_model = commands_utils.get_modeltype_from_name(model_string)
         
@@ -233,8 +240,8 @@ class Communication(commands.Cog):
     @discord.app_commands.describe(query="The question you wish to pose about an image.", image_url="URL of the image you want to interact with.", chat_name="The name of the chat you want to use for this interaction.")
     async def analyse_image(self, interaction: discord.Interaction, query: str | None=None, image_url: str | None=None, chat_name: str=""):
         # TODO: Front end
+        assert isinstance(member := interaction.user, discord.Member)
         
-        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, chat_name)
         await interaction.response.defer()
         
@@ -254,7 +261,9 @@ class Communication(commands.Cog):
     @chat_group.command(name="clear", description="Clear the chats context.")
     @discord.app_commands.describe(chat_name="Name of the chat which context will be cleared.")
     async def clear_chat_context(self, interaction: discord.Interaction, chat_name: str=""):
-        member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+        
+        assert isinstance(member := interaction.user, discord.Member)
+        
         convo = self.client.manage_defaults(member, chat_name)
         confirm = await self.client.get_input(interaction, f"Are you sure you want to clear all chat context? *(E.G. The bot will not remember anything you have said. Type `{developerconfig.QUERY_CONFIRMATION}` to confirm)*")
         
@@ -268,10 +277,10 @@ class Communication(commands.Cog):
     
     @model_group.command(name="customise", description="Customise a model.")
     @discord.app_commands.choices(configure_from=models.MODEL_CHOICES)
-    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: str | None=None, temprature: float=1.0, top_p: float=1.0, top_k: float=1.0):
+    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: str, temperature: discord.app_commands.Range[float, 0, 2]=1, top_p: discord.app_commands.Range[float, 0]=0):
         with usermodelhandler.DGUserModelCustomisationHandler() as umh:
             model_type = commands_utils.get_modeltype_from_name(str(configure_from))
-            umh.insert_user_model(interaction.user, model_type, custom_model_name, temprature=temprature, top_k=top_k, top_p=top_p)
+            umh.insert_user_model(interaction.user, model_type, custom_model_name, temperature=temperature, top_p=top_p)
 
         await interaction.response.send_message(f"Made custom model with specified params.")
         
@@ -289,7 +298,7 @@ class Communication(commands.Cog):
     async def list_custom_models(self, interaction: discord.Interaction):
         user_models = usermodelhandler.get_user_models(interaction.user)
 
-        reply_text = "\n\n".join([f"> **{model.model_name}**\n\nBased off of: *{commands_utils.get_modeltype_from_name(model.based_model).display_name}*\n{"\n".join([f"*{k}*: `{v}`" for k, v in model._model_json_obj.items()])}" for model in user_models])
+        reply_text = "\n\n".join([f"> **{model.model_name}**\n\n*Based off of:* `{commands_utils.get_modeltype_from_name(model.based_model).display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in model._model_json_obj.items()])}" for model in user_models])
         await interaction.response.send_message(reply_text)
         
 async def setup(client):

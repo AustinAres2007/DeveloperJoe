@@ -82,6 +82,7 @@ class DGChat:
                 model: Type[models.AIModel] | str=confighandler.get_config('default_ai_model'),
                 associated_thread: _Union[discord.Thread, None]=None,
                 is_private: bool=True,
+                custom_model_configuration: str | None=None,
                 voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
         ):
         """Represents a base DGChat. Do not use, inherit from this.
@@ -104,15 +105,16 @@ class DGChat:
         self.time: _datetime.datetime = _datetime.datetime.now()
         self.hid = hex(int(_datetime.datetime.timestamp(_datetime.datetime.now()) + member.id) * _random.randint(150, 1500))
         self.chat_thread = associated_thread
-
+        self.custom_model_configutation: str | None = custom_model_configuration
+        
         self.name = name
         self.display_name = display_name
         self.stream = stream
 
         if isinstance(model, type(models.AIModel)):
-            self.model: models.AIModel = model(member) # type: ignore shutup I did the check
+            self.model: models.AIModel = model(member, custom_model_configuration) # type: ignore shutup I did the check
         else:
-            self.model: models.AIModel = commands_utils.get_modeltype_from_name(str(model))(member)
+            self.model: models.AIModel = commands_utils.get_modeltype_from_name(str(model))(member, custom_model_configuration)
 
         self._private, self._is_active, self.is_processing = is_private, True, False
         self.header = f'{self.display_name} | {self.model.display_name}'
@@ -202,7 +204,8 @@ class DGTextChat(DGChat):
                 display_name: str, 
                 model: Type[models.AIModel] | str=confighandler.get_config('default_ai_model'), 
                 associated_thread: _Union[discord.Thread, None]=None,
-                is_private: bool=True 
+                is_private: bool=True,
+                custom_model_configuration: str | None=None
         ):
         """Represents a text DG Chat.
 
@@ -226,7 +229,8 @@ class DGTextChat(DGChat):
             display_name=display_name,
             model=model,
             associated_thread=associated_thread,
-            is_private=is_private
+            is_private=is_private,
+            custom_model_configuration=custom_model_configuration
         )
     
     @property
@@ -400,7 +404,8 @@ class DGTextChat(DGChat):
             str: A farewell message.
         """
         with history.DGHistorySession() as dg_history:
-            member: discord.Member = commands_utils.assure_class_is_value(interaction.user, discord.Member)
+            assert isinstance(member := interaction.user, discord.Member)
+            
             if isinstance(self.chat_thread, discord.Thread) and self.chat_thread.id == interaction.channel_id:
                 raise exceptions.ConversationError(errors.ConversationErrors.CANNOT_STOP_IN_CHANNEL)
             try:
@@ -469,6 +474,7 @@ class DGVoiceChat(DGTextChat):
             model: Type[models.AIModel] | str=confighandler.get_config('default_ai_model'), 
             associated_thread: _Union[discord.Thread, None]=None, 
             is_private: bool=True,
+            custom_model_configuration: str | None=None,
             voice: _Union[discord.VoiceChannel, discord.StageChannel, None]=None
         ):
         """Represents a voice and text DG Chat.
@@ -484,7 +490,7 @@ class DGVoiceChat(DGTextChat):
             associated_thread (_Union[discord.Thread, None], optional): What the dedicated discord thread is. Defaults to None.
             voice (_Union[discord.VoiceChannel, discord.StageChannel, None], optional): (DGVoiceChat only) What voice channel the user is in. This is set dynamically by listeners. Defaults to None.
         """
-        super().__init__(member, bot_instance, name, stream, display_name, model, associated_thread, is_private)
+        super().__init__(member, bot_instance, name, stream, display_name, model, associated_thread, is_private, custom_model_configuration)
         self._voice = voice
         self._client_voice_instance: discord.VoiceClient | None = discord.utils.get(self.bot.voice_clients, guild=member.guild) # type: ignore because all single instances are `discord.VoiceClient`
         self._is_speaking = False

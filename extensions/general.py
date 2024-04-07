@@ -57,7 +57,7 @@ class General(_Cog):
     
     @discord.app_commands.command(name="server", description="Lists general information about the server and the servers settings.")
     async def list_server(self, interaction: discord.Interaction):
-        guild = commands_utils.assure_class_is_value(interaction.guild, discord.Guild)
+        assert isinstance(guild := interaction.guild, discord.Guild)
         embed = discord.Embed(title=interaction.guild, color=discord.Color.from_rgb(20, 31, 17))
         default_embed_fields = {"inline": False}
         

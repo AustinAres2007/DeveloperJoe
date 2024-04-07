@@ -356,7 +356,7 @@ class DeveloperJoe(commands.Bot):
             return await send(message) if send_exc == True else None
         
         elif isinstance(error, discord.app_commands.CheckFailure):
-            return await send("An error occured whilst trying to execute your command. This is likely because you are trying to execute a discord-server only command in direct messages.")
+            return await send("You cannot execute this command. This is likely because you are trying to execute a discord-server only command in direct messages or are missing permissions.")
         
         elif isinstance(error, discord.app_commands.CommandSignatureMismatch):
             return await send("Command mismatch. The bot must be restarted to fix this issue.")
@@ -366,6 +366,9 @@ class DeveloperJoe(commands.Bot):
         
         elif isinstance(error, openai.APIStatusError):
             return await send(error.message)
+        
+        elif isinstance(error, AssertionError):
+            return await send("This command can only be used within a server.")
         
         logging.error(exception)
         error_text = f"From error handler: {str(error)}"

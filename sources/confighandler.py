@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import discord, json, yaml
-from typing import Any, TYPE_CHECKING, Self, Type
+from typing import Any, TYPE_CHECKING, Type
 
 from . import (
     database, 
@@ -80,7 +80,7 @@ class GuildData:
         return self._raw_data
             
 class DGGuildDatabaseConfigHandler(database.DGDatabaseSession):
-    # Old: DGGuildConfigSession
+
     def __enter__(self):
         return self
 
