@@ -40,8 +40,15 @@ class Communication(commands.Cog):
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
                                    
     )
-    @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
-    async def start(self, interaction: discord.Interaction, chat_name: Union[str, None]=None, stream_conversation: bool=False, ai_model: str | None=None, in_thread: bool=False, speak_reply: bool=False, is_private: bool=False, custom_model_name: str | None=None):
+    async def start(self, 
+                    interaction: discord.Interaction, 
+                    chat_name: str | None=None, 
+                    stream_conversation: bool=False, 
+                    ai_model: discord.app_commands.Transform[tuple[str, str | None] | None, transformers.ModelChoiceTransformer] | None=None, 
+                    in_thread: bool=False, 
+                    speak_reply: bool=False, 
+                    is_private: bool=False
+        ):
         
         assert isinstance(member := interaction.user, discord.Member)
         assert isinstance(channel := interaction.channel, developerconfig.InteractableChannel)
@@ -50,7 +57,11 @@ class Communication(commands.Cog):
         chats = self.client.get_all_user_conversations(member)
         name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
         chat_thread: discord.Thread | None = None
-        model = ai_model if isinstance(ai_model, str) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
+        
+        print(ai_model)
+        
+        model = ai_model[0] if isinstance(ai_model, tuple) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
+        custom_model_name = ai_model[1] if isinstance(ai_model, tuple) else None
         
         # Error Checking
         
@@ -179,7 +190,7 @@ class Communication(commands.Cog):
 
         uptime_delta = self.client.get_uptime()
         returned_embed = discord.Embed(title=f'"{convo.display_name}" Information')
-
+        print(convo.model._custom_args_set)
         embeds = (
             {"name": "Started At", "value": str(convo.time), "inline": False},
             {"name": "Chat Length", "value": str(len(convo.context.context)), "inline": False},

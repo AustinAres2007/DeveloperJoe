@@ -377,11 +377,14 @@ class AIModel(ABC):
     
     def __init__(self, member: discord.Member, custom_model_name: str | None=None) -> None:
         
+        print(custom_model_name)
+        
         self._custom_args_set = usermodelhandler.get_user_model(member, custom_model_name) if custom_model_name else None
         self._context: ReadableContext = ReadableContext()
         self._image_reader_context: ReaderContext | None = None
         self.member = member
         
+        self.display_name += f" ({self._custom_args_set.model_name})" if self._custom_args_set else ""
         if not self._check_user_permissions():
             raise exceptions.ModelError(missing_perms)
 

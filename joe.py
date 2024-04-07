@@ -3,8 +3,10 @@
 Thank you to:
     - Fabian Kuzbiel (Tester, Support, Survey)
     - Bradley King (Tester)
+    - Malin Nier (Testing image capabilities with GPT 4 and General listener tests)
     - "Emie" an Alias. (Testing in early stages, Survey)
-    - "Malin Nier" Alias? (Testing image capabilities with GPT 4 and General listener tests)
+    - "Username Unavalible" Alias (Motivation, listener capabilities)
+    
     - The Developers of Opus.
     - The Developers of FFmpeg.
 """
@@ -14,7 +16,6 @@ from asyncio import CancelledError
 import shutil
 import sys, os
 from typing import Any, Type
-from uu import Error
 
 from sources.exceptions import DGException
 

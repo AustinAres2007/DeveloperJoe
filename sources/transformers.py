@@ -16,13 +16,23 @@ class ModelChoiceTransformer(discord.app_commands.Transformer):
         models_copy = models.MODEL_CHOICES.copy()
         
         for model in user_custom_models:
-            models_copy.append(Choice(name=f"{commands_utils.get_modeltype_from_name(model.based_model)} ({model.model_name})", value="d"))
+            model_based = commands_utils.get_modeltype_from_name(model.based_model)
+            models_copy.append(Choice(name=f"{model_based.display_name} ({model.model_name})", value=f"{model_based.model}|{model.model_name}"))
         
         return models_copy
     
-    async def transform(self, interaction: discord.Interaction[discord.Client], value: usermodelhandler.Any) -> usermodelhandler.Any:
-        return await super().transform(interaction, value)
+    async def transform(self, interaction: discord.Interaction[discord.Client], value: usermodelhandler.Any) -> tuple[str, str | None] | None:
+        try:
+            model, custom = str(value).split("|")
+        except TypeError:
+            return (value, None)
         
+        if value is None:
+            return None
+        
+        return (model, custom)
+        
+    
 class ChatChoiceTransformer(discord.app_commands.Transformer):
     async def autocomplete(self, interaction: discord.Interaction[discord.Client], value: int | float | str) -> List[Choice[str | int | float]]:
         ...
