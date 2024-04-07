@@ -17,6 +17,9 @@ class ModelChoiceTransformer(discord.app_commands.Transformer):
         
         for model in user_custom_models:
             models_copy.append(Choice(name=f"{commands_utils.get_modeltype_from_name(model.based_model)} ({model.model_name})", value="d"))
+        
+        return models_copy
+    
     async def transform(self, interaction: discord.Interaction[discord.Client], value: usermodelhandler.Any) -> usermodelhandler.Any:
         return await super().transform(interaction, value)
         

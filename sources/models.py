@@ -343,7 +343,7 @@ def check_can_read(func: Callable[..., Awaitable[Any]]):
 def register_model(cls: Type[AIModel]) -> Any:
     try:
         registered_models[cls.model] = cls
-        MODEL_CHOICES.append(Choice(name=cls.display_name, value=[cls.model, None]))
+        MODEL_CHOICES.append(Choice(name=cls.display_name, value=cls.model))
     except AttributeError:
         raise exceptions.ModelError(f"Incorrectly configured model setup ({cls}) must atleast have cls.display_name and cls.model.")
     return cls
