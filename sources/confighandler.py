@@ -39,7 +39,7 @@ def generate_config_key():
         "default-ai-model": get_config("default_ai_model")
     }
 
-class GuildData:    
+class GuildData: # TODO: Rewrite | dataclass needed.
     
     def __init__(self, data: list):
         try:
