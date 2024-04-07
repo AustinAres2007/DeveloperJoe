@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from . import (
         models
     )
-class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
+class DGGuildDatabaseModelHandler(database.DGDatabaseSession): # TODO: Rewrite this class so it doesn't have like 5 bound functions to assist once function.
     # Old: DGRules
     """Database connection that manages model permissions (Model Lock List, or MLL, etc..) maybe more in the future."""
 
@@ -96,6 +96,7 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession):
         Returns:
             list[int]: A list of user role IDs attached to the model.
         """
+        
         models = self.get_guild_models()
         if models:
             if model.model in models: 

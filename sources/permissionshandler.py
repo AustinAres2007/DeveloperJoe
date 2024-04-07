@@ -49,7 +49,7 @@ class DGGuildDatabasePermissionHandler(database.DGDatabaseSession):
         permission_data = json.dumps(new_entry)
         self._exec_db_command("UPDATE permissions SET permission_json=? WHERE gid=?", (permission_data, self.guild.id,))
         
-def get_guild_object_permissions(guild: Guild, permission_object: str) -> list[int]: 
+def get_guild_object_permissions(guild: Guild, permission_object: str) -> list[int]: # TODO: Rewrite | Make permission class
     with DGGuildDatabasePermissionHandler(guild) as permission_handler:
         try:
             roles = permission_handler.get_permission_list(permission_object)
