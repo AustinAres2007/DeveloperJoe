@@ -8,7 +8,8 @@ from sources import (
     history, 
     exceptions, 
     errors,
-    confighandler
+    confighandler,
+    transformers
 )
 from sources.common import (
     commands_utils,
@@ -37,7 +38,7 @@ class History(commands.Cog):
         return final
 
     @discord.app_commands.command(name="delete", description="Delete a past saved conversation.")
-    async def delete_chat_history(self, interaction: discord.Interaction, history_id: str):
+    async def delete_chat_history(self, interaction: discord.Interaction, history_id: transformers.HistoryChoices):
         try:
             await interaction.response.defer(thinking=False, ephemeral=True)
             with history.DGHistorySession() as history_session:
@@ -53,7 +54,7 @@ class History(commands.Cog):
 
     @discord.app_commands.command(name="export", description="Export current chat history.")
     @discord.app_commands.choices(export_format=[discord.app_commands.Choice(name="Readable", value="u"), discord.app_commands.Choice(name="Raw", value="r")])
-    async def export_chat_history(self, interaction: discord.Interaction, name: str="", export_format: str | None=None):
+    async def export_chat_history(self, interaction: discord.Interaction, name: transformers.ChatChoices="", export_format: str | None=None):
 
         assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
@@ -66,7 +67,7 @@ class History(commands.Cog):
         await interaction.response.send_message("I have sent the conversation transcript to our direct messages.")
             
     @discord.app_commands.command(name="history", description="Get a past saved conversation.")
-    async def get_chat_history(self, interaction: discord.Interaction, history_id: str):
+    async def get_chat_history(self, interaction: discord.Interaction, history_id: transformers.HistoryChoices):
         try:
             with history.DGHistorySession() as history_session:
                 if history_chat := history_session.retrieve_chat_history(history_id):

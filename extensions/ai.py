@@ -41,11 +41,11 @@ class Communication(commands.Cog):
     async def start(self, 
                     interaction: discord.Interaction, 
                     chat_name: str | None=None, 
-                    stream_conversation: bool=False, 
-                    ai_model: discord.app_commands.Transform[tuple[str | None, str | None], transformers.ModelChoiceTransformer] | None=None, 
-                    in_thread: bool=False, 
-                    speak_reply: bool=False, 
-                    is_private: bool=False
+                    stream_conversation: transformers.BooleanChoices=False, 
+                    ai_model: transformers.ModelChoices | None=None, 
+                    in_thread: transformers.BooleanChoices=False, 
+                    speak_reply: transformers.BooleanChoices=False, 
+                    is_private: transformers.BooleanChoices=False
         ):
         
         assert isinstance(member := interaction.user, discord.Member)
@@ -105,7 +105,7 @@ class Communication(commands.Cog):
         
     @chat_group.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    async def ask_query(self, interaction: discord.Interaction, message: str, name: discord.app_commands.Transform[str, transformers.ChatChoiceTransformer] | None=None, stream: bool | None=None):
+    async def ask_query(self, interaction: discord.Interaction, message: str, name: transformers.ChatChoices | None=None, stream: transformers.BooleanChoices | None=None):
 
             assert isinstance(member := interaction.user, discord.Member)
             
@@ -133,7 +133,7 @@ class Communication(commands.Cog):
                 
     @chat_group.command(name="stop", description=f"Stop a {confighandler.get_config('bot_name')} session.")
     @discord.app_commands.describe(save_chat="If you want to save your transcript.", name="The name of the chat you want to end. This is NOT optional as this is a destructive command.")
-    async def stop(self, interaction: discord.Interaction, name: str, save_chat: bool=False):
+    async def stop(self, interaction: discord.Interaction, name: transformers.ChatChoices, save_chat: transformers.BooleanChoices=False):
         
         assert isinstance(member := interaction.user, discord.Member)
         if convo := self.client.get_user_conversation(member, name):
@@ -166,7 +166,7 @@ class Communication(commands.Cog):
         
     @chat_group.command(name="image", description="Create an image with specified parameters.")
     @discord.app_commands.describe(prompt=f"The keyword you want {confighandler.get_config('bot_name')} to describe.", save_to="What chat you want to save the image history too. (For exporting)") 
-    async def image_generate(self, interaction: discord.Interaction, prompt: str, save_to: str=""):
+    async def image_generate(self, interaction: discord.Interaction, prompt: str, save_to: transformers.ChatChoices=""):
         
         assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, save_to)
@@ -179,14 +179,14 @@ class Communication(commands.Cog):
 
     @chat_group.command(name="info", description=f"Displays information about your current {confighandler.get_config('bot_name')} Chat.")
     @discord.app_commands.describe(name="Name of the chat you want information on.")
-    async def get_info(self, interaction: discord.Interaction, name: str=""):
+    async def get_info(self, interaction: discord.Interaction, name: transformers.ChatChoices=""):
         
         assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
 
         uptime_delta = self.client.get_uptime()
         returned_embed = discord.Embed(title=f'"{convo.display_name}" Information')
-        print(convo.model._custom_args_set)
+        
         embeds = (
             {"name": "Started At", "value": str(convo.time), "inline": False},
             {"name": "Chat Length", "value": str(len(convo.context.context)), "inline": False},
@@ -209,7 +209,7 @@ class Communication(commands.Cog):
     
     @chat_group.command(name="switch", description="Changes your default chat. This is a convenience command.")
     @discord.app_commands.describe(name="Name of the chat you want to switch to.")
-    async def switch_default(self, interaction: discord.Interaction, name: str):
+    async def switch_default(self, interaction: discord.Interaction, name: transformers.ChatChoices):
         
         assert isinstance(member := interaction.user, discord.Member)
         convo = self.client.manage_defaults(member, name)
@@ -225,11 +225,13 @@ class Communication(commands.Cog):
             embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private} | Voice - {True if chat.type == types.DGChatTypesEnum.VOICE else False}", inline=False)
              
         await interaction.response.send_message(embed=embed)
-            
+    
+    
+    # TODO: add app_commands.describe
     @chat_group.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
     @discord.app_commands.describe(query="The question you wish to pose.")
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
-    async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: str | None):
+    async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: transformers.ModelChoices):
         
         assert isinstance(member := interaction.user, discord.Member)
         
@@ -246,7 +248,7 @@ class Communication(commands.Cog):
     
     @chat_group.command(name="analyse", description="Ask the bot to analyse a given image. Use /followup to ask more about the image.")
     @discord.app_commands.describe(query="The question you wish to pose about an image.", image_url="URL of the image you want to interact with.", chat_name="The name of the chat you want to use for this interaction.")
-    async def analyse_image(self, interaction: discord.Interaction, query: str | None=None, image_url: str | None=None, chat_name: str=""):
+    async def analyse_image(self, interaction: discord.Interaction, query: str | None=None, image_url: str | None=None, chat_name: transformers.ChatChoices=""):
         # TODO: Front end
         assert isinstance(member := interaction.user, discord.Member)
         
@@ -268,7 +270,7 @@ class Communication(commands.Cog):
         
     @chat_group.command(name="clear", description="Clear the chats context.")
     @discord.app_commands.describe(chat_name="Name of the chat which context will be cleared.")
-    async def clear_chat_context(self, interaction: discord.Interaction, chat_name: str=""):
+    async def clear_chat_context(self, interaction: discord.Interaction, chat_name: transformers.ChatChoices=""):
         
         assert isinstance(member := interaction.user, discord.Member)
         
@@ -284,8 +286,7 @@ class Communication(commands.Cog):
     """Model Customisation Commands"""
     
     @model_group.command(name="customise", description="Customise a model.")
-    @discord.app_commands.choices(configure_from=models.MODEL_CHOICES)
-    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: str, temperature: discord.app_commands.Range[float, 0, 2]=1, top_p: discord.app_commands.Range[float, 0]=0):
+    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: transformers.VanillaModelChoices, temperature: discord.app_commands.Range[float, 0, 2]=1, top_p: discord.app_commands.Range[float, 0]=0):
         with usermodelhandler.DGUserModelCustomisationHandler() as umh:
             model_type = commands_utils.get_modeltype_from_name(str(configure_from))
             umh.insert_user_model(interaction.user, model_type, custom_model_name, temperature=temperature, top_p=top_p)
@@ -293,14 +294,14 @@ class Communication(commands.Cog):
         await interaction.response.send_message(f"Made custom model with specified params.")
         
     @model_group.command(name="destroy", description="Delete a customised model.")
-    async def destroy_custom_model(self, interaction: discord.Interaction, model_name: str):
+    async def destroy_custom_model(self, interaction: discord.Interaction, model_name: transformers.CustomModelChoices):
         confirm = await self.client.get_input(interaction, f"Are you sure you want to delete this custom model configuration? Type `{developerconfig.QUERY_CONFIRMATION}` to confirm.")
 
         if not confirm or confirm.content != developerconfig.QUERY_CONFIRMATION:
             return await interaction.followup.send("Cancelled action.")
         
-        usermodelhandler.destroy_user_model(interaction.user, model_name)
-        await interaction.followup.send(f"Deleted customized model `{model_name}`.")
+        destroyed_model = usermodelhandler.destroy_user_model(interaction.user, model_name)
+        await interaction.followup.send(f"Deleted customized model `{str(destroyed_model)}`.")
         
     @model_group.command(name="list", description="List all customised models you have.")
     async def list_custom_models(self, interaction: discord.Interaction):

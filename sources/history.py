@@ -91,5 +91,8 @@ class DGHistorySession(database.DGDatabaseSession):
     
     def upload_chat_history(self, chat: chat.DGChat) -> list:
         json_dump = json.dumps(chat.context._display_context)
-        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.member.id, chat.name, json_dump, int(chat.private)))
-    
+        return self._exec_db_command("INSERT INTO history VALUES(?, ?, ?, ?, ?)", (chat.hid, chat.member.id, chat.display_name, json_dump, int(chat.private)))
+
+def get_user_histories(user_id: str) -> list:
+    with DGHistorySession() as DJHistory:
+        return DJHistory.retrieve_user_histories(user_id) 

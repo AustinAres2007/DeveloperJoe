@@ -9,7 +9,8 @@ from sources import (
     database,
     confighandler,
     errors,
-    models
+    models,
+    transformers
 )
 from sources.common import (
     commands_utils,
@@ -60,7 +61,7 @@ class Administration(_Cog):
     @discord.app_commands.checks.has_permissions(manage_channels=True)
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     @discord.app_commands.describe(ai_model="The AI model you want to lock.", role="The role that will be added to the specified model's list of allowed roles.")
-    async def lock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
+    async def lock_role(self, interaction: discord.Interaction, ai_model: transformers.VanillaModelChoices, role: discord.Role):
         
         if confighandler.GuildConfigAttributes.get_guild_model(role.guild).model == ai_model:
             return await interaction.response.send_message("You cannot lock this model as it currently is the this servers default AI model. You may change the default with `/admin default-model`")
@@ -74,7 +75,7 @@ class Administration(_Cog):
     @discord.app_commands.checks.has_permissions(manage_channels=True)
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     @discord.app_commands.describe(ai_model="The AI model you want to unlock.", role="The role that will be removed from the specified model's list of allowed roles.")
-    async def unlock_role(self, interaction: discord.Interaction, ai_model: str, role: discord.Role):
+    async def unlock_role(self, interaction: discord.Interaction, ai_model: transformers.VanillaModelChoices, role: discord.Role):
         with modelhandler.DGGuildDatabaseModelHandler(role.guild) as rules:
             model = commands_utils.get_modeltype_from_name(ai_model)
             
@@ -110,7 +111,7 @@ class Administration(_Cog):
     @admin_group.command(name="default-model", description="Changes the default model that will be used in certain circumstances.")
     @discord.app_commands.checks.has_permissions(administrator=True)
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
-    async def change_default_model_for_server(self, interaction: discord.Interaction, ai_model: str | None=None):
+    async def change_default_model_for_server(self, interaction: discord.Interaction, ai_model: transformers.VanillaModelChoices | None=None):
 
         assert isinstance(interaction.user, discord.Member)
         model_object: models.AIModel = commands_utils.get_modeltype_from_name(ai_model if isinstance(ai_model, str) else confighandler.get_guild_config_attribute(interaction.user.guild, 'default-ai-model'))(interaction.user)
@@ -138,7 +139,7 @@ class Administration(_Cog):
     
     @admin_group.command(name="voice-enabled", description=f"Configure if users can have spoken {confighandler.get_config('bot_name')} chats.")
     @discord.app_commands.checks.has_permissions(administrator=True)
-    async def config_voice(self, interaction: discord.Interaction, allow_voice: bool | None=None):
+    async def config_voice(self, interaction: discord.Interaction, allow_voice: transformers.BooleanChoices):
         assert isinstance(interaction.guild, discord.Guild)
         
         if allow_voice == None:
@@ -170,5 +171,6 @@ class Administration(_Cog):
             embed.add_field(name=f'Config Option: "{c_entry[0]}"', value=c_entry[1], inline=False)
         
         await interaction.response.send_message(embed=embed) 
+        
 async def setup(client):
     await client.add_cog(Administration(client))
