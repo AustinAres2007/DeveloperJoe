@@ -1,7 +1,6 @@
 import discord, datetime
 
 from discord.ext import commands
-from typing import Union
 
 # Local dependencies
 
@@ -38,13 +37,12 @@ class Communication(commands.Cog):
                                    in_thread=f"If you want a dedicated private thread to talk with {confighandler.get_config('bot_name')} in.",
                                    speak_reply=f"Weather you want voice mode on. If so, join a voice channel, and {confighandler.get_config('bot_name')} will join and speak your replies.",
                                    is_private="Weather you want other users to access the chats transcript if and when it is stopped and saved. It is public by default."
-                                   
     )
     async def start(self, 
                     interaction: discord.Interaction, 
                     chat_name: str | None=None, 
                     stream_conversation: bool=False, 
-                    ai_model: discord.app_commands.Transform[tuple[str, str | None] | None, transformers.ModelChoiceTransformer] | None=None, 
+                    ai_model: discord.app_commands.Transform[tuple[str | None, str | None], transformers.ModelChoiceTransformer] | None=None, 
                     in_thread: bool=False, 
                     speak_reply: bool=False, 
                     is_private: bool=False
@@ -58,10 +56,8 @@ class Communication(commands.Cog):
         name = chat_name if chat_name else f"{interaction.user.name}-{len(chats) if isinstance(chats, dict) else '0'}"
         chat_thread: discord.Thread | None = None
         
-        print(ai_model)
-        
-        model = ai_model[0] if isinstance(ai_model, tuple) else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
-        custom_model_name = ai_model[1] if isinstance(ai_model, tuple) else None
+        model = ai_model[0] if isinstance(ai_model, tuple) and ai_model[0] is not None else confighandler.GuildConfigAttributes.get_guild_model(member.guild)
+        custom_model_name = ai_model[1] if isinstance(ai_model, tuple) and ai_model[1] is not None else None
         
         # Error Checking
         
@@ -109,7 +105,7 @@ class Communication(commands.Cog):
         
     @chat_group.command(name="ask", description=f"Ask {confighandler.get_config('bot_name')} a question.")
     @discord.app_commands.describe(message=f"The query you want to send {confighandler.get_config('bot_name')}", name="The name of the chat you want to interact with. If no name is provided, it will use the default first chat name (Literal number 0)", stream="Weather or not you want the chat to appear overtime.")
-    async def ask_query(self, interaction: discord.Interaction, message: str, name: str="", stream: bool | None=None):
+    async def ask_query(self, interaction: discord.Interaction, message: str, name: discord.app_commands.Transform[str, transformers.ChatChoiceTransformer] | None=None, stream: bool | None=None):
 
             assert isinstance(member := interaction.user, discord.Member)
             

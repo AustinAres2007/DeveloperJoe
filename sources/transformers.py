@@ -1,4 +1,5 @@
-from typing import List
+from __future__ import annotations
+from typing import TYPE_CHECKING, List
 import discord
 from discord.app_commands.models import Choice
 
@@ -10,6 +11,11 @@ from .common import (
     commands_utils
 )
 
+if TYPE_CHECKING:
+    from ..joe import (
+        DeveloperJoe
+    )
+    
 class ModelChoiceTransformer(discord.app_commands.Transformer):
     async def autocomplete(self, interaction: discord.Interaction[discord.Client], value: int | float | str) -> List[Choice[str | int | float]]:
         user_custom_models = usermodelhandler.get_user_models(interaction.user)
@@ -21,19 +27,26 @@ class ModelChoiceTransformer(discord.app_commands.Transformer):
         
         return models_copy
     
-    async def transform(self, interaction: discord.Interaction[discord.Client], value: usermodelhandler.Any) -> tuple[str, str | None] | None:
+    async def transform(self, interaction: discord.Interaction[discord.Client], value) -> tuple[str | None, str | None]:
         try:
             model, custom = str(value).split("|")
-        except TypeError:
+        except ValueError:
             return (value, None)
-        
+
         if value is None:
-            return None
+            return (None, None)
         
         return (model, custom)
         
     
 class ChatChoiceTransformer(discord.app_commands.Transformer):
-    async def autocomplete(self, interaction: discord.Interaction[discord.Client], value: int | float | str) -> List[Choice[str | int | float]]:
-        ...
+    
+    async def autocomplete(self, interaction: discord.Interaction[DeveloperJoe], value: int | float | str) -> List[Choice[str | int | float]]:
+        try:
+            assert isinstance(member := interaction.user, discord.Member)
+            return [Choice(name=c.display_name, value=c.display_name) for c in interaction.client.get_all_user_conversations(member).values()]
+        except AssertionError:
+            return []
 
+    async def transform(self, interaction: discord.Interaction[discord.Client], value: usermodelhandler.Any) -> usermodelhandler.Any:
+        return value

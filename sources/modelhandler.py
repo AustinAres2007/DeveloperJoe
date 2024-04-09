@@ -226,7 +226,6 @@ class DGGuildDatabaseModelHandler(database.DGDatabaseSession): # TODO: Rewrite t
             def _does_have_senior_role():
                 return [True for r_id in model_roles if user_role >= user_role.guild.get_role(int(r_id))]
 
-            print(model_roles)
             return (bool(model_roles) == False) \
             or (user_role.id in model_roles if isinstance(model_roles, list) else False) \
             or (not model_roles or bool(_does_have_senior_role())) # Check if the model has no restrictions. The user has a role contained within any possible restrictions, or if the user has a role that is higher that of any lower role.
