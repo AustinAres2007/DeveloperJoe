@@ -58,39 +58,13 @@ class CustomisationProfile:
         self.check_items_with_dict(items, self.raw)
     
     @staticmethod
-    def check_items_with_dict(items: dict[Any, Any], profile_data: dict[Any, Any]) -> None:
-        
-        def check_value_type(v: Any) -> None:
-            
-            def _is_bool() -> bool:
-                bool(int(v))
-                return True
-            def _is_int() -> bool:
-                int(v)
-                return True
-            def _is_float() -> bool:
-                float(v)
-                return True
-            def _is_str() -> bool:
-                str(v)
-                return True
-            
-            final_eval = [_is_bool(), _is_int(), _is_float(), _is_str()]
-            
-            print(final_eval)
-            if all(final_eval):
-                return
-            raise exceptions.DGException(f"Invalid value type: {v}")
-        
-        try:
-            for key, value in profile_data.items():
-                if key in items:
-                    check_value_type(value)
-                elif key not in items:
-                    raise exceptions.ModelError(f'Configuration key "{key}" is not in the models accepted configuration keys.')
-        except ValueError:
-            raise exceptions.ModelError(f'Configuration key type does not match the models accepted type.')
-        
+    def check_items_with_dict(items: dict[Any, Any], profile_data: dict[Any, Any]) -> None:    
+        for key in profile_data.keys():
+            if key in items:
+                continue
+            elif key not in items:
+                raise exceptions.ModelError(f'Configuration key "{key}" is not in the models accepted configuration keys.')
+    
     @property
     def raw(self) -> dict:
         return self._model_json_obj
