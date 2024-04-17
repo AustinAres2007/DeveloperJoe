@@ -287,7 +287,9 @@ class Communication(commands.Cog):
         await interaction.followup.send("Cleared all chat context.")
     
     """Model Customisation Commands"""
+    
     # TODO: Create describe decorators and with /create, make any parameters "addable"
+    # TODO: Change parameter names to the ones specified in commands.md
     
     @profile_group.command(name="create", description="Create a customisation profile for a model.")
     async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: transformers.VanillaModelChoices, temperature: discord.app_commands.Range[float, 0, 2]=1, top_p: discord.app_commands.Range[float, 0]=0):

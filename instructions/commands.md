@@ -87,6 +87,34 @@ Commands that relate to starting a chat, or anything relating to it
       - `query`: What you want to ask DeveloperJoe.
       - `ai_model`: What model of AI you want to use. This is optional and a default will be used if not provided.
 
+### AI Models and Configuration
+
+Commands that relate to fine-tuning AI models, or just saying which are avalible.
+
+1. #### /profile create `profile_name` `model_based_from` `model_configuration`
+
+    - This command creates a model profile that can change how the AI behaves.
+    - This command has 3 arguments, though, argument 3 has special usage. Read more for more context.
+        - `profile_name`: Name of the profile you want to create.
+        - `model_based_from`: Which model that this profile is designed to be used by. When executing this command, the configuration will be checked to work with this model.
+        - `model_configuration`: `**todo**`
+
+2. #### /profile destroy `profile_name`
+
+    - This command destroys a model profile that was created with `/profile create`
+    - This command has 1 argument.
+        - `profile_name`: Name of the profile you want to destroy.
+
+3. #### /profile list
+
+    - This command lists all model profiles you currently have.
+    - This command has no arguments.
+
+4. #### /models
+
+   - This command lists all models avalible to use.
+   - This command has no arguments.
+
 ### Chat Settings & Management (Chat Commands)
 
 Commands that relate configuration of management of an already existing chat.
@@ -177,17 +205,12 @@ Commands that relate to chat history management (Like saving the transcript for 
 
 General commands that have little to no relation to a specific group.
 
-1. #### /models
-
-   - This command lists all models avalible to use.
-   - This command has no arguments.
-
-2. #### /times
+1. #### /times
 
    - This command lists all timezones avalible to use by the bot. Only used for administrative purposes but usable by all.
    - This command has no arguments.
 
-3. #### /server
+2. #### /server
 
    - This command lists information about the server, it's configuration, etc..
    - This command has no arguments.
