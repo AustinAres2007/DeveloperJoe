@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import json
+from multiprocessing import Value
 from typing import TYPE_CHECKING, Any, Type
 
 from . import (
@@ -52,15 +53,43 @@ class CustomisationProfile:
     
     def get_attribute(self, attribute: str) -> Any | None:
         return self._model_json_obj.get(attribute, None)
-
+    
     def check_items_with(self, items: dict[Any, Any]) -> None:
-        for key, value in self.raw.items():
-            if key in items and type(value) == type(items[key]):
-                continue
-            elif key not in items:
-                raise exceptions.ModelError(f'Configuration key "{key}" is not in the models accepted configuration keys.')
-            elif key in items and type(value) != type(items[key]):
-                raise exceptions.ModelError(f'Configuration key type does not match the models accepted type. (Should be {type(items[key])}, it is {type(value)})', key)
+        self.check_items_with_dict(items, self.raw)
+    
+    @staticmethod
+    def check_items_with_dict(items: dict[Any, Any], profile_data: dict[Any, Any]) -> None:
+        
+        def check_value_type(v: Any) -> None:
+            
+            def _is_bool() -> bool:
+                bool(int(v))
+                return True
+            def _is_int() -> bool:
+                int(v)
+                return True
+            def _is_float() -> bool:
+                float(v)
+                return True
+            def _is_str() -> bool:
+                str(v)
+                return True
+            
+            final_eval = [_is_bool(), _is_int(), _is_float(), _is_str()]
+            
+            print(final_eval)
+            if all(final_eval):
+                return
+            raise exceptions.DGException(f"Invalid value type: {v}")
+        
+        try:
+            for key, value in profile_data.items():
+                if key in items:
+                    check_value_type(value)
+                elif key not in items:
+                    raise exceptions.ModelError(f'Configuration key "{key}" is not in the models accepted configuration keys.')
+        except ValueError:
+            raise exceptions.ModelError(f'Configuration key type does not match the models accepted type.')
         
     @property
     def raw(self) -> dict:
@@ -129,13 +158,14 @@ def destroy_user_model(user: discord.User | discord.Member, model_name: str) -> 
     
     return model
 
-def add_user_model(user: discord.User | discord.Member, based_model: models.AIModel | Type[models.AIModel], model_name: str, **model_kwargs) -> CustomisationProfile:
+def add_user_model(user: discord.User | discord.Member, based_model: models.AIModel | Type[models.AIModel], model_name: str, **model_kwargs: Any) -> CustomisationProfile:
     with DGUserModelCustomisationHandler() as DGUmch:
+        based_model.check_if_profile_suitable(model_kwargs)
+        
         DGUmch.insert_user_model(user, based_model, model_name, **model_kwargs)
         profile = get_user_model(user, model_name)
         
         if isinstance(profile, CustomisationProfile):
-            based_model.check_if_profile_suitable(profile)
             return profile
         else:
             raise exceptions.ModelError(f"Could not add custom configuration profile. Check database. ({profile})")

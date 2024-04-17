@@ -382,8 +382,8 @@ class AIModel(ABC):
         return modelhandler.user_has_model_permissions(self.member, type(self))
     
     @classmethod
-    def check_if_profile_suitable(cls, profile: usermodelhandler.CustomisationProfile):
-        return profile.check_items_with(cls.accepted_keys)
+    def check_if_profile_suitable(cls, profile: usermodelhandler.CustomisationProfile | dict[Any, Any]):
+        return usermodelhandler.CustomisationProfile.check_items_with_dict(cls.accepted_keys, profile.raw if isinstance(profile, usermodelhandler.CustomisationProfile) else profile)
     
     def __init__(self, member: discord.Member, customisation_profile: usermodelhandler.CustomisationProfile | None=None) -> None: # TODO: Change so that the customised model instance is provided, not its name.
         
@@ -463,6 +463,11 @@ class AIModel(ABC):
     
 class GPTModel(AIModel):
     
+    accepted_keys = {
+        "temperature": int,
+        "top_p": int
+    }
+    
     @staticmethod
     def is_enabled() -> bool:
         return confighandler.has_api_key("openai_api_key")
@@ -498,11 +503,6 @@ class GPT3Turbo(GPTModel):
     can_read_images = False
     enabled = GPTModel.is_enabled()
     
-    accepted_keys = {
-        "temperature": int,
-        "top_p": int
-    }
-    
     @check_can_talk
     async def ask_model(self, query: str) -> responses.OpenAIQueryResponse:
         if self._check_user_permissions():
@@ -523,7 +523,7 @@ class GPT3Turbo(GPTModel):
 
 @register_model
 class GPT4(GPT3Turbo):
-    
+
     model = "gpt-4"
     description = "Slightly better at everything that GPT-3 does, costs more. For normal use, use GPT-3."
     display_name = "GPT 4"
@@ -553,6 +553,8 @@ class GPT4Vision(GPT4):
     can_generate_images = True
     can_read_images = True
     enabled = GPTModel.is_enabled()
+    
+    accepted_keys = {"b": float}
     
     def __init__(self, member: discord.Member, custom_model_name: usermodelhandler.CustomisationProfile | None=None) -> None:
         super().__init__(member, custom_model_name)

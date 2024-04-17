@@ -56,7 +56,8 @@ def get_modeltype_from_name(name: str) -> Type[models.AIModel]:
     """Get AI Model from actual model name. (Get `models.GPT4` from entering `gpt-4`)"""
     if name in list(models.registered_models):
         return models.registered_models[name]
-    raise exceptions.DGException(f"Inconfigured AI model setup. This is a fatal coding error.\n\n**Debug Information**\n\nFailed Model: {name}\nModel Map: {models.registered_models}\nName Parameter Type: {type(name)}")
+    # old: raise exceptions.DGException(f"Inconfigured AI model setup. This is a fatal coding error.\n\n**Debug Information**\n\nFailed Model: {name}\nModel Map: {models.registered_models}\nName Parameter Type: {type(name)}")
+    raise exceptions.DGException(f'No model matching the name: "{name}".')
 
 def modeltype_is_in_models(name: str):
     return name in list(models.registered_models)

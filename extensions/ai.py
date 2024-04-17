@@ -1,4 +1,4 @@
-import discord, datetime
+import discord, datetime, re
 
 from discord.ext import commands
 
@@ -289,38 +289,46 @@ class Communication(commands.Cog):
     """Model Customisation Commands"""
     
     # TODO: Create describe decorators and with /create, make any parameters "addable"
-    # TODO: Change parameter names to the ones specified in commands.md
     
     @profile_group.command(name="create", description="Create a customisation profile for a model.")
-    async def add_custom_model(self, interaction: discord.Interaction, custom_model_name: str, configure_from: transformers.VanillaModelChoices, temperature: discord.app_commands.Range[float, 0, 2]=1, top_p: discord.app_commands.Range[float, 0]=0):
+    async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str):
         readable_types = {
             bool: "1 or 0 (Boolean)",
             int: "Any positive number (Integer)",
             float: "Any decimal number (Float)",
             str: "Text (String)"
         }
+        
+        def _Extract_arguments() -> dict[str, bool | int | float | str]:
+            try:
+                matches = re.findall(r'(\w+)\s*=\s*(\S+)', model_configuration)
+                return {match[0]: match[1] for match in matches}
+            except IndexError:
+                raise exceptions.DGException("Incorrect syntax while writing model configuration. Example: `n = 1`")
+            
         try:
+            actual_arguments = _Extract_arguments()
             with usermodelhandler.DGUserModelCustomisationHandler() as umh:
                 if len(umh.fetch_user_models(interaction.user)) == 25:
                     return await interaction.response.send_message("Cannot add more than 25 customised models.")
                 
-                model_type = commands_utils.get_modeltype_from_name(str(configure_from))
-                usermodelhandler.add_user_model(interaction.user, model_type, custom_model_name, temperature=temperature, top_p=top_p)
+                model_type = commands_utils.get_modeltype_from_name(str(model_based_from))
+                usermodelhandler.add_user_model(interaction.user, model_type, profile_name, **actual_arguments) # TODO: get kwargs from model_configuration
 
             await interaction.response.send_message(f"Made custom model with specified params.") # TODO: Make reply more verbose, but easier to understand
         except exceptions.ModelError:
             # TODO: Fix problem where CORRECT keys arent accepted.
             accepted_keys = "\n".join(f"`{key}` - *{readable_types[value]}*" for key, value in model_type.accepted_keys.items())
-            await interaction.response.send_message(f"Made custom model successfully, but at least one incorrect configuration entry was provided. \n\n**Accepted Entries**\n\n{accepted_keys if accepted_keys else "No customisation options allowed."}")
+            await interaction.response.send_message(f"At least one incorrect configuration entry was provided. \n\n**Accepted Entries**\n\n{accepted_keys if accepted_keys else "No customisation options allowed."}\n\n**`model_configuration` Example**\n\n`temperature = 1, top_p = 1`")
             
     @profile_group.command(name="destroy", description="Delete a customisation profile for a model.")
-    async def destroy_custom_model(self, interaction: discord.Interaction, model_name: transformers.CustomModelChoices):
+    async def destroy_custom_model(self, interaction: discord.Interaction, profile_name: transformers.CustomModelChoices):
         confirm = await self.client.get_input(interaction, f"Are you sure you want to delete this custom model configuration? Type `{developerconfig.QUERY_CONFIRMATION}` to confirm.")
 
         if not confirm or confirm.content != developerconfig.QUERY_CONFIRMATION:
             return await interaction.followup.send("Cancelled action.")
         
-        destroyed_model = usermodelhandler.destroy_user_model(interaction.user, model_name)
+        destroyed_model = usermodelhandler.destroy_user_model(interaction.user, profile_name)
         await interaction.followup.send(f"Deleted customized model `{str(destroyed_model)}`.")
         
     @profile_group.command(name="list", description="List all customation profiles you have.")
