@@ -47,15 +47,6 @@ class General(_Cog):
     async def give_zones(self, interaction: discord.Interaction):
         await interaction.response.send_message(file=commands_utils.to_file_fp("misc/timezones.txt"))
     
-    @discord.app_commands.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
-    async def get_models(self, interaction: discord.Interaction):
-        embed = self.client.get_embed("AI Models")
-        model_values = models.registered_models.values()
-
-        # Note: Can only be 25 embeds.
-        [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description}\nEnabled? {model.enabled}\nStream Text? {model.can_stream}\nArt Generation? {model.can_generate_images}\nRead Images? {model.can_read_images}"), inline=False) for model in model_values]
-        await interaction.response.send_message(embed=embed)
-    
     @discord.app_commands.command(name="server", description="Lists general information about the server and the servers settings.")
     async def list_server(self, interaction: discord.Interaction):
         assert isinstance(guild := interaction.guild, discord.Guild)

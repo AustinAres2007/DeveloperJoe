@@ -97,7 +97,14 @@ Commands that relate to fine-tuning AI models, or just saying which are avalible
     - This command has 3 arguments, though, argument 3 has special usage. Read more for more context.
         - `profile_name`: Name of the profile you want to create.
         - `model_based_from`: Which model that this profile is designed to be used by. When executing this command, the configuration will be checked to work with this model.
-        - `model_configuration`: `**todo**`
+        - `model_configuration`: Every AI model has a list of customisable attributes it accepts. For example, the model may only accept the "temperature" to be controlled. Temperature meaning the fine-tuning of the model between a creative, or a more deterministic nature. To list all accepted configurable values, just type use the command `/model attributes` with your desired model.
+
+         The syntax for customising attributes (with the `model_configuration` parameter) is as follows:
+         You type the attribute name, followed by a space, an equals sign, another space, then the attribute's value.
+
+         For example:
+
+         `temperature = 1` or `top_p = 1`
 
 2. #### /profile destroy `profile_name`
 
@@ -110,10 +117,16 @@ Commands that relate to fine-tuning AI models, or just saying which are avalible
     - This command lists all model profiles you currently have.
     - This command has no arguments.
 
-4. #### /models
+4. #### /model models
 
    - This command lists all models avalible to use.
    - This command has no arguments.
+
+5. #### /model attributes
+
+   - This command lists all avalible customisation options for the specified model. Use in tandem with `/profile create`
+   - This command has 1 argument.
+      - `ai_model`: Name of the AI which attributes will be listed.
 
 ### Chat Settings & Management (Chat Commands)
 

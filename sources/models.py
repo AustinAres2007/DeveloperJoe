@@ -200,6 +200,7 @@ def _handle_error(response: responses.BaseAIErrorResponse) -> None:
     raise exceptions.DGException(response.error_message, response.error_code)
     
 async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  model: str, api_key: str, model_configuration: usermodelhandler.CustomisationProfile | None=None, **kwargs) -> responses.OpenAIQueryResponse:
+    
     temp_context: list = context.get_temporary_context(query) if context else GPTConversationContext.generate_empty_context(query)
     
     if not isinstance(context, GPTConversationContext | None):
@@ -464,8 +465,11 @@ class AIModel(ABC):
 class GPTModel(AIModel):
     
     accepted_keys = {
-        "temperature": int,
-        "top_p": int
+        "temperature": float,
+        "top_p": float,
+        "max_tokens": int,
+        "repetition_penalty": float,
+        "presence_penalty": float
     }
     
     @staticmethod
@@ -553,8 +557,6 @@ class GPT4Vision(GPT4):
     can_generate_images = True
     can_read_images = True
     enabled = GPTModel.is_enabled()
-    
-    accepted_keys = {"b": float}
     
     def __init__(self, member: discord.Member, custom_model_name: usermodelhandler.CustomisationProfile | None=None) -> None:
         super().__init__(member, custom_model_name)

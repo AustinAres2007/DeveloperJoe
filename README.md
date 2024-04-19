@@ -48,9 +48,11 @@ If there are any errors, check the file `misc/bot_log.log`, contact me, and give
 ## Release Notes 1.4.7 & 1.4.8
 
 - New command: /histories - List all histories (saved chats) the user has.
-- New command: /model customise - Customise a specified model
-- New command: /model destroy - Destroy a custom model made with /model customise
+- New command: /profile create - Customise a specified model
+- New command: /profile destroy - Destroy a custom model made with /model customise
 - New command: /model list - List all customised models
+
+- Moved command: /models -> /model models
 
 ## New Features
 

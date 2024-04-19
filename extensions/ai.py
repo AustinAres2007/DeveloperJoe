@@ -22,6 +22,13 @@ from sources.common import (
     types
 )
 
+readable_types = {
+    bool: "1 or 0 (Boolean)",
+    int: "Any positive number (Integer)",
+    float: "Any decimal number (Float)",
+    str: "Text (String)"
+}
+
 class Communication(commands.Cog):
 
     def __init__(self, _client: DeveloperJoe):
@@ -291,23 +298,16 @@ class Communication(commands.Cog):
     # TODO: Create describe decorators and with /create, make any parameters "addable"
     
     @profile_group.command(name="create", description="Create a customisation profile for a model.")
-    async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str):
-        readable_types = {
-            bool: "1 or 0 (Boolean)",
-            int: "Any positive number (Integer)",
-            float: "Any decimal number (Float)",
-            str: "Text (String)"
-        }
-        
+    async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str | None):
         def _Extract_arguments() -> dict[str, bool | int | float | str]:
             try:
-                matches = re.findall(r'(\w+)\s*=\s*(\S+)', model_configuration)
+                matches = re.findall(r'(\w+)\s*=\s*(\S+)', str(model_configuration))
                 return {match[0]: match[1] for match in matches}
             except IndexError:
                 raise exceptions.DGException("Incorrect syntax while writing model configuration. Example: `n = 1`")
             
         try:
-            actual_arguments = _Extract_arguments()
+            actual_arguments = _Extract_arguments() if isinstance(model_configuration, str) else {"thingy_chungus_bingus": 0}
             with usermodelhandler.DGUserModelCustomisationHandler() as umh:
                 if len(umh.fetch_user_models(interaction.user)) == 25:
                     return await interaction.response.send_message("Cannot add more than 25 customised models.")
@@ -331,12 +331,28 @@ class Communication(commands.Cog):
         destroyed_model = usermodelhandler.destroy_user_model(interaction.user, profile_name)
         await interaction.followup.send(f"Deleted customized model `{str(destroyed_model)}`.")
         
-    @profile_group.command(name="list", description="List all customation profiles you have.")
+    @model_group.command(name="list", description="List all customation profiles you have.")
     async def list_custom_models(self, interaction: discord.Interaction):
         user_models = usermodelhandler.get_user_models(interaction.user)
 
         reply_text = "\n\n".join([f"> **{model.model_name}**\n\n*Based off of:* `{commands_utils.get_modeltype_from_name(model.based_model).display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in model._model_json_obj.items()])}" for model in user_models])
         await interaction.response.send_message(reply_text)
+    
+    @model_group.command(name="attributes", description="Lists all customisation parameters. Use with /profile create.")
+    async def list_model_params(self, interaction: discord.Interaction, ai_model: transformers.VanillaModelChoiceTransformer):
+        model_type = commands_utils.get_modeltype_from_name(str(ai_model))
+        accepted_keys = "\n".join(f"`{key}` - *{readable_types[value]}*" for key, value in model_type.accepted_keys.items())
+        
+        await interaction.response.send_message(f"Avalible Parameters for `{model_type.display_name}`\n\n{accepted_keys}")
+    
+    @model_group.command(name="models", description="Gives a list of models. Not all of them may be usable depending on your permissions.")
+    async def get_models(self, interaction: discord.Interaction):
+        embed = self.client.get_embed("AI Models")
+        model_values = models.registered_models.values()
+        
+        # Note: Can only be 25 embeds.
+        [embed.add_field(name=model.display_name, value=commands_utils.true_to_yes(f"{model.description}\nEnabled? {model.enabled}\nStream Text? {model.can_stream}\nArt Generation? {model.can_generate_images}\nRead Images? {model.can_read_images}"), inline=False) for model in model_values]
+        await interaction.response.send_message(embed=embed)
         
 async def setup(client):
     await client.add_cog(Communication(client))
