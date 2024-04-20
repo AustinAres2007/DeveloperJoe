@@ -295,13 +295,13 @@ class Communication(commands.Cog):
     
     """Model Customisation Commands"""
     
-    # TODO: Create describe decorators and with /create, make any parameters "addable"
+    
     
     @profile_group.command(name="create", description="Create a customisation profile for a model.")
     async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str | None):
         def _Extract_arguments() -> dict[str, bool | int | float | str]:
             try:
-                matches = re.findall(r'(\w+)\s*=\s*(\S+)', str(model_configuration))
+                matches = re.findall(r'(\w+)\s*=\s*(\w+)', str(model_configuration))
                 return {match[0]: match[1] for match in matches}
             except IndexError:
                 raise exceptions.DGException("Incorrect syntax while writing model configuration. Example: `n = 1`")
@@ -313,9 +313,10 @@ class Communication(commands.Cog):
                     return await interaction.response.send_message("Cannot add more than 25 customised models.")
                 
                 model_type = commands_utils.get_modeltype_from_name(str(model_based_from))
-                usermodelhandler.add_user_model(interaction.user, model_type, profile_name, **actual_arguments) # TODO: get kwargs from model_configuration
+                usermodelhandler.add_user_model(interaction.user, model_type, profile_name, **actual_arguments)
 
             await interaction.response.send_message(f"Made custom model with specified params.") # TODO: Make reply more verbose, but easier to understand
+            
         except exceptions.ModelError:
             # TODO: Fix problem where CORRECT keys arent accepted.
             accepted_keys = "\n".join(f"`{key}` - *{readable_types[value]}*" for key, value in model_type.accepted_keys.items())
@@ -331,7 +332,7 @@ class Communication(commands.Cog):
         destroyed_model = usermodelhandler.destroy_user_model(interaction.user, profile_name)
         await interaction.followup.send(f"Deleted customized model `{str(destroyed_model)}`.")
         
-    @model_group.command(name="list", description="List all customation profiles you have.")
+    @profile_group.command(name="list", description="List all customation profiles you have.")
     async def list_custom_models(self, interaction: discord.Interaction):
         user_models = usermodelhandler.get_user_models(interaction.user)
 

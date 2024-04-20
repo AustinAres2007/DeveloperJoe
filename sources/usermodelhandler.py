@@ -9,6 +9,7 @@ from . import (
 )
 from .common import (
     developerconfig,
+    commands_utils
 )
 
 import discord
@@ -37,9 +38,16 @@ class CustomisationProfile:
     
     def __post_init__(self):
         self._model_json_obj: dict = json.loads(str(self._model_json_raw))
+        based_model_type = commands_utils.get_modeltype_from_name(self.based_model)
+        
         for k, v in self._model_json_obj.items():
-            setattr(self, k, v)
-    
+            try:
+                # XXX: correct_v does not work as a solution (URGENT, CHECK NOTION)
+                correct_v = v if k not in based_model_type.accepted_keys.keys() else based_model_type.accepted_keys[k](v)
+                setattr(self, k, correct_v)
+            except ValueError:
+                setattr(self, k, v)
+                
     def __str__(self) -> str:
         return self.model_name
     
@@ -76,6 +84,7 @@ class DatabaseSQLCommands:
     DROP_MODEL = "DELETE FROM custom_models WHERE uid=? AND model_name=?"
     
 class DGUserModelCustomisationHandler(database.DGDatabaseSession):
+    
     def __init__(self, database: str = developerconfig.DATABASE_FILE, reset_if_failed_check: bool = True):
         super().__init__(database, reset_if_failed_check)
     
