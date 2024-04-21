@@ -1,4 +1,4 @@
-import discord, datetime, re
+import discord, datetime, re, ast
 
 from discord.ext import commands
 
@@ -23,7 +23,7 @@ from sources.common import (
 )
 
 readable_types = {
-    bool: "1 or 0 (Boolean)",
+    bool: "True or False (Boolean)",
     int: "Any positive number (Integer)",
     float: "Any decimal number (Float)",
     str: "Text (String)"
@@ -38,6 +38,8 @@ class Communication(commands.Cog):
     chat_group = discord.app_commands.Group(name="chat", description="Chat command group. All subcommands relate to starting or managing chats.")
     model_group = discord.app_commands.Group(name="model", description="Model command group. All subcommands relate to model customisation.")
     profile_group = discord.app_commands.Group(name="profile", description="Profile command group. All subcommands relate to creating, modifing or viewing model profiles.")
+    
+    """Chat Group Commands"""
     
     @chat_group.command(name="start", description=f"Start a {confighandler.get_config('bot_name')} Session")
     @discord.app_commands.describe(chat_name="The name of the chat you will start. If none is provided, your name and the amount of chats you have so far will be the name.", 
@@ -232,14 +234,15 @@ class Communication(commands.Cog):
         embed = self.client.get_embed(f"{member} Conversations")
         
         for chat in self.client.get_all_user_conversations(member).values():
-            embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private} | Voice - {True if chat.type == types.DGChatTypesEnum.VOICE else False}", inline=False)
+            embed.add_field(name=chat.display_name, value=f"Model — {chat.model.display_name} | Is Private — {chat.private} | Voice - {True if chat.type == types.DGChatTypesEnum.VOICE else False}", inline=False) # TODO: Remove types.py and do this another way (Chat Type - Voice or Text)
              
         await interaction.response.send_message(embed=embed)
     
-    
-    # TODO: add app_commands.describe
     @chat_group.command(name="inquire", description="Ask a one-off question. This does not require a chat. Context will not be saved.")
-    @discord.app_commands.describe(query="The question you wish to pose.")
+    @discord.app_commands.describe(
+        query="The question you wish to pose.",
+        ai_model="The model being used for the AI."
+    )
     @discord.app_commands.choices(ai_model=models.MODEL_CHOICES)
     async def inquire_once(self, interaction: discord.Interaction, query: str, ai_model: transformers.ModelChoices):
         
@@ -257,9 +260,13 @@ class Communication(commands.Cog):
             return await interaction.response.send_message(reply)
     
     @chat_group.command(name="analyse", description="Ask the bot to analyse a given image. Use /followup to ask more about the image.")
-    @discord.app_commands.describe(query="The question you wish to pose about an image.", image_url="URL of the image you want to interact with.", chat_name="The name of the chat you want to use for this interaction.")
+    @discord.app_commands.describe(
+        query="The question you wish to pose about an image.",
+        image_url="URL of the image you want to interact with.",
+        chat_name="The name of the chat you want to use for this interaction."
+    )
     async def analyse_image(self, interaction: discord.Interaction, query: str | None=None, image_url: str | None=None, chat_name: transformers.ChatChoices=""):
-        # TODO: Front end
+
         assert isinstance(member := interaction.user, discord.Member)
         
         convo = self.client.manage_defaults(member, chat_name)
@@ -295,27 +302,31 @@ class Communication(commands.Cog):
     
     """Model Customisation Commands"""
     
-    
-    
     @profile_group.command(name="create", description="Create a customisation profile for a model.")
-    async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str | None):
+    @discord.app_commands.describe(
+        profile_name="Name of the profile you are creating.",
+        model_based_from="Which AI model this profile will be optimised for. If using this profile with another AI, it may not work.", 
+        model_configuration="The parameters to configure. Refer to the command usage guide or use this command incorrectly for help."
+    )
+    async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str):
         def _Extract_arguments() -> dict[str, bool | int | float | str]:
             try:
-                matches = re.findall(r'(\w+)\s*=\s*(\w+)', str(model_configuration))
-                return {match[0]: match[1] for match in matches}
+                matches = re.findall(r'(\w+)\s*=\s*([\w+\.]+)', str(model_configuration))
+                return {match[0]: ast.literal_eval(match[1]) for match in matches}
             except IndexError:
                 raise exceptions.DGException("Incorrect syntax while writing model configuration. Example: `n = 1`")
             
         try:
-            actual_arguments = _Extract_arguments() if isinstance(model_configuration, str) else {"thingy_chungus_bingus": 0}
+            actual_arguments = _Extract_arguments()
             with usermodelhandler.DGUserModelCustomisationHandler() as umh:
                 if len(umh.fetch_user_models(interaction.user)) == 25:
                     return await interaction.response.send_message("Cannot add more than 25 customised models.")
                 
                 model_type = commands_utils.get_modeltype_from_name(str(model_based_from))
-                usermodelhandler.add_user_model(interaction.user, model_type, profile_name, **actual_arguments)
+                profile = usermodelhandler.add_user_model(interaction.user, model_type, profile_name, **actual_arguments)
 
-            await interaction.response.send_message(f"Made custom model with specified params.") # TODO: Make reply more verbose, but easier to understand
+            reply_text = "\n\n".join([f"> Made custom model **{profile_name}**\n\n*Based off of:* `{model_type.display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in profile._model_json_obj.items()])}"])
+            await interaction.response.send_message(reply_text) # TODO: Make reply more verbose, but easier to understand
             
         except exceptions.ModelError:
             # TODO: Fix problem where CORRECT keys arent accepted.
@@ -323,6 +334,9 @@ class Communication(commands.Cog):
             await interaction.response.send_message(f"At least one incorrect configuration entry was provided. \n\n**Accepted Entries**\n\n{accepted_keys if accepted_keys else "No customisation options allowed."}\n\n**`model_configuration` Example**\n\n`temperature = 1, top_p = 1`")
             
     @profile_group.command(name="destroy", description="Delete a customisation profile for a model.")
+    @discord.app_commands.describe(
+        profile_name="Name of the profile you are creating."
+    )
     async def destroy_custom_model(self, interaction: discord.Interaction, profile_name: transformers.CustomModelChoices):
         confirm = await self.client.get_input(interaction, f"Are you sure you want to delete this custom model configuration? Type `{developerconfig.QUERY_CONFIRMATION}` to confirm.")
 
@@ -339,7 +353,12 @@ class Communication(commands.Cog):
         reply_text = "\n\n".join([f"> **{model.model_name}**\n\n*Based off of:* `{commands_utils.get_modeltype_from_name(model.based_model).display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in model._model_json_obj.items()])}" for model in user_models])
         await interaction.response.send_message(reply_text)
     
+    """Model Group Commands"""
+    
     @model_group.command(name="attributes", description="Lists all customisation parameters. Use with /profile create.")
+    @discord.app_commands.describe(
+        ai_model="The model being used for the AI."
+    )
     async def list_model_params(self, interaction: discord.Interaction, ai_model: transformers.VanillaModelChoiceTransformer):
         model_type = commands_utils.get_modeltype_from_name(str(ai_model))
         accepted_keys = "\n".join(f"`{key}` - *{readable_types[value]}*" for key, value in model_type.accepted_keys.items())

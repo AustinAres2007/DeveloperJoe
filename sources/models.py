@@ -468,7 +468,6 @@ class GPTModel(AIModel):
         "temperature": float,
         "top_p": float,
         "max_tokens": int,
-        "repetition_penalty": float,
         "presence_penalty": float
     }
     

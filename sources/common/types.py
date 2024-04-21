@@ -1,4 +1,6 @@
 
+# This is useless, I kinda wanna remove it. Either give it more use, or remove it.
+
 from enum import Enum
 from typing import TYPE_CHECKING, Protocol, Literal
 
