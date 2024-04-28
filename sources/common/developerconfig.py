@@ -6,7 +6,13 @@ from discord import TextChannel, Thread, TextChannel
 from . import (
     voice_checks,
 )
+
 TIMEZONE = "UTC" # Global timezone of the bot. Can be overridden per guild config settings.
+
+"""Emojis"""
+
+SUCCESS_MARK = ":white_check_mark:"
+FAILURE_MARK = ":x:"
 
 """ADVANCED. SOURCE CODE EDITORS ONLY"""
     

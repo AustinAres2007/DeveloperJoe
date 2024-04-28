@@ -311,10 +311,11 @@ class Communication(commands.Cog):
     async def add_custom_model(self, interaction: discord.Interaction, profile_name: str, model_based_from: transformers.VanillaModelChoices, model_configuration: str):
         def _Extract_arguments() -> dict[str, bool | int | float | str]:
             try:
-                matches = re.findall(r'(\w+)\s*=\s*([\w+\.]+)', str(model_configuration))
+                matches = re.findall(r'(\w+)\s*=\s*([\w+\.\'\"]+)', str(model_configuration))
+                print(matches)
                 return {match[0]: ast.literal_eval(match[1]) for match in matches}
-            except IndexError:
-                raise exceptions.DGException("Incorrect syntax while writing model configuration. Example: `n = 1`")
+            except (IndexError, ValueError): 
+                raise exceptions.DGException('Incorrect syntax while writing model configuration. Example: `n = 1` and if the value is a string, it must be within quotation marks. Example: `text = "Hello! Good day!"`')
             
         try:
             actual_arguments = _Extract_arguments()
@@ -325,13 +326,13 @@ class Communication(commands.Cog):
                 model_type = commands_utils.get_modeltype_from_name(str(model_based_from))
                 profile = usermodelhandler.add_user_model(interaction.user, model_type, profile_name, **actual_arguments)
 
-            reply_text = "\n\n".join([f"> Made custom model **{profile_name}**\n\n*Based off of:* `{model_type.display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in profile._model_json_obj.items()])}"])
+            reply_text = f"{developerconfig.SUCCESS_MARK} Made custom model **{profile_name}**\n\n*Based off of:* `{model_type.display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in profile._model_json_obj.items()])}"
             await interaction.response.send_message(reply_text) # TODO: Make reply more verbose, but easier to understand
             
         except exceptions.ModelError:
             # TODO: Fix problem where CORRECT keys arent accepted.
             accepted_keys = "\n".join(f"`{key}` - *{readable_types[value]}*" for key, value in model_type.accepted_keys.items())
-            await interaction.response.send_message(f"At least one incorrect configuration entry was provided. \n\n**Accepted Entries**\n\n{accepted_keys if accepted_keys else "No customisation options allowed."}\n\n**`model_configuration` Example**\n\n`temperature = 1, top_p = 1`")
+            await interaction.response.send_message(f"{developerconfig.FAILURE_MARK} At least one incorrect configuration entry was provided. \n\n**Accepted Entries**\n\n{accepted_keys if accepted_keys else "No customisation options allowed."}\n\n**`model_configuration` Example**\n\n`temperature = 1, top_p = 1`")
             
     @profile_group.command(name="destroy", description="Delete a customisation profile for a model.")
     @discord.app_commands.describe(
@@ -351,7 +352,7 @@ class Communication(commands.Cog):
         user_models = usermodelhandler.get_user_models(interaction.user)
 
         reply_text = "\n\n".join([f"> **{model.model_name}**\n\n*Based off of:* `{commands_utils.get_modeltype_from_name(model.based_model).display_name}`\n{"\n".join([f"*{k}*: `{v}`" for k, v in model._model_json_obj.items()])}" for model in user_models])
-        await interaction.response.send_message(reply_text)
+        await interaction.response.send_message(reply_text if reply_text else "You have no custom models.")
     
     """Model Group Commands"""
     

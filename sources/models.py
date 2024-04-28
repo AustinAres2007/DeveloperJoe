@@ -222,9 +222,11 @@ async def _gpt_ask_base(query: str, context: GPTConversationContext | None,  mod
     except (TimeoutError, httpx.ReadTimeout):
         raise exceptions.DGException(errors.AIErrors.AI_TIMEOUT_ERROR)
     
-    except Exception as excp:
+    except openai.OpenAIError as excp:
         raise exceptions.ModelError(f"Incorrect model configuration.\n\nError: {excp}")
     
+    except Exception as Generic_error:
+        raise exceptions.ModelError(f"Unknown Error Occured (Likely due to invalid model profile)\n\nError: {Generic_error}\nArguments: {Generic_error.args}\nProfile: {model_configuration.model_name if model_configuration else 'No profile.'}")
     raise TypeError("Expected AIErrorResponse or AIQueryResponse, got {}".format(type(response)))
         
 async def _gpt_ask_stream_base(
@@ -282,8 +284,11 @@ async def _gpt_ask_stream_base(
         except openai.AuthenticationError:
             raise exceptions.ModelError("**OpenAI API Key is invalid.** Please contact bot owner to resolve this issue.")
     
-    except Exception as excp:
+    except openai.OpenAIError as excp:
         raise exceptions.ModelError(f"Incorrect model configuration.\n\nError: {excp}")
+    
+    except Exception as Generic_error:
+        raise exceptions.ModelError(f"Unknown Error Occured (Likely due to invalid model profile)\n\nError: {Generic_error}\nArguments: {Generic_error.args}\nProfile: {model_configuration.model_name if model_configuration else 'No profile.'}")
     
 async def _gpt_image_base(prompt: str, image_engine: types.ImageEngine, api_key: str) -> responses.OpenAIImageResponse:
     async with openai.AsyncOpenAI(api_key=api_key) as async_openai_client:
